@@ -144,8 +144,8 @@ export function NovaConsultaModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] rounded-2xl p-6 bg-white border border-gray-100 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF1F2] text-[#E85C64]">
+          <DialogTitle className="text-xl font-serif font-bold text-[#4A322A] flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50">
               <Calendar className="h-5 w-5" />
             </span>
             Nova Consulta
@@ -263,16 +263,16 @@ export function NovaConsultaModal({
             <Button
               type="submit"
               disabled={submitting}
-              className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-semibold rounded-lg h-10 shadow-sm transition-all"
+              className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-lg h-10 shadow-sm transition-all border border-[#DFBF8E]/40"
             >
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Agendando...
                 </>
               ) : (
-                'Agendar Consulta'
+                'Confirmar Agendamento'
               )}
-            </Button>
+            </Button>{' '}
           </DialogFooter>
         </form>
       </DialogContent>

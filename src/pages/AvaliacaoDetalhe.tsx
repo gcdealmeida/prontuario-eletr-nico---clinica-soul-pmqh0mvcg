@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { getAvaliacaoById, getCollectionNameByEspecialidade } from '@/services/avaliacoes'
 import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
 import type { Especialidade } from '@/types/database'
+import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function AvaliacaoDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -48,8 +49,8 @@ export default function AvaliacaoDetalhe() {
   if (loading) {
     return (
       <div className="py-24 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
-        <span className="text-xs text-gray-500 font-medium">Carregando prontuário...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+        <span className="text-xs text-[#73574A] font-medium">Carregando prontuário...</span>
       </div>
     )
   }
@@ -80,7 +81,7 @@ export default function AvaliacaoDetalhe() {
           <span>/</span>
           <span className="font-semibold text-gray-700">{pacNome}</span>
           <span>/</span>
-          <span className="font-bold text-[#E85C64]">{espParam}</span>
+          <span className="font-bold text-[#8C6527]">{espParam}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -115,6 +116,25 @@ export default function AvaliacaoDetalhe() {
 
       {/* Main Document Card (rendered for view & print) */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
+        {/* Official Header with SOUL branding (Visible in print and screen) */}
+        <div className="pb-6 border-b border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <LogoSOUL variant="compact" size="md" theme="light" />
+            <div className="hidden sm:block border-l border-[#E9E1D2] pl-4">
+              <span className="text-[10px] uppercase tracking-widest text-[#73574A] font-semibold block">
+                Prontuário Oficial
+              </span>
+              <span className="text-xs text-[#5C4033] font-serif">
+                Clínica Integrada de Saúde e Bem-Estar
+              </span>
+            </div>
+          </div>
+          <div className="text-right text-xs text-[#73574A] space-y-0.5">
+            <p className="font-semibold text-[#4A322A]">Documento Clínico Confidencial</p>
+            <p className="text-[11px]">Emitido em {new Date().toLocaleDateString('pt-BR')}</p>
+          </div>
+        </div>
+
         {/* Document Header */}
         <div className="pb-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -348,7 +368,7 @@ export default function AvaliacaoDetalhe() {
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-gray-500 block">IMC</span>
-                  <span className="text-base font-bold text-[#E85C64]">{avaliacao.imc || '—'}</span>
+                  <span className="text-base font-bold text-[#8C6527]">{avaliacao.imc || '—'}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-gray-500 block">% Gordura</span>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { HeartPulse, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import pb from '@/lib/pocketbase/client'
+import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
@@ -34,17 +35,15 @@ export default function VerifyEmail() {
   }, [token, navigate])
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F5F2] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
+    <div className="min-h-screen w-full bg-[#FAF7F1] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-[#E9E1D2] p-8 text-center space-y-4">
         <div className="flex justify-center mb-2">
-          <div className="h-10 w-10 rounded-2xl bg-[#E85C64] flex items-center justify-center text-white">
-            <HeartPulse className="h-6 w-6" />
-          </div>
+          <LogoSOUL variant="compact" size="md" theme="light" />
         </div>
 
         {loading ? (
           <div className="py-8 space-y-3">
-            <Loader2 className="h-10 w-10 animate-spin text-[#E85C64] mx-auto" />
+            <Loader2 className="h-10 w-10 animate-spin text-[#C9A46A] mx-auto" />
             <h3 className="text-lg font-bold text-gray-900">Validando seu e-mail...</h3>
             <p className="text-sm text-gray-500">Aguarde um instante.</p>
           </div>
@@ -56,7 +55,7 @@ export default function VerifyEmail() {
               Sua conta está ativada com sucesso. Redirecionando para o login...
             </p>
             <Link to="/">
-              <Button className="w-full h-10 rounded-xl bg-gray-900 text-white">
+              <Button className="w-full h-10 rounded-xl bg-gradient-to-r from-[#C9A46A] to-[#B88E52] text-[#33221C] font-bold">
                 Fazer login agora
               </Button>
             </Link>

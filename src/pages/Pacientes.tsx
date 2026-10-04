@@ -226,14 +226,13 @@ export default function Pacientes() {
             Gerenciamento completo da base de pacientes e prontuários da SOUL.
           </p>
         </div>
-
         <Button
           onClick={openNewPacienteModal}
-          className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-medium rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm"
+          className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 text-[#33221C]" />
           Novo Paciente
-        </Button>
+        </Button>{' '}
       </div>
 
       {/* Search & Filters */}
@@ -277,8 +276,8 @@ export default function Pacientes() {
       {/* Desktop Table & Mobile Cards */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="py-16 flex flex-col items-center justify-center gap-2 text-gray-400">
-            <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
+          <div className="py-16 flex flex-col items-center justify-center gap-2 text-[#73574A]">
+            <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
             <span className="text-xs font-medium">Carregando lista de pacientes...</span>
           </div>
         ) : pacientes.length === 0 ? (
@@ -291,10 +290,10 @@ export default function Pacientes() {
             <Button
               onClick={openNewPacienteModal}
               size="sm"
-              className="mt-2 bg-[#E85C64] hover:bg-[#C9444C] text-white rounded-lg text-xs"
+              className="mt-2 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold rounded-lg text-xs"
             >
-              Cadastrar Primeiro Paciente
-            </Button>
+              Cadastrar primeiro paciente
+            </Button>{' '}
           </div>
         ) : (
           <>
@@ -320,11 +319,13 @@ export default function Pacientes() {
                     >
                       <td className="py-3.5 px-4 pl-6">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] text-white font-bold text-xs shrink-0">
-                            <AvatarFallback>{getInitials(p.nome)}</AvatarFallback>
+                          <Avatar className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-white font-bold text-xs shrink-0 shadow-xs">
+                            <AvatarFallback className="bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-[#33221C] font-bold">
+                              {getInitials(p.nome)}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 group-hover:text-[#E85C64] transition-colors">
+                            <p className="font-semibold text-gray-900 group-hover:text-[#8C6527] transition-colors">
                               {p.nome}
                             </p>
                             <p className="text-xs text-gray-400 truncate">
@@ -389,7 +390,7 @@ export default function Pacientes() {
                               onClick={() => navigate(`/prontuarios/novo?paciente=${p.id}`)}
                               className="text-xs cursor-pointer flex items-center gap-2"
                             >
-                              <FileText className="h-3.5 w-3.5 text-[#E85C64]" /> Nova Avaliação
+                              <FileText className="h-3.5 w-3.5 text-[#8C6527]" /> Nova Avaliação
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => openEditPacienteModal(p)}
@@ -416,8 +417,10 @@ export default function Pacientes() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] text-white font-bold text-xs shrink-0">
-                        <AvatarFallback>{getInitials(p.nome)}</AvatarFallback>
+                      <Avatar className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-white font-bold text-xs shrink-0 shadow-xs">
+                        <AvatarFallback className="bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-[#33221C] font-bold">
+                          {getInitials(p.nome)}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <h4 className="font-bold text-sm text-gray-900">{p.nome}</h4>
@@ -510,7 +513,7 @@ export default function Pacientes() {
         <DialogContent className="sm:max-w-[550px] rounded-2xl p-6 bg-white border border-gray-100 shadow-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF1F2] text-[#E85C64]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50">
                 <Users className="h-5 w-5" />
               </span>
               {editingPaciente ? 'Editar Dados do Paciente' : 'Novo Paciente'}
@@ -628,7 +631,7 @@ export default function Pacientes() {
               <Button
                 type="submit"
                 disabled={savingPaciente}
-                className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] text-white font-semibold rounded-xl h-10 shadow-sm"
+                className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 shadow-sm border border-[#DFBF8E]/40"
               >
                 {savingPaciente ? (
                   <>
@@ -637,7 +640,7 @@ export default function Pacientes() {
                 ) : (
                   'Salvar Paciente'
                 )}
-              </Button>
+              </Button>{' '}
             </DialogFooter>
           </form>
         </DialogContent>

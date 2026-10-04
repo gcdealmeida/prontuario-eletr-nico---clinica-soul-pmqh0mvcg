@@ -27,10 +27,26 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
-        display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Inter var', 'system-ui', 'sans-serif'],
+        display: ['Cormorant Garamond', 'Georgia', 'serif'],
+        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+        soul: ['Cormorant Garamond', 'Georgia', 'serif'],
       },
       colors: {
+        soul: {
+          gold: '#C9A46A',
+          'gold-light': '#E3C89A',
+          'gold-dark': '#A37E43',
+          champagne: '#F0E3CC',
+          'champagne-light': '#FAF4EA',
+          brown: '#5C4033',
+          'brown-dark': '#4A322A',
+          'brown-deep': '#33221C',
+          copper: '#B87355',
+          'copper-light': '#D6957B',
+          cream: '#FAF7F1',
+          linen: '#F4EFE6',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

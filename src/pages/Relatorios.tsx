@@ -154,17 +154,17 @@ export default function Relatorios() {
       const totalDist = Object.values(espCounts).reduce((a, b) => a + b, 0)
       if (totalDist === 0) {
         setSpecialtyDistribution([
-          { name: 'Fisioterapia', value: 35, color: '#3B82F6' },
-          { name: 'Personal', value: 25, color: '#F97316' },
-          { name: 'Nutrição', value: 22, color: '#22C55E' },
-          { name: 'Médico', value: 18, color: '#8B5CF6' },
+          { name: 'Fisioterapia', value: 4, color: '#C9A46A' },
+          { name: 'Personal', value: 3, color: '#B87355' },
+          { name: 'Nutrição', value: 2, color: '#477A53' },
+          { name: 'Médico', value: 1, color: '#5C4033' },
         ])
       } else {
         setSpecialtyDistribution([
-          { name: 'Fisioterapia', value: espCounts['Fisioterapia'] || 2, color: '#3B82F6' },
-          { name: 'Personal', value: espCounts['Personal'] || 1, color: '#F97316' },
-          { name: 'Nutrição', value: espCounts['Nutrição'] || 1, color: '#22C55E' },
-          { name: 'Médico', value: espCounts['Médico'] || 1, color: '#8B5CF6' },
+          { name: 'Fisioterapia', value: espCounts['Fisioterapia'] || 2, color: '#C9A46A' },
+          { name: 'Personal', value: espCounts['Personal'] || 1, color: '#B87355' },
+          { name: 'Nutrição', value: espCounts['Nutrição'] || 1, color: '#477A53' },
+          { name: 'Médico', value: espCounts['Médico'] || 1, color: '#5C4033' },
         ])
       }
 
@@ -226,8 +226,8 @@ export default function Relatorios() {
 
       {loading ? (
         <div className="py-24 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
-          <span className="text-xs text-gray-500 font-medium">Processando indicadores...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+          <span className="text-xs text-[#73574A] font-medium">Processando indicadores...</span>
         </div>
       ) : (
         <div className="space-y-6">
@@ -264,12 +264,12 @@ export default function Relatorios() {
                       <Bar
                         dataKey="Fisioterapia"
                         stackId="a"
-                        fill="#3B82F6"
+                        fill="#C9A46A"
                         radius={[0, 0, 0, 0]}
                       />
-                      <Bar dataKey="Personal" stackId="a" fill="#F97316" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Nutrição" stackId="a" fill="#22C55E" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Médico" stackId="a" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Personal" stackId="a" fill="#B87355" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="Nutrição" stackId="a" fill="#477A53" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="Médico" stackId="a" fill="#5C4033" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -283,7 +283,7 @@ export default function Relatorios() {
                   <h3 className="text-base font-bold text-gray-900">Novos Pacientes por Mês</h3>
                   <Badge
                     variant="outline"
-                    className="text-xs bg-red-50 text-[#E85C64] border-red-200"
+                    className="text-xs bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]"
                   >
                     Crescimento
                   </Badge>
@@ -297,25 +297,25 @@ export default function Relatorios() {
                     <AreaChart data={monthlyPacientes}>
                       <defs>
                         <linearGradient id="colorPac" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#E85C64" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#E85C64" stopOpacity={0.0} />
+                          <stop offset="5%" stopColor="#C9A46A" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#C9A46A" stopOpacity={0.0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4EFE6" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#73574A" />
+                      <YAxis tick={{ fontSize: 11 }} stroke="#73574A" />
                       <RechartsTooltip
                         contentStyle={{
-                          backgroundColor: '#FFF',
+                          backgroundColor: '#FAF7F1',
                           borderRadius: '12px',
-                          border: '1px solid #E5E7EB',
+                          border: '1px solid #E9E1D2',
                           fontSize: '12px',
                         }}
                       />
                       <Area
                         type="monotone"
                         dataKey="pacientes"
-                        stroke="#E85C64"
+                        stroke="#C9A46A"
                         strokeWidth={3}
                         fillOpacity={1}
                         fill="url(#colorPac)"
@@ -413,11 +413,11 @@ export default function Relatorios() {
                             <span
                               className={`h-6 w-6 rounded-full inline-flex items-center justify-center font-bold text-xs ${
                                 idx === 0
-                                  ? 'bg-[#E85C64] text-white shadow-xs'
+                                  ? 'bg-[#C9A46A] text-[#33221C] shadow-xs'
                                   : idx === 1
-                                    ? 'bg-orange-100 text-orange-800'
+                                    ? 'bg-[#FDF2EE] text-[#B87355]'
                                     : idx === 2
-                                      ? 'bg-blue-100 text-blue-800'
+                                      ? 'bg-[#F2F6F1] text-[#477A53]'
                                       : 'bg-gray-100 text-gray-600'
                               }`}
                             >

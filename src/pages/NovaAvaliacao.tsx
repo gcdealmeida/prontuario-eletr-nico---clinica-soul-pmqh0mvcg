@@ -516,7 +516,7 @@ export default function NovaAvaliacao() {
           {/* Selecionar Paciente */}
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-              <User className="h-4 w-4 text-[#E85C64]" /> Paciente do Atendimento *
+              <User className="h-4 w-4 text-[#8C6527]" /> Paciente do Atendimento *
             </Label>
             <Select value={selectedPacienteId} onValueChange={setSelectedPacienteId}>
               <SelectTrigger className="h-12 rounded-xl border-gray-200 text-sm">
@@ -624,7 +624,7 @@ export default function NovaAvaliacao() {
             <Button
               disabled={!selectedPacienteId}
               onClick={() => setStep(2)}
-              className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-semibold rounded-xl h-11 px-6 shadow-sm flex items-center gap-2"
+              className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-11 px-6 shadow-sm flex items-center gap-2 border border-[#DFBF8E]/40"
             >
               Prosseguir para Formulário
               <ChevronRight className="h-4 w-4" />
@@ -680,7 +680,7 @@ export default function NovaAvaliacao() {
             {/* Progress bar */}
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-[#E85C64] to-[#C9444C] transition-all duration-300"
+                className="h-full bg-gradient-to-r from-[#C9A46A] to-[#B87355] transition-all duration-300"
                 style={{ width: `${((currentSectionIndex + 1) / sections.length) * 100}%` }}
               />
             </div>
@@ -742,7 +742,7 @@ export default function NovaAvaliacao() {
                     >
                       <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
                         <span>{field.label}</span>
-                        <span className="font-mono text-[#E85C64] font-bold text-sm">
+                        <span className="font-mono text-[#8C6527] font-bold text-sm">
                           {numVal}°
                         </span>
                       </div>
@@ -795,15 +795,15 @@ export default function NovaAvaliacao() {
                   return (
                     <div
                       key={field.name}
-                      className="p-3.5 rounded-2xl bg-[#FFF1F2] border border-[#FECDD3] flex items-center justify-between"
+                      className="p-3.5 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-center justify-between"
                     >
                       <div>
-                        <span className="text-xs font-bold text-[#E85C64] block">
+                        <span className="text-xs font-bold text-[#8C6527] block">
                           Índice IMC Calculado
                         </span>
                         <span className="text-xs text-gray-600">{classificacao}</span>
                       </div>
-                      <div className="text-xl font-black text-[#E85C64] font-mono">
+                      <div className="text-xl font-black text-[#8C6527] font-mono">
                         {imc} {typeof imc === 'number' ? 'kg/m²' : ''}
                       </div>
                     </div>
@@ -861,7 +861,7 @@ export default function NovaAvaliacao() {
                   <Button
                     disabled={submitting}
                     onClick={() => handleSaveEvaluation('Concluída')}
-                    className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-semibold rounded-xl h-10 px-6 text-xs shadow-sm flex items-center gap-1.5"
+                    className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-6 text-xs shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/40"
                   >
                     {submitting ? (
                       <>

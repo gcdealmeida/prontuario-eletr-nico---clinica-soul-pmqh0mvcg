@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { HeartPulse, Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
+import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
@@ -51,13 +52,10 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F5F2] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 sm:p-10">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="h-9 w-9 rounded-xl bg-[#E85C64] flex items-center justify-center text-white">
-            <HeartPulse className="h-5 w-5" />
-          </div>
-          <span className="text-xl font-black text-gray-900">SOUL Clínica</span>
+    <div className="min-h-screen w-full bg-[#FAF7F1] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-[#E9E1D2] p-8 sm:p-10">
+        <div className="flex justify-center mb-6">
+          <LogoSOUL variant="compact" size="md" theme="light" />
         </div>
 
         {success ? (
@@ -116,7 +114,7 @@ export default function ResetPassword() {
               <Button
                 type="submit"
                 disabled={loading || !token}
-                className="w-full h-11 bg-gradient-to-r from-[#E85C64] to-[#C9444C] text-white font-semibold rounded-xl shadow-md transition-all"
+                className="w-full h-11 bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl shadow-md transition-all"
               >
                 {loading ? (
                   <>

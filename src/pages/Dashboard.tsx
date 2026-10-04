@@ -65,21 +65,21 @@ export default function Dashboard() {
         }
       })
 
-      // If all zero, give a pleasant starting mock view
+      // Distribuição por especialidade com a paleta terrosa oficial SOUL
       const total = Object.values(counts).reduce((a, b) => a + b, 0)
       if (total === 0) {
         setSpecialtyDistribution([
-          { name: 'Fisioterapia', value: 40, color: '#3B82F6' },
-          { name: 'Personal', value: 25, color: '#F97316' },
-          { name: 'Nutrição', value: 20, color: '#22C55E' },
-          { name: 'Médico', value: 15, color: '#8B5CF6' },
+          { name: 'Fisioterapia', value: 40, color: '#C9A46A' }, // Dourado champagne
+          { name: 'Personal', value: 25, color: '#B87355' }, // Cobre / rosé
+          { name: 'Nutrição', value: 20, color: '#477A53' }, // Verde sálvia
+          { name: 'Médico', value: 15, color: '#5C4033' }, // Marrom café
         ])
       } else {
         setSpecialtyDistribution([
-          { name: 'Fisioterapia', value: counts['Fisioterapia'] || 1, color: '#3B82F6' },
-          { name: 'Personal', value: counts['Personal'] || 1, color: '#F97316' },
-          { name: 'Nutrição', value: counts['Nutrição'] || 1, color: '#22C55E' },
-          { name: 'Médico', value: counts['Médico'] || 1, color: '#8B5CF6' },
+          { name: 'Fisioterapia', value: counts['Fisioterapia'] || 1, color: '#C9A46A' },
+          { name: 'Personal', value: counts['Personal'] || 1, color: '#B87355' },
+          { name: 'Nutrição', value: counts['Nutrição'] || 1, color: '#477A53' },
+          { name: 'Médico', value: counts['Médico'] || 1, color: '#5C4033' },
         ])
       }
     } catch (err) {
@@ -109,18 +109,18 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#4A322A]">
             Bem-vindo(a), {user?.name || 'Profissional SOUL'} 👋
           </h1>
-          <p className="text-sm text-gray-500 capitalize mt-1">Hoje, {hojePtBr}</p>
+          <p className="text-xs sm:text-sm text-[#73574A] capitalize mt-1">Hoje, {hojePtBr}</p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             onClick={() => navigate('/prontuarios/novo')}
-            className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] text-white shadow-sm hover:opacity-95 rounded-xl h-10 px-4 text-sm font-medium flex items-center gap-2"
+            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] text-[#33221C] font-semibold shadow-sm hover:brightness-105 rounded-xl h-10 px-4 text-sm flex items-center gap-2 border border-[#DFBF8E]/40"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 text-[#33221C]" />
             Nova Avaliação
           </Button>
         </div>
@@ -131,19 +131,21 @@ export default function Dashboard() {
         {/* Card 1: Pacientes Ativos */}
         <div
           onClick={() => navigate('/pacientes')}
-          className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+          className="bg-white rounded-2xl p-6 border border-[#E9E1D2] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#73574A]">
               Pacientes Ativos
             </span>
-            <div className="h-10 w-10 rounded-xl bg-[#FFF1F2] text-[#E85C64] flex items-center justify-center transition-transform group-hover:scale-110">
+            <div className="h-10 w-10 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/40 flex items-center justify-center transition-transform group-hover:scale-110">
               <Users className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-gray-900">{pacientesAtivosCount}</span>
-            <span className="text-xs font-medium text-[#16A34A] flex items-center gap-0.5">
+            <span className="text-3xl font-bold font-serif text-[#4A322A]">
+              {pacientesAtivosCount}
+            </span>
+            <span className="text-xs font-semibold text-[#477A53] flex items-center gap-0.5">
               <TrendingUp className="h-3 w-3" /> +12% mês
             </span>
           </div>
@@ -153,36 +155,38 @@ export default function Dashboard() {
         {/* Card 2: Consultas Hoje (Clicável -> Agenda) */}
         <div
           onClick={() => navigate('/agenda')}
-          className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+          className="bg-white rounded-2xl p-6 border border-[#E9E1D2] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#73574A]">
               Consultas Hoje
             </span>
-            <div className="h-10 w-10 rounded-xl bg-[#EFF6FF] text-[#3B82F6] flex items-center justify-center transition-transform group-hover:scale-110">
+            <div className="h-10 w-10 rounded-xl bg-[#FDF2EE] text-[#B87355] border border-[#E7BFB0]/50 flex items-center justify-center transition-transform group-hover:scale-110">
               <Calendar className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-gray-900">{consultasHoje.length}</span>
-            <span className="text-xs text-blue-600 font-medium">Ver agenda do dia →</span>
+            <span className="text-3xl font-bold font-serif text-[#4A322A]">
+              {consultasHoje.length}
+            </span>
+            <span className="text-xs text-[#B87355] font-semibold">Ver agenda do dia →</span>
           </div>
           <p className="text-xs text-gray-400 mt-1">Atendimentos programados para hoje</p>
         </div>
 
         {/* Card 3: Satisfação */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+        <div className="bg-white rounded-2xl p-6 border border-[#E9E1D2] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#73574A]">
               Avg. Satisfação
             </span>
-            <div className="h-10 w-10 rounded-xl bg-[#F0FDF4] text-[#22C55E] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-[#F2F6F1] text-[#477A53] border border-[#C1D7C4]/50 flex items-center justify-center">
               <Smile className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-gray-900">94%</span>
-            <span className="text-xs font-medium text-[#16A34A]">Excelente</span>
+            <span className="text-3xl font-bold font-serif text-[#4A322A]">94%</span>
+            <span className="text-xs font-semibold text-[#477A53]">Excelente</span>
           </div>
           <p className="text-xs text-gray-400 mt-1">Avaliações positivas dos pacientes</p>
         </div>
@@ -190,19 +194,21 @@ export default function Dashboard() {
         {/* Card 4: Consultas na Semana */}
         <div
           onClick={() => navigate('/agenda')}
-          className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+          className="bg-white rounded-2xl p-6 border border-[#E9E1D2] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#73574A]">
               Consultas na Semana
             </span>
-            <div className="h-10 w-10 rounded-xl bg-[#F5F3FF] text-[#8B5CF6] flex items-center justify-center transition-transform group-hover:scale-110">
+            <div className="h-10 w-10 rounded-xl bg-[#F5F1EE] text-[#5C4033] border border-[#D9C8BE]/50 flex items-center justify-center transition-transform group-hover:scale-110">
               <Clock className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-gray-900">{consultasSemanaCount}</span>
-            <span className="text-xs text-purple-600 font-medium">Fluxo semanal</span>
+            <span className="text-3xl font-bold font-serif text-[#4A322A]">
+              {consultasSemanaCount}
+            </span>
+            <span className="text-xs text-[#5C4033] font-semibold">Fluxo semanal</span>
           </div>
           <p className="text-xs text-gray-400 mt-1">Total de agendamentos registrados</p>
         </div>
@@ -215,16 +221,16 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF1F2] text-[#E85C64]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50">
                   <Calendar className="h-4 w-4" />
                 </span>
-                <h2 className="text-lg font-bold text-gray-900">Consultas de Hoje</h2>
+                <h2 className="text-lg font-serif font-bold text-[#4A322A]">Consultas de Hoje</h2>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/agenda')}
-                className="text-xs text-[#E85C64] hover:text-[#C9444C] hover:bg-[#FFF1F2] rounded-lg"
+                className="text-xs text-[#8C6527] hover:text-[#5C4033] hover:bg-[#FAF4EA] rounded-lg"
               >
                 Abrir Agenda <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
@@ -258,7 +264,7 @@ export default function Dashboard() {
                         </div>
 
                         <div>
-                          <div className="font-semibold text-sm text-gray-900 group-hover:text-[#E85C64] transition-colors">
+                          <div className="font-semibold text-sm text-[#33221C] group-hover:text-[#8C6527] transition-colors">
                             {pacNome}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -299,10 +305,10 @@ export default function Dashboard() {
                               )}`,
                             )
                           }}
-                          className="h-8 px-2.5 rounded-lg bg-[#E85C64] hover:bg-[#C9444C] text-white text-xs font-medium flex items-center gap-1 shadow-xs"
+                          className="h-8 px-2.5 rounded-lg bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] text-xs font-semibold flex items-center gap-1 shadow-xs border border-[#DFBF8E]/40"
                           title="Iniciar avaliação clínica"
                         >
-                          <Play className="h-3.5 w-3.5 fill-current" />
+                          <Play className="h-3.5 w-3.5 fill-current text-[#33221C]" />
                           <span className="hidden sm:inline">Iniciar</span>
                         </Button>
                       </div>
@@ -317,8 +323,8 @@ export default function Dashboard() {
         {/* Donut Chart: Especialidades */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Especialidades</h2>
-            <p className="text-xs text-gray-400 mb-4">Distribuição de atendimentos da clínica</p>
+            <h2 className="text-lg font-serif font-bold text-[#4A322A] mb-1">Especialidades</h2>
+            <p className="text-xs text-[#73574A] mb-4">Distribuição de atendimentos da clínica</p>
 
             <div className="h-48 w-full relative flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
@@ -376,19 +382,19 @@ export default function Dashboard() {
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0FDF4] text-[#22C55E]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50">
               <Users className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Pacientes Recentes</h2>
-              <p className="text-xs text-gray-400">Últimos pacientes atendidos ou cadastrados</p>
+              <h2 className="text-lg font-serif font-bold text-[#4A322A]">Pacientes Recentes</h2>
+              <p className="text-xs text-[#73574A]">Últimos pacientes atendidos ou cadastrados</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/pacientes')}
-            className="text-xs text-[#E85C64] hover:text-[#C9444C] hover:bg-[#FFF1F2] rounded-lg"
+            className="text-xs text-[#8C6527] hover:text-[#5C4033] hover:bg-[#FAF4EA] rounded-lg"
           >
             Ver todos os pacientes <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
@@ -407,13 +413,15 @@ export default function Dashboard() {
                 className="p-4 rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm bg-gray-50/40 hover:bg-white transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] text-white font-bold text-xs shrink-0">
-                    <AvatarFallback>{getInitials(p.nome)}</AvatarFallback>
+                  <Avatar className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-white font-bold text-xs shrink-0 shadow-xs">
+                    <AvatarFallback className="bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-[#33221C] font-bold">
+                      {getInitials(p.nome)}
+                    </AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900 truncate group-hover:text-[#E85C64] transition-colors">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#33221C] truncate group-hover:text-[#8C6527] transition-colors">
                       {p.nome}
-                    </p>
+                    </p>{' '}
                     <p className="text-xs text-gray-400 truncate">
                       {p.email || p.telefone || 'Sem contato'}
                     </p>

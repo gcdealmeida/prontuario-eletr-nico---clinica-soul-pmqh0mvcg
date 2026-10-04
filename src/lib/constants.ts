@@ -1,35 +1,48 @@
+export const SOUL_PALETTE = {
+  gold: '#C9A46A',
+  goldLight: '#E3C89A',
+  goldPale: '#F0E3CC',
+  brown: '#5C4033',
+  brownDark: '#4A322A',
+  brownDeep: '#33221C',
+  copper: '#B87355',
+  copperLight: '#D6957B',
+  cream: '#FAF7F1',
+  linen: '#F4EFE6',
+} as const
+
 export const ESPECIALIDADE_COLORS = {
   Fisioterapia: {
-    badge: 'bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]',
-    chip: 'bg-[#3B82F6] text-white',
-    border: 'border-[#3B82F6]',
-    text: 'text-[#3B82F6]',
-    hex: '#3B82F6',
-    bgSoft: '#EFF6FF',
+    badge: 'bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]',
+    chip: 'bg-[#C9A46A] text-[#33221C] font-semibold',
+    border: 'border-[#C9A46A]',
+    text: 'text-[#8C6527]',
+    hex: '#C9A46A', // Dourado champagne SOUL
+    bgSoft: '#FAF4EA',
   },
   Personal: {
-    badge: 'bg-[#FFEDD5] text-[#C2410C] border-[#FDBA74]',
-    chip: 'bg-[#F97316] text-white',
-    border: 'border-[#F97316]',
-    text: 'text-[#F97316]',
-    hex: '#F97316',
-    bgSoft: '#FFF7ED',
+    badge: 'bg-[#FDF2EE] text-[#9A4B2E] border-[#E7BFB0]',
+    chip: 'bg-[#B87355] text-white',
+    border: 'border-[#B87355]',
+    text: 'text-[#B87355]',
+    hex: '#B87355', // Cobre / Rosé SOUL
+    bgSoft: '#FDF2EE',
   },
   Nutrição: {
-    badge: 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]',
-    chip: 'bg-[#22C55E] text-white',
-    border: 'border-[#22C55E]',
-    text: 'text-[#22C55E]',
-    hex: '#22C55E',
-    bgSoft: '#F0FDF4',
+    badge: 'bg-[#F2F6F1] text-[#2F5E39] border-[#C1D7C4]',
+    chip: 'bg-[#477A53] text-white',
+    border: 'border-[#477A53]',
+    text: 'text-[#2F5E39]',
+    hex: '#477A53', // Verde Oliva / Sálvia sofisticado
+    bgSoft: '#F2F6F1',
   },
   Médico: {
-    badge: 'bg-[#EDE9FE] text-[#6D28D9] border-[#C4B5FD]',
-    chip: 'bg-[#8B5CF6] text-white',
-    border: 'border-[#8B5CF6]',
-    text: 'text-[#8B5CF6]',
-    hex: '#8B5CF6',
-    bgSoft: '#F5F3FF',
+    badge: 'bg-[#F5F1EE] text-[#5C4033] border-[#D9C8BE]',
+    chip: 'bg-[#5C4033] text-white',
+    border: 'border-[#5C4033]',
+    text: 'text-[#5C4033]',
+    hex: '#5C4033', // Marrom Café SOUL
+    bgSoft: '#F5F1EE',
   },
 } as const
 

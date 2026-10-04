@@ -84,9 +84,9 @@ export default function Prontuarios() {
 
         <Button
           onClick={() => navigate('/prontuarios/novo')}
-          className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-medium rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm"
+          className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 text-[#33221C]" />
           Nova Avaliação
         </Button>
       </div>
@@ -137,8 +137,8 @@ export default function Prontuarios() {
 
       {/* List / Cards */}
       {loading ? (
-        <div className="py-16 flex flex-col items-center justify-center gap-2 text-gray-400">
-          <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
+        <div className="py-16 flex flex-col items-center justify-center gap-2 text-[#73574A]">
+          <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
           <span className="text-xs font-medium">Carregando prontuários...</span>
         </div>
       ) : filteredAvaliacoes.length === 0 ? (
@@ -151,10 +151,10 @@ export default function Prontuarios() {
           <Button
             onClick={() => navigate('/prontuarios/novo')}
             size="sm"
-            className="mt-2 bg-[#E85C64] hover:bg-[#C9444C] text-white rounded-xl text-xs"
+            className="mt-2 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold rounded-xl text-xs"
           >
-            Realizar Primeira Avaliação
-          </Button>
+            Criar primeira avaliação
+          </Button>{' '}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -187,7 +187,7 @@ export default function Prontuarios() {
                     </Badge>
                   </div>
 
-                  <h3 className="font-bold text-base text-gray-900 group-hover:text-[#E85C64] transition-colors truncate">
+                  <h3 className="font-bold text-base text-[#33221C] group-hover:text-[#8C6527] transition-colors truncate">
                     {pacNome}
                   </h3>
 
@@ -205,9 +205,9 @@ export default function Prontuarios() {
                     <Calendar className="h-3.5 w-3.5" />
                     <span>{formatDataPTBR(item.data_avaliacao || item.created)}</span>
                   </div>
-                  <span className="text-[#E85C64] font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
-                    Ver ficha <ArrowRight className="h-3.5 w-3.5" />
-                  </span>
+                  <span className="text-[#8C6527] font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                    Abrir avaliação <ArrowRight className="h-3.5 w-3.5" />
+                  </span>{' '}
                 </div>
               </div>
             )

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  HeartPulse,
   Eye,
   EyeOff,
   Loader2,
@@ -10,6 +9,7 @@ import {
   Layers,
   Smile,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -88,97 +89,92 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F5F2] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-      {/* Decorative floating blobs */}
-      <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-[#E85C64]/10 blur-3xl pointer-events-none animate-float" />
+    <div className="min-h-screen w-full bg-[#FAF7F1] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Decorative floating blobs em dourado champagne e rosé */}
+      <div className="absolute top-10 left-10 w-80 h-80 rounded-full bg-[#C9A46A]/15 blur-3xl pointer-events-none animate-float" />
       <div
-        className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-[#3B82F6]/10 blur-3xl pointer-events-none animate-float"
+        className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-[#B87355]/12 blur-3xl pointer-events-none animate-float"
         style={{ animationDelay: '3s' }}
       />
+      <div className="absolute top-1/2 left-1/3 w-64 h-64 rounded-full bg-[#F0E3CC]/40 blur-2xl pointer-events-none" />
 
       {/* Main card */}
-      <div className="w-full max-w-[1000px] bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden grid grid-cols-1 lg:grid-cols-12 z-10 transition-all">
+      <div className="w-full max-w-[1020px] bg-white rounded-3xl shadow-xl border border-[#E9E1D2] overflow-hidden grid grid-cols-1 lg:grid-cols-12 z-10 transition-all">
         {/* Left Side: Brand Showcase (Desktop only) */}
-        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-[#1E2530] via-[#242D3A] to-[#161C24] p-8 text-white flex-col justify-between relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#E85C64]/20 blur-2xl" />
-          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-[#3B82F6]/20 blur-2xl" />
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-b from-[#4A322A] via-[#3D2922] to-[#2B1B15] p-8 text-white flex-col justify-between relative overflow-hidden border-r border-[#64473B]/30">
+          <div className="absolute -top-12 -right-12 w-52 h-52 rounded-full bg-[#C9A46A]/20 blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-52 h-52 rounded-full bg-[#B87355]/25 blur-2xl pointer-events-none" />
 
-          {/* Top Logo */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-2.5">
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] flex items-center justify-center shadow-lg">
-                <HeartPulse className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <span className="text-2xl font-black tracking-tight text-white">SOUL</span>
-                <span className="ml-1 text-xs uppercase tracking-widest text-[#E85C64] font-semibold">
-                  Clínica
-                </span>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-gray-300 leading-relaxed">
-              Gestão completa para sua clínica multi-especialidade. Avaliações clínicas, prontuários
-              integrados e agenda inteligente.
+          {/* Top Logo Oficial */}
+          <div className="relative z-10 flex flex-col items-center pt-2 text-center">
+            <LogoSOUL variant="full" size="md" theme="dark" />
+            <p className="mt-5 text-xs text-[#FAF4EA]/80 leading-relaxed max-w-[280px]">
+              Gestão clínica integrada multi-especialidade. Avaliações completas, prontuários
+              eletrônicos e agenda inteligente em um só lugar.
             </p>
           </div>
 
-          {/* 4 Mini Stat Cards */}
-          <div className="relative z-10 grid grid-cols-2 gap-3 my-8">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-sm">
-              <div className="h-8 w-8 rounded-xl bg-[#E85C64]/20 flex items-center justify-center text-[#E85C64] mb-2">
-                <Users className="h-4 w-4" />
+          {/* 4 Mini Stat Cards adaptados para a paleta SOUL */}
+          <div className="relative z-10 grid grid-cols-2 gap-3 my-6">
+            <div className="bg-white/5 border border-[#C9A46A]/25 rounded-2xl p-3 backdrop-blur-sm">
+              <div className="h-7 w-7 rounded-xl bg-[#C9A46A]/20 flex items-center justify-center text-[#E3C89A] mb-1.5">
+                <Users className="h-3.5 w-3.5" />
               </div>
-              <div className="text-lg font-bold text-white">100%</div>
-              <div className="text-[11px] text-gray-400">Pacientes Ativos</div>
+              <div className="text-base font-bold text-white">100%</div>
+              <div className="text-[10px] text-[#E3C89A]">Pacientes Ativos</div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-sm">
-              <div className="h-8 w-8 rounded-xl bg-[#3B82F6]/20 flex items-center justify-center text-[#3B82F6] mb-2">
-                <Calendar className="h-4 w-4" />
+            <div className="bg-white/5 border border-[#C9A46A]/25 rounded-2xl p-3 backdrop-blur-sm">
+              <div className="h-7 w-7 rounded-xl bg-[#B87355]/25 flex items-center justify-center text-[#D6957B] mb-1.5">
+                <Calendar className="h-3.5 w-3.5" />
               </div>
-              <div className="text-lg font-bold text-white">Hoje</div>
-              <div className="text-[11px] text-gray-400">Consultas & Fila</div>
+              <div className="text-base font-bold text-white">Hoje</div>
+              <div className="text-[10px] text-[#E3C89A]">Agenda & Fila</div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-sm">
-              <div className="h-8 w-8 rounded-xl bg-[#22C55E]/20 flex items-center justify-center text-[#22C55E] mb-2">
-                <Layers className="h-4 w-4" />
+            <div className="bg-white/5 border border-[#C9A46A]/25 rounded-2xl p-3 backdrop-blur-sm">
+              <div className="h-7 w-7 rounded-xl bg-[#477A53]/30 flex items-center justify-center text-[#9FD4AB] mb-1.5">
+                <Layers className="h-3.5 w-3.5" />
               </div>
-              <div className="text-lg font-bold text-white">4 Áreas</div>
-              <div className="text-[11px] text-gray-400">Especialidades</div>
+              <div className="text-base font-bold text-white">4 Áreas</div>
+              <div className="text-[10px] text-[#E3C89A]">Especialidades</div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-sm">
-              <div className="h-8 w-8 rounded-xl bg-[#8B5CF6]/20 flex items-center justify-center text-[#8B5CF6] mb-2">
-                <Smile className="h-4 w-4" />
+            <div className="bg-white/5 border border-[#C9A46A]/25 rounded-2xl p-3 backdrop-blur-sm">
+              <div className="h-7 w-7 rounded-xl bg-[#C9A46A]/20 flex items-center justify-center text-[#E3C89A] mb-1.5">
+                <Smile className="h-3.5 w-3.5" />
               </div>
-              <div className="text-lg font-bold text-white">94%</div>
-              <div className="text-[11px] text-gray-400">Satisfação Média</div>
+              <div className="text-base font-bold text-white">94%</div>
+              <div className="text-[10px] text-[#E3C89A]">Satisfação Média</div>
             </div>
           </div>
 
           {/* Bottom security pill */}
-          <div className="relative z-10 flex items-center gap-2 text-xs text-gray-400 bg-white/5 py-2 px-3 rounded-xl border border-white/5">
-            <ShieldCheck className="h-4 w-4 text-[#22C55E]" />
-            <span>Dados médicos em conformidade e criptografados</span>
+          <div className="relative z-10 flex items-center gap-2 text-[11px] text-[#FAF4EA]/70 bg-black/20 py-2 px-3 rounded-xl border border-white/5">
+            <ShieldCheck className="h-4 w-4 text-[#C9A46A] shrink-0" />
+            <span>Prontuários seguros e em conformidade ética</span>
           </div>
         </div>
 
         {/* Right Side: Form */}
-        <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-center">
+        <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-center bg-[#FAF7F1]/30">
           <div className="max-w-md w-full mx-auto space-y-6">
             <div>
-              <div className="lg:hidden flex items-center gap-2 mb-4">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] flex items-center justify-center shadow-md">
-                  <HeartPulse className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-black text-gray-900 tracking-tight">
-                  SOUL Clínica
+              {/* Mobile Logo */}
+              <div className="lg:hidden flex justify-center mb-6">
+                <LogoSOUL variant="full" size="sm" theme="light" />
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C9A46A]" />
+                <span className="text-[11px] uppercase tracking-widest text-[#73574A] font-semibold">
+                  Acesso Profissional
                 </span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Entrar na sua conta</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Acesse seu painel clínico de prontuários e avaliações.
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#4A322A] tracking-tight">
+                Entrar na sua conta
+              </h2>
+              <p className="text-xs sm:text-sm text-[#73574A] mt-1">
+                Acesse o painel clínico de prontuários, avaliações e agenda.
               </p>
             </div>
 
@@ -216,7 +212,7 @@ export default function Login() {
                   </Label>
                   <Link
                     to="/forgot-password"
-                    className="text-xs font-medium text-[#E85C64] hover:underline"
+                    className="text-xs font-medium text-[#5C4033] hover:text-[#C9A46A] hover:underline transition-colors"
                   >
                     Esqueci minha senha
                   </Link>
@@ -252,7 +248,7 @@ export default function Login() {
                     id="remember"
                     checked={rememberMe}
                     onCheckedChange={(c) => setRememberMe(!!c)}
-                    className="data-[state=checked]:bg-[#E85C64] border-gray-300"
+                    className="data-[state=checked]:bg-[#C9A46A] data-[state=checked]:border-[#C9A46A] border-[#D9C8BE]"
                   />
                   <label
                     htmlFor="remember"
@@ -266,14 +262,16 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-semibold rounded-xl shadow-md transition-all active:scale-[0.99]"
+                className="w-full h-11 bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl shadow-md transition-all active:scale-[0.99] border border-[#DFBF8E]/40"
               >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Autenticando...
                   </>
                 ) : (
-                  'Entrar'
+                  <span className="flex items-center justify-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#33221C]" /> Entrar no Sistema
+                  </span>
                 )}
               </Button>
             </form>
@@ -349,14 +347,17 @@ export default function Login() {
             <div className="text-center space-y-2 pt-2 text-xs text-gray-500">
               <div>
                 Ainda não tem conta?{' '}
-                <Link to="/signup" className="font-semibold text-[#E85C64] hover:underline">
+                <Link
+                  to="/signup"
+                  className="font-semibold text-[#5C4033] hover:text-[#C9A46A] hover:underline"
+                >
                   Criar conta
                 </Link>
               </div>
               <div className="text-[11px] text-gray-400">
                 Acesso de demonstração:{' '}
-                <span className="font-mono text-gray-600">guivemax@hotmail.com</span> /{' '}
-                <span className="font-mono text-gray-600">Skip@Pass</span>
+                <span className="font-mono text-[#5C4033] font-semibold">guivemax@hotmail.com</span>{' '}
+                / <span className="font-mono text-[#5C4033] font-semibold">Skip@Pass</span>
               </div>
             </div>
           </div>

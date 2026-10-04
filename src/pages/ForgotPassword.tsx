@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HeartPulse, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import pb from '@/lib/pocketbase/client'
+import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -31,21 +32,16 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F5F2] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 sm:p-10">
-        <div className="flex items-center gap-2 mb-6">
+    <div className="min-h-screen w-full bg-[#FAF7F1] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-[#E9E1D2] p-8 sm:p-10">
+        <div className="flex items-center justify-between mb-6">
           <Link
             to="/"
             className="p-2 -ml-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-[#E85C64] flex items-center justify-center text-white">
-              <HeartPulse className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-black text-gray-900">SOUL Clínica</span>
-          </div>
+          <LogoSOUL variant="compact" size="sm" theme="light" />
         </div>
 
         {sent ? (
@@ -66,8 +62,8 @@ export default function ForgotPassword() {
           </div>
         ) : (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Esqueceu sua senha?</h2>
-            <p className="text-sm text-gray-500 mt-1 mb-6">
+            <h2 className="text-2xl font-serif font-bold text-[#4A322A]">Esqueceu sua senha?</h2>
+            <p className="text-xs text-[#73574A] mt-1 mb-6">
               Informe seu e-mail cadastrado para receber o link seguro de recuperação de senha.
             </p>
 
@@ -96,7 +92,7 @@ export default function ForgotPassword() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-gradient-to-r from-[#E85C64] to-[#C9444C] text-white font-semibold rounded-xl shadow-md transition-all"
+                className="w-full h-11 bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl shadow-md transition-all"
               >
                 {loading ? (
                   <>

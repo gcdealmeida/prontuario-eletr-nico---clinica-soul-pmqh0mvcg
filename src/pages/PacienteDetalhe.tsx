@@ -170,8 +170,8 @@ export default function PacienteDetalhe() {
   if (loading) {
     return (
       <div className="py-24 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
-        <span className="text-sm text-gray-500 font-medium">Carregando prontuário...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+        <span className="text-sm text-[#73574A] font-medium">Carregando prontuário...</span>
       </div>
     )
   }
@@ -212,8 +212,10 @@ export default function PacienteDetalhe() {
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            <Avatar className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] text-white font-bold text-2xl shadow-md border-2 border-white shrink-0">
-              <AvatarFallback>{getInitials(paciente.nome)}</AvatarFallback>
+            <Avatar className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-white font-bold text-2xl shadow-md border-2 border-white shrink-0">
+              <AvatarFallback className="bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-[#33221C] font-bold">
+                {getInitials(paciente.nome)}
+              </AvatarFallback>
             </Avatar>
 
             <div className="space-y-2">
@@ -290,14 +292,13 @@ export default function PacienteDetalhe() {
               <Calendar className="h-4 w-4 text-blue-600" />
               Agendar Consulta
             </Button>
-
             <Button
               onClick={() => navigate(`/prontuarios/novo?paciente=${paciente.id}`)}
-              className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white rounded-xl h-10 px-4 text-xs font-semibold shadow-sm flex items-center gap-1.5"
+              className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] rounded-xl h-10 px-4 text-xs font-semibold shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/40"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 text-[#33221C]" />
               Nova Avaliação
-            </Button>
+            </Button>{' '}
           </div>
         </div>
       </div>
@@ -782,7 +783,7 @@ export default function PacienteDetalhe() {
                 <Button
                   type="submit"
                   disabled={savingDados}
-                  className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] text-white font-semibold rounded-xl h-10 px-6 shadow-sm"
+                  className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-6 shadow-sm border border-[#DFBF8E]/40"
                 >
                   {savingDados ? (
                     <>

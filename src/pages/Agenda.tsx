@@ -167,9 +167,9 @@ export default function Agenda() {
 
         <Button
           onClick={() => setNovaConsultaOpen(true)}
-          className="bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-medium rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm"
+          className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 text-[#33221C]" />
           Nova Consulta
         </Button>
       </div>
@@ -205,7 +205,7 @@ export default function Agenda() {
           </div>
 
           <div className="flex items-center gap-2 text-sm font-bold text-gray-900 capitalize pl-2">
-            <CalendarIcon className="h-4 w-4 text-[#E85C64]" />
+            <CalendarIcon className="h-4 w-4 text-[#8C6527]" />
             <span>{formattedDateTitle}</span>
           </div>
         </div>
@@ -259,10 +259,10 @@ export default function Agenda() {
               <Button
                 onClick={() => setNovaConsultaOpen(true)}
                 size="sm"
-                className="mt-4 bg-[#E85C64] hover:bg-[#C9444C] text-white rounded-xl text-xs"
+                className="mt-4 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold rounded-xl text-xs"
               >
-                + Agendar Consulta Agora
-              </Button>
+                Agendar Consulta
+              </Button>{' '}
             </div>
           ) : (
             <div className="space-y-3">
@@ -286,7 +286,7 @@ export default function Agenda() {
                         <div className="flex items-center gap-2">
                           <h4
                             onClick={() => navigate(`/pacientes/${c.paciente_id}`)}
-                            className="font-bold text-base text-gray-900 hover:text-[#E85C64] cursor-pointer transition-colors"
+                            className="font-bold text-base text-gray-900 hover:text-[#8C6527] cursor-pointer transition-colors"
                           >
                             {pacNome}
                           </h4>
@@ -320,7 +320,6 @@ export default function Agenda() {
                           <SelectItem value="Cancelada">Cancelada</SelectItem>
                         </SelectContent>
                       </Select>
-
                       {/* Iniciar Avaliação */}
                       <Button
                         size="sm"
@@ -331,11 +330,11 @@ export default function Agenda() {
                             )}`,
                           )
                         }
-                        className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                        className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] text-xs font-semibold flex items-center gap-1.5 shadow-xs border border-[#DFBF8E]/40"
                       >
-                        <Play className="h-3 w-3 fill-current" />
-                        Iniciar Avaliação
-                      </Button>
+                        <Play className="h-3.5 w-3.5 fill-current text-[#33221C]" />
+                        Atender
+                      </Button>{' '}
                     </div>
                   </div>
                 )
@@ -363,7 +362,7 @@ export default function Agenda() {
                     setViewMode('dia')
                   }}
                   className={`p-2.5 rounded-2xl transition-all cursor-pointer hover:bg-gray-50 flex flex-col min-h-[360px] ${
-                    isToday ? 'bg-red-50/30 ring-1 ring-[#E85C64]/30' : ''
+                    isToday ? 'bg-[#FAF4EA] ring-1 ring-[#C9A46A]/40' : ''
                   }`}
                 >
                   {/* Day Header */}
@@ -373,7 +372,7 @@ export default function Agenda() {
                     </span>
                     <span
                       className={`text-lg font-black inline-flex items-center justify-center h-8 w-8 rounded-full mt-0.5 ${
-                        isToday ? 'bg-[#E85C64] text-white shadow-xs' : 'text-gray-900'
+                        isToday ? 'bg-[#C9A46A] text-[#33221C] shadow-xs' : 'text-gray-900'
                       }`}
                     >
                       {dayDate.getDate()}

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { HeartPulse, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
+import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -75,9 +76,9 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F5F2] flex items-center justify-center p-4 sm:p-6 relative">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 sm:p-10">
-        <div className="flex items-center gap-2 mb-6">
+    <div className="min-h-screen w-full bg-[#FAF7F1] flex items-center justify-center p-4 sm:p-6 relative">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-[#E9E1D2] p-8 sm:p-10">
+        <div className="flex items-center justify-between mb-6">
           <Link
             to="/"
             className="p-2 -ml-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
@@ -85,17 +86,12 @@ export default function Signup() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#E85C64] to-[#F97316] flex items-center justify-center shadow-md">
-              <HeartPulse className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-black text-gray-900">SOUL Clínica</span>
-          </div>
+          <LogoSOUL variant="compact" size="sm" theme="light" />
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Criar nova conta</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-2xl font-serif font-bold text-[#4A322A]">Criar nova conta</h2>
+          <p className="text-xs text-[#73574A] mt-1">
             Cadastre-se para gerenciar pacientes e prontuários clínicos.
           </p>
         </div>
@@ -195,7 +191,7 @@ export default function Signup() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 bg-gradient-to-r from-[#E85C64] to-[#C9444C] hover:opacity-95 text-white font-semibold rounded-xl shadow-md transition-all mt-2"
+            className="w-full h-11 bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl shadow-md transition-all mt-2"
           >
             {loading ? (
               <>
@@ -209,7 +205,10 @@ export default function Signup() {
 
         <p className="text-center text-xs text-gray-500 mt-6">
           Já tem conta?{' '}
-          <Link to="/" className="font-semibold text-[#E85C64] hover:underline">
+          <Link
+            to="/"
+            className="font-semibold text-[#5C4033] hover:text-[#C9A46A] hover:underline"
+          >
             Entrar
           </Link>
         </p>

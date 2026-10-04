@@ -9,10 +9,10 @@ export function ProtectedRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#F7F5F2]">
+      <div className="flex h-screen w-screen items-center justify-center bg-[#FAF7F1]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
-          <p className="text-sm text-gray-500 font-medium">Carregando SOUL Clínica...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+          <p className="text-sm text-[#73574A] font-medium">Carregando Clínica SOUL...</p>
         </div>
       </div>
     )
@@ -30,8 +30,8 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#F7F5F2]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#E85C64]" />
+      <div className="flex h-screen w-screen items-center justify-center bg-[#FAF7F1]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
       </div>
     )
   }
