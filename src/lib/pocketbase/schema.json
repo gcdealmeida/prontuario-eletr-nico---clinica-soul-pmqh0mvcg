@@ -1,0 +1,981 @@
+{
+  "generatedAt": "2026-10-04T23:32:19.727Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "id = @request.auth.id",
+        "view": "id = @request.auth.id",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "pacientes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_nascimento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_pacientes_nome ON pacientes (nome)",
+        "CREATE UNIQUE INDEX idx_pacientes_cpf ON pacientes (cpf) WHERE cpf IS NOT NULL AND cpf != ''"
+      ]
+    },
+    {
+      "name": "consultas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico"]
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "duracao_min",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Agendada", "Confirmada", "Concluída", "Cancelada"]
+        },
+        {
+          "name": "notas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_consultas_paciente ON consultas (paciente_id)",
+        "CREATE INDEX idx_consultas_data_hora ON consultas (data_hora)"
+      ]
+    },
+    {
+      "name": "timeline",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Consulta", "Avaliação", "Nota"]
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico"]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_evento",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_timeline_paciente_data ON timeline (paciente_id, data_evento)"]
+    },
+    {
+      "name": "avaliacoes_fisioterapia",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Fisioterapia"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Rascunho", "Concluída"]
+        },
+        {
+          "name": "queixa_principal",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "historia_doenca_atual",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historico_medico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medicamentos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cirurgias",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "postura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adm_ombro",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adm_joelho",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adm_quadril",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adm_coluna",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_mmss",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_mmii",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_core",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "palpacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "testes_especiais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "diagnostico_fisioterapeutico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objetivos_tratamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_tratamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evolucao_nota",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_avaliacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"]
+    },
+    {
+      "name": "avaliacoes_personal",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Personal"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Rascunho", "Concluída"]
+        },
+        {
+          "name": "objetivo_principal",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Hipertrofia",
+            "Emagrecimento",
+            "Condicionamento",
+            "Reabilitação",
+            "Performance"
+          ]
+        },
+        {
+          "name": "nivel_experiencia",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Iniciante", "Intermediário", "Avançado"]
+        },
+        {
+          "name": "frequencia_semanal",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "restricoes_treino",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "peso",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "altura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "imc",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "percentual_gordura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "circ_cintura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "circ_abdomen",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "circ_quadril",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "flexibilidade_sit_reach",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "teste_1rm",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "vo2max",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resistencia_muscular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_treino",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_avaliacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_apersonal_paciente ON avaliacoes_personal (paciente_id)"]
+    },
+    {
+      "name": "avaliacoes_nutricao",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Nutrição"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Rascunho", "Concluída"]
+        },
+        {
+          "name": "peso",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "altura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "imc",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historico_peso",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "patologias",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medicamentos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cirurgias",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historico_familiar",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rec_cafe_manha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rec_almoco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rec_jantar",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rec_lanches",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consumo_agua_l",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consumo_alcool",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Nunca", "Raramente", "Às vezes", "Frequentemente"]
+        },
+        {
+          "name": "atividade_fisica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sono_horas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estresse_nivel",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tabagismo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Sim", "Não"]
+        },
+        {
+          "name": "objetivos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_alimentar",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_avaliacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_anutri_paciente ON avaliacoes_nutricao (paciente_id)"]
+    },
+    {
+      "name": "avaliacoes_medico",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Médico"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Rascunho", "Concluída"]
+        },
+        {
+          "name": "queixa_principal",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hda",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historico_medico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medicamentos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "alergias",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "antecedentes_familiares",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pressao_arterial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fc",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temperatura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "peso",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "altura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ausculta",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "abdome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aparelho_osteomuscular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hipotese_diagnostica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exames_complementares",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conduta_terapeutica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prescricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evolucao_nota",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_avaliacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_amedico_paciente ON avaliacoes_medico (paciente_id)"]
+    }
+  ]
+}
