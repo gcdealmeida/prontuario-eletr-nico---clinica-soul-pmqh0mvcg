@@ -116,22 +116,27 @@ export default function AvaliacaoDetalhe() {
 
       {/* Main Document Card (rendered for view & print) */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
-        {/* Official Header with SOUL branding (Visible in print and screen) */}
-        <div className="pb-6 border-b border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Cabeçalho Oficial com LogoSOUL (variante horizontal) - Visível em tela e na impressão */}
+        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:pb-4 print:mb-4">
           <div className="flex items-center gap-4">
-            <LogoSOUL variant="compact" size="md" theme="light" />
-            <div className="hidden sm:block border-l border-[#E9E1D2] pl-4">
-              <span className="text-[10px] uppercase tracking-widest text-[#73574A] font-semibold block">
-                Prontuário Oficial
+            <LogoSOUL variant="horizontal" size="sm" theme="light" />
+            <div className="hidden sm:block border-l border-[#D4B278]/60 pl-4 py-0.5">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block">
+                Prontuário Clínico Oficial
               </span>
               <span className="text-xs text-[#5C4033] font-serif">
                 Clínica Integrada de Saúde e Bem-Estar
               </span>
             </div>
           </div>
-          <div className="text-right text-xs text-[#73574A] space-y-0.5">
-            <p className="font-semibold text-[#4A322A]">Documento Clínico Confidencial</p>
-            <p className="text-[11px]">Emitido em {new Date().toLocaleDateString('pt-BR')}</p>
+          <div className="text-left sm:text-right text-xs text-[#73574A] space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
+              Documento Clínico Confidencial
+            </div>
+            <p className="text-[11px] text-[#73574A]">
+              Emitido em {new Date().toLocaleDateString('pt-BR')} às{' '}
+              {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
         </div>
 
