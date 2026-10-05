@@ -226,8 +226,13 @@ export default function Relatorios() {
       </div>
 
       {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL vertical empilhado */}
-      <div className="hidden print:flex flex-col items-center justify-center pb-4 mb-4 border-b-2 border-[#E9E1D2] text-center gap-2">
-        <LogoSOUL variant="full" size="sm" theme="light" className="shrink-0 mx-auto" />
+      <div className="hidden print:flex flex-col items-center justify-center pb-4 mb-4 border-b-2 border-[#E9E1D2] text-center gap-2 overflow-visible">
+        <LogoSOUL
+          variant="full"
+          size="sm"
+          theme="light"
+          className="shrink-0 mx-auto overflow-visible"
+        />
         <div className="flex items-center justify-center gap-3 mt-1">
           <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
             Relatório Clínico Oficial

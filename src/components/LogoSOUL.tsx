@@ -43,27 +43,14 @@ export function LogoSOUL({
   // O símbolo dos anéis ocupa a metade superior (~18% a 40% verticalmente, 24% a 76% horizontalmente).
   // Proporção largura:altura do símbolo é ~2.1:1.
   const symbolSizes = {
-    xs: { width: 42, height: 20 },
-    sm: { width: 62, height: 30 },
-    md: { width: 96, height: 46 },
-    lg: { width: 140, height: 68 },
-    xl: { width: 190, height: 92 },
+    xs: { width: 44, height: 22 },
+    sm: { width: 64, height: 32 },
+    md: { width: 96, height: 48 },
+    lg: { width: 140, height: 70 },
+    xl: { width: 190, height: 95 },
   }[size]
 
-  // Dimensões para a imagem oficial completa (aspect-ratio 1:1 estrito)
-  const fullImageSizes = {
-    xs: 'w-24 h-24',
-    sm: 'w-36 h-36',
-    md: 'w-48 h-48',
-    lg: 'w-64 h-64',
-    xl: 'w-80 h-80',
-  }[size]
-
-  /**
-   * Renderizador do SÍMBOLO OFICIAL a partir da imagem original:
-   * Recorta perfeitamente a região do símbolo dos anéis da imagem original sem redesenho manual,
-   * preservando as proporções nativas, gradientes metálicos e reflexos de iluminação.
-   */
+  // Dimensões para o símbolo isolado (versões compact/horizontal/sidebar)
   const renderOfficialSymbol = () => {
     return (
       <div
@@ -80,14 +67,13 @@ export function LogoSOUL({
         <img
           src={logoOficialImg}
           alt="Símbolo Clínica SOUL"
-          className="absolute max-w-none pointer-events-none select-none object-cover"
+          className="absolute max-w-none pointer-events-none select-none"
           style={{
-            // O símbolo está posicionado no quadrante superior central da imagem oficial 1:1
-            // Escalamos a imagem para que os anéis caibam com folga proporcional exata
-            width: `${symbolSizes.width * 1.95}px`,
-            height: `${symbolSizes.width * 1.95}px`,
-            top: `-${symbolSizes.height * 0.4}px`,
-            left: `-${symbolSizes.width * 0.475}px`,
+            width: `${symbolSizes.width * 2.0}px`,
+            height: `${symbolSizes.width * 2.0}px`,
+            top: `-${symbolSizes.height * 0.35}px`,
+            left: `-${symbolSizes.width * 0.5}px`,
+            objectFit: 'contain',
           }}
           loading="eager"
         />
@@ -283,89 +269,52 @@ export function LogoSOUL({
   }
 
   // 4. Variante FULL (VERTICAL OFICIAL):
-  // Disposição vertical empilhada oficial centralizada:
-  // - Símbolo no topo
-  // - CLÍNICA com linhas douradas laterais
-  // - SOUL em tipografia serifada sofisticada
-  // - Traço fino dourado com flor de lótus de 3 pétalas
-  // - SAÚDE E BEM ESTAR
-  // Se estiver em fundo claro, podemos renderizar a imagem oficial completa de forma nítida
-  // ou a estrutura vertical com o símbolo da imagem no topo.
-  // Para máxima fidelidade quando solicitado ou na variante full direta:
+  // Exibe a arte oficial original completa (src/assets/logogradiente-6d4ec.jpg)
+  // que contém toda a composição vertical empilhada oficial centralizada:
+  // (símbolo no topo → CLÍNICA → SOUL → lótus → SAÚDE E BEM-ESTAR)
+  // com aspect-ratio 1:1 travado, object-fit contain, sem cortes em baixo,
+  // preservando a nitidez total tanto em tela quanto em impressão/PDF.
+  const fullDimension = {
+    xs: { width: 96, height: 96 },
+    sm: { width: 140, height: 140 },
+    md: { width: 190, height: 190 },
+    lg: { width: 250, height: 250 },
+    xl: { width: 320, height: 320 },
+  }[size]
+
   return (
     <div
       className={cn(
-        'inline-flex flex-col items-center justify-center text-center select-none shrink-0 print:shrink-0',
+        'inline-flex flex-col items-center justify-center text-center select-none shrink-0 print:shrink-0 overflow-visible',
         className,
       )}
-      style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+      style={{
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      }}
     >
-      {/* Símbolo Oficial extraído da imagem no topo */}
-      <div className="mb-2 shrink-0 flex items-center justify-center">{renderOfficialSymbol()}</div>
-
-      {/* CLÍNICA com linhas douradas laterais */}
-      <div className="w-full max-w-[280px] flex items-center justify-center gap-2.5 my-1 shrink-0">
-        <span className="h-[1px] flex-1 max-w-[48px]" style={{ backgroundColor: lineGold }} />
-        <span
-          className="text-[10px] sm:text-[11px] uppercase tracking-[0.42em] font-medium leading-none shrink-0"
-          style={{ color: textSubColor, marginLeft: '0.42em' }}
-        >
-          CLÍNICA
-        </span>
-        <span className="h-[1px] flex-1 max-w-[48px]" style={{ backgroundColor: lineGold }} />
-      </div>
-
-      {/* SOUL em Serifada elegante */}
       <div
-        className="font-serif font-bold tracking-[0.22em] leading-none uppercase my-1 text-center shrink-0"
+        className={cn(
+          'relative flex items-center justify-center shrink-0 select-none overflow-visible',
+          isDark && 'rounded-2xl p-2 bg-white/95 shadow-md',
+        )}
         style={{
-          color: textColor,
-          fontSize:
-            size === 'xs'
-              ? '22px'
-              : size === 'sm'
-                ? '28px'
-                : size === 'md'
-                  ? '38px'
-                  : size === 'lg'
-                    ? '50px'
-                    : '64px',
-          marginLeft: '0.22em',
+          width: `${fullDimension.width}px`,
+          height: `${fullDimension.height}px`,
+          aspectRatio: '1 / 1',
         }}
       >
-        SOUL
-      </div>
-
-      {/* Ornamento: Linha fina dourada com Flor de Lótus de 3 pétalas central */}
-      <div className="w-full max-w-[260px] flex items-center justify-center gap-2 my-1.5 shrink-0">
-        <span className="h-[1px] flex-1 max-w-[64px]" style={{ backgroundColor: lineGold }} />
-        <svg
-          viewBox="0 0 32 20"
-          preserveAspectRatio="xMidYMid meet"
-          className="h-3.5 w-6 shrink-0"
-          fill="none"
-          stroke={lineGold}
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path
-            d="M 16 3 C 13.5 8 13.5 14 16 17 C 18.5 14 18.5 8 16 3 Z"
-            fill={isDark ? '#4A322A' : '#FFF9F0'}
-          />
-          <path d="M 16 17 C 12 16 8 13 9 8 C 11.5 8 14.5 12 16 17 Z" />
-          <path d="M 16 17 C 20 16 24 13 23 8 C 20.5 8 17.5 12 16 17 Z" />
-        </svg>
-        <span className="h-[1px] flex-1 max-w-[64px]" style={{ backgroundColor: lineGold }} />
-      </div>
-
-      {/* Tagline "SAÚDE E BEM ESTAR" */}
-      <div
-        className="text-[9px] sm:text-[10px] uppercase tracking-[0.38em] font-light leading-none mt-1 shrink-0"
-        style={{ color: textSubColor, marginLeft: '0.38em' }}
-      >
-        SAÚDE E BEM ESTAR
+        <img
+          src={logoOficialImg}
+          alt="Clínica SOUL — Saúde e Bem-Estar"
+          className="w-full h-full object-contain pointer-events-none select-none block max-w-full"
+          style={{
+            aspectRatio: '1 / 1',
+            objectFit: 'contain',
+            overflow: 'visible',
+          }}
+          loading="eager"
+        />
       </div>
     </div>
   )
@@ -395,7 +344,7 @@ export function LogoSOULImage({
   return (
     <div
       className={cn(
-        'relative shrink-0 flex items-center justify-center select-none aspect-square overflow-hidden',
+        'relative shrink-0 flex items-center justify-center select-none aspect-square overflow-visible',
         dimensionClass,
         className,
       )}
@@ -409,7 +358,7 @@ export function LogoSOULImage({
         src={logoOficialImg}
         alt={alt}
         className="w-full h-full object-contain pointer-events-none select-none block"
-        style={{ aspectRatio: '1 / 1' }}
+        style={{ aspectRatio: '1 / 1', objectFit: 'contain' }}
         loading="eager"
       />
     </div>

@@ -106,8 +106,8 @@ export default function Login() {
           <div className="absolute -bottom-12 -left-12 w-52 h-52 rounded-full bg-[#B87355]/25 blur-2xl pointer-events-none" />
 
           {/* Top Logo Oficial */}
-          <div className="relative z-10 flex flex-col items-center pt-2 text-center">
-            <LogoSOUL variant="full" size="md" theme="dark" />
+          <div className="relative z-10 flex flex-col items-center pt-2 text-center overflow-visible">
+            <LogoSOUL variant="full" size="md" theme="dark" className="overflow-visible" />
             <p className="mt-5 text-xs text-[#FAF4EA]/80 leading-relaxed max-w-[280px]">
               Gestão clínica integrada multi-especialidade. Avaliações completas, prontuários
               eletrônicos e agenda inteligente em um só lugar.
@@ -161,8 +161,8 @@ export default function Login() {
           <div className="max-w-md w-full mx-auto space-y-6">
             <div>
               {/* Mobile Logo */}
-              <div className="lg:hidden flex justify-center mb-6">
-                <LogoSOUL variant="full" size="sm" theme="light" />
+              <div className="lg:hidden flex justify-center mb-6 overflow-visible">
+                <LogoSOUL variant="full" size="sm" theme="light" className="overflow-visible" />
               </div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#C9A46A]" />

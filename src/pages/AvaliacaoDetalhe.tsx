@@ -122,14 +122,14 @@ export default function AvaliacaoDetalhe() {
             - "CLÍNICA" com as linhas douradas laterais
             - "SOUL" em serifada grande
             - Lótus com linha divisória
-            - "SAÚDE E BEM ESTAR"
-            Mantendo fidelidade total e sem distorção tanto em tela quanto na impressão */}
-        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col items-center justify-center text-center gap-3 print:pb-4 print:mb-6">
+            - "SAÚDE E BEM-ESTAR"
+            Garantindo imagem original completa, sem cortes, sem distorção e com overflow visível */}
+        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col items-center justify-center text-center gap-3 print:pb-4 print:mb-6 overflow-visible">
           <LogoSOUL
             variant="full"
             size="md"
             theme="light"
-            className="shrink-0 print:shrink-0 mx-auto"
+            className="shrink-0 print:shrink-0 mx-auto overflow-visible"
           />
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mt-1">
