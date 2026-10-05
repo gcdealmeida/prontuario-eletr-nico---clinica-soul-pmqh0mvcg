@@ -26,6 +26,7 @@ import {
 } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { LogoSOUL } from '@/components/LogoSOUL'
 import { getConsultas } from '@/services/consultas'
 import { getAllPacientes } from '@/services/pacientes'
 import { getAllAvaliacoes } from '@/services/avaliacoes'
@@ -222,6 +223,30 @@ export default function Relatorios() {
           <Printer className="h-4 w-4" />
           Exportar PDF / Imprimir
         </Button>
+      </div>
+
+      {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL */}
+      <div className="hidden print:flex items-center justify-between pb-4 mb-4 border-b-2 border-[#E9E1D2]">
+        <div className="flex items-center gap-4">
+          <LogoSOUL variant="horizontal" size="sm" theme="light" />
+          <div className="border-l border-[#D4B278]/60 pl-4 py-0.5">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block leading-tight">
+              Relatório Clínico Oficial
+            </span>
+            <span className="text-xs text-[#5C4033] font-serif leading-tight">
+              Clínica Integrada de Saúde e Bem-Estar
+            </span>
+          </div>
+        </div>
+        <div className="text-right text-xs text-[#73574A] space-y-1">
+          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
+            Documento de Gestão Clínica
+          </div>
+          <p className="text-[11px] text-[#73574A]">
+            Emitido em {new Date().toLocaleDateString('pt-BR')} às{' '}
+            {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
       </div>
 
       {loading ? (

@@ -116,20 +116,20 @@ export default function AvaliacaoDetalhe() {
 
       {/* Main Document Card (rendered for view & print) */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
-        {/* Cabeçalho Oficial com LogoSOUL (variante horizontal) - Visível em tela e na impressão */}
-        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:pb-4 print:mb-4">
-          <div className="flex items-center gap-4">
-            <LogoSOUL variant="horizontal" size="sm" theme="light" />
-            <div className="hidden sm:block border-l border-[#D4B278]/60 pl-4 py-0.5">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block">
+        {/* Cabeçalho Oficial com LogoSOUL (variante horizontal) - Perfeitamente alinhado e sem distorção em tela e impressão */}
+        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:pb-4 print:mb-4 print:flex-row print:items-center">
+          <div className="flex items-center gap-4 shrink-0">
+            <LogoSOUL variant="horizontal" size="sm" theme="light" className="shrink-0" />
+            <div className="hidden sm:block print:block border-l border-[#D4B278]/60 pl-4 py-0.5 shrink-0">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block leading-tight">
                 Prontuário Clínico Oficial
               </span>
-              <span className="text-xs text-[#5C4033] font-serif">
+              <span className="text-xs text-[#5C4033] font-serif leading-tight">
                 Clínica Integrada de Saúde e Bem-Estar
               </span>
             </div>
           </div>
-          <div className="text-left sm:text-right text-xs text-[#73574A] space-y-1">
+          <div className="text-left sm:text-right print:text-right text-xs text-[#73574A] space-y-1 shrink-0">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
               Documento Clínico Confidencial
             </div>

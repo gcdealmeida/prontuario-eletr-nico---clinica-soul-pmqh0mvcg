@@ -42,8 +42,14 @@ export function LogoSOUL({
   const renderSymbol = (uid: string) => (
     <svg
       viewBox="0 0 240 120"
+      preserveAspectRatio="xMidYMid meet"
       width={symbolDimensions.width}
       height={symbolDimensions.height}
+      style={{
+        width: `${symbolDimensions.width}px`,
+        height: `${symbolDimensions.height}px`,
+        aspectRatio: '240 / 120',
+      }}
       className="shrink-0 overflow-visible"
       aria-hidden="true"
     >
@@ -172,34 +178,155 @@ export function LogoSOUL({
   }
 
   // 3. Variante horizontal completa (para cabeçalhos de documento ou topbar expandida)
+  // Perfeitamente balanceada e alinhada: símbolo à esquerda + bloco tipográfico oficial à direita
   if (variant === 'horizontal') {
+    const typography = {
+      xs: {
+        clinica: '8px',
+        trackingClinica: '0.36em',
+        soul: '18px',
+        trackingSoul: '0.18em',
+        lotusH: 'h-2 w-3.5',
+        ruleW: 'max-w-[20px]',
+        tagline: '7px',
+        trackingTagline: '0.30em',
+        gap: 'gap-2.5',
+      },
+      sm: {
+        clinica: '9.5px',
+        trackingClinica: '0.40em',
+        soul: '24px',
+        trackingSoul: '0.20em',
+        lotusH: 'h-2.5 w-4',
+        ruleW: 'max-w-[28px]',
+        tagline: '8px',
+        trackingTagline: '0.34em',
+        gap: 'gap-3.5',
+      },
+      md: {
+        clinica: '10.5px',
+        trackingClinica: '0.42em',
+        soul: '30px',
+        trackingSoul: '0.22em',
+        lotusH: 'h-3 w-5',
+        ruleW: 'max-w-[36px]',
+        tagline: '9px',
+        trackingTagline: '0.36em',
+        gap: 'gap-4',
+      },
+      lg: {
+        clinica: '12px',
+        trackingClinica: '0.44em',
+        soul: '38px',
+        trackingSoul: '0.22em',
+        lotusH: 'h-3.5 w-6',
+        ruleW: 'max-w-[48px]',
+        tagline: '10px',
+        trackingTagline: '0.38em',
+        gap: 'gap-5',
+      },
+      xl: {
+        clinica: '14px',
+        trackingClinica: '0.44em',
+        soul: '48px',
+        trackingSoul: '0.22em',
+        lotusH: 'h-4 w-7',
+        ruleW: 'max-w-[60px]',
+        tagline: '11px',
+        trackingTagline: '0.38em',
+        gap: 'gap-6',
+      },
+    }[size]
+
     return (
-      <div className={cn('inline-flex items-center gap-4 select-none', className)}>
-        {renderSymbol(uid)}
-        <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-2">
+      <div
+        className={cn('inline-flex items-center select-none shrink-0', typography.gap, className)}
+      >
+        {/* Símbolo com dimensões fixas proporcionais e preservação estrita de aspect ratio */}
+        <div className="shrink-0 flex items-center justify-center">{renderSymbol(uid)}</div>
+
+        {/* Bloco tipográfico oficial alinhado centralmente com o símbolo */}
+        <div className="flex flex-col items-center justify-center text-center shrink-0">
+          {/* CLÍNICA com linhas douradas laterais */}
+          <div className="flex items-center justify-center gap-1.5 w-full">
             <span
-              className="text-[10px] uppercase tracking-[0.35em] font-medium"
-              style={{ color: textSubColor }}
+              className={cn('h-[1px] flex-1', typography.ruleW)}
+              style={{ backgroundColor: lineGold }}
+            />
+            <span
+              className="uppercase font-semibold leading-none"
+              style={{
+                color: textSubColor,
+                fontSize: typography.clinica,
+                letterSpacing: typography.trackingClinica,
+                marginLeft: typography.trackingClinica, // compensa o tracking no centro
+              }}
             >
-              C L Í N I C A
+              CLÍNICA
             </span>
+            <span
+              className={cn('h-[1px] flex-1', typography.ruleW)}
+              style={{ backgroundColor: lineGold }}
+            />
           </div>
+
+          {/* SOUL em Cormorant Garamond maiúsculo */}
           <span
-            className="font-serif font-bold tracking-[0.18em] leading-tight uppercase"
+            className="font-serif font-bold leading-none uppercase my-0.5"
             style={{
               color: textColor,
-              fontSize:
-                size === 'xs' ? '18px' : size === 'sm' ? '22px' : size === 'lg' ? '32px' : '26px',
+              fontSize: typography.soul,
+              letterSpacing: typography.trackingSoul,
+              marginLeft: typography.trackingSoul,
             }}
           >
             SOUL
           </span>
+
+          {/* Traço fino dourado com Flor de Lótus de 3 pétalas oficial */}
+          <div className="flex items-center justify-center gap-1.5 w-full my-0.5">
+            <span
+              className={cn('h-[1px] flex-1', typography.ruleW)}
+              style={{ backgroundColor: lineGold }}
+            />
+            <svg
+              viewBox="0 0 32 20"
+              preserveAspectRatio="xMidYMid meet"
+              className={cn('shrink-0', typography.lotusH)}
+              fill="none"
+              stroke={lineGold}
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {/* Pétala central de lótus */}
+              <path
+                d="M 16 3 C 13.5 8 13.5 14 16 17 C 18.5 14 18.5 8 16 3 Z"
+                fill={isDark ? '#4A322A' : '#FFF9F0'}
+              />
+              {/* Pétala esquerda */}
+              <path d="M 16 17 C 12 16 8 13 9 8 C 11.5 8 14.5 12 16 17 Z" />
+              {/* Pétala direita */}
+              <path d="M 16 17 C 20 16 24 13 23 8 C 20.5 8 17.5 12 16 17 Z" />
+            </svg>
+            <span
+              className={cn('h-[1px] flex-1', typography.ruleW)}
+              style={{ backgroundColor: lineGold }}
+            />
+          </div>
+
+          {/* Tagline SAÚDE E BEM-ESTAR */}
           <span
-            className="text-[8.5px] uppercase tracking-[0.25em] font-light leading-tight"
-            style={{ color: textSubColor }}
+            className="uppercase font-light leading-none"
+            style={{
+              color: textSubColor,
+              fontSize: typography.tagline,
+              letterSpacing: typography.trackingTagline,
+              marginLeft: typography.trackingTagline,
+            }}
           >
-            S A Ú D E &nbsp; E &nbsp; B E M &nbsp; E S T A R
+            SAÚDE E BEM-ESTAR
           </span>
         </div>
       </div>
@@ -255,12 +382,14 @@ export function LogoSOUL({
         <span className="h-[1px] flex-1 max-w-[64px]" style={{ backgroundColor: lineGold }} />
         <svg
           viewBox="0 0 32 20"
+          preserveAspectRatio="xMidYMid meet"
           className="h-3.5 w-6 shrink-0"
           fill="none"
           stroke={lineGold}
           strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           {/* Pétala central de lótus */}
           <path
@@ -275,12 +404,12 @@ export function LogoSOUL({
         <span className="h-[1px] flex-1 max-w-[64px]" style={{ backgroundColor: lineGold }} />
       </div>
 
-      {/* Tagline "SAÚDE E BEM ESTAR" */}
+      {/* Tagline "SAÚDE E BEM-ESTAR" */}
       <p
         className="text-[9px] sm:text-[10px] uppercase tracking-[0.38em] font-light leading-none mt-1"
         style={{ color: textSubColor, marginLeft: '0.38em' }}
       >
-        SAÚDE E BEM ESTAR
+        SAÚDE E BEM-ESTAR
       </p>
     </div>
   )
