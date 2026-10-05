@@ -51,6 +51,7 @@ export interface UserRecord {
   email: string
   name?: string
   avatar?: string
+  calendar_token?: string
   created: string
   updated: string
 }

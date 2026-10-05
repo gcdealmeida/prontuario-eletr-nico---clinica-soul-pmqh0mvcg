@@ -898,10 +898,43 @@ export default function GuiaUso() {
                 </div>
               </div>
 
-              {/* Passo 5 */}
+              {/* Passo 5: Sincronização Google Agenda (.ics) */}
               <div className="flex gap-4">
                 <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
                   5
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Sincronização com Google Agenda (Feed .ics Automático)
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Você pode sincronizar todas as consultas da clínica e os alertas de reavaliação
+                    no seu Google Agenda (ou Apple Calendar / Outlook) de forma simples e segura:
+                    <br />• <strong>Como ativar:</strong> Na tela da <strong>Agenda</strong>, clique
+                    no botão <strong>"Sincronizar com Google Agenda (via .ics)"</strong> e copie seu
+                    link de feed pessoal.
+                    <br />• <strong>Configurar no Google Agenda (apenas 1 vez):</strong> Acesse{' '}
+                    <code>calendar.google.com</code> pelo computador → na barra lateral esquerda, em{' '}
+                    <em>"Outros calendários"</em>, clique em <strong>+</strong> → selecione{' '}
+                    <strong>"Do URL"</strong> → cole o link copiado e confirme em{' '}
+                    <em>"Adicionar calendário"</em>.
+                    <br />• <strong>Somente Leitura:</strong> A sincronização é unidirecional (as
+                    consultas e alertas da clínica são lidos pelo Google Agenda; edições feitas no
+                    Google não alteram o prontuário no sistema SOUL).
+                    <br />• <strong>Atualização automática:</strong> O Google Agenda atualiza o feed
+                    periodicamente em segundo plano (o tempo de sincronização depende do ciclo do
+                    Google, podendo levar de algumas horas até 24h).
+                    <br />• <strong>Segurança e Regeneração:</strong> Caso precise cancelar o acesso
+                    de algum dispositivo antigo, clique em <em>"Regenerar link"</em> no modal da
+                    Agenda para invalidar o token anterior e criar um novo endereço.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 6 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  6
                 </div>
                 <div className="space-y-1">
                   <h5 className="font-bold text-sm text-[#33221C]">
@@ -1050,6 +1083,25 @@ export default function GuiaUso() {
                   agendado e qual é a especialidade do atendimento (ex: Maria Silva - Fisioterapia
                   às 14:00) e já abre a tela de Nova Avaliação com tudo pré-preenchido, pulando a
                   etapa de seleção e levando você direto para o preenchimento clínico.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem
+                value="faq-7-ics"
+                className="border border-[#E9E1D2] rounded-2xl px-4 py-1"
+              >
+                <AccordionTrigger className="text-sm font-bold text-[#4A322A] hover:no-underline hover:text-[#8C6527]">
+                  Como funciona a exportação .ics para o Google Agenda?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-gray-600 leading-relaxed">
+                  O sistema SOUL gera um{' '}
+                  <strong>feed de calendário em formato padrão .ics (iCalendar)</strong> com
+                  autenticação por token pessoal exclusivo. Você adiciona esse endereço uma única
+                  vez no Google Agenda (opção <em>"Outros calendários → Do URL"</em>). A partir daí,
+                  suas consultas e lembretes de alerta de reavaliação passam a ser visíveis no
+                  Google Agenda do seu celular e computador. Por ser um feed de leitura gerado pelo
+                  servidor, ele é 100% seguro e não permite que alterações no Google Agenda
+                  sobrescrevam consultas oficiais da clínica.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

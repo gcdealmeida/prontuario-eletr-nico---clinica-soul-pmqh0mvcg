@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { getConsultas, updateConsulta } from '@/services/consultas'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
+import { ModalSincronizacaoIcs } from '@/components/ModalSincronizacaoIcs'
 import type { ConsultaRecord, Especialidade, StatusConsulta } from '@/types/database'
 import { ESPECIALIDADE_COLORS, formatHoraPTBR, formatDataPTBR, getInitials } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -41,6 +42,7 @@ export default function Agenda() {
   const [consultas, setConsultas] = useState<ConsultaRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [novaConsultaOpen, setNovaConsultaOpen] = useState(false)
+  const [sincronizacaoOpen, setSincronizacaoOpen] = useState(false)
   const [selectedConsulta, setSelectedConsulta] = useState<ConsultaRecord | null>(null)
 
   const fetchConsultasData = async () => {
@@ -167,13 +169,25 @@ export default function Agenda() {
           </p>
         </div>
 
-        <Button
-          onClick={() => setNovaConsultaOpen(true)}
-          className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
-        >
-          <Plus className="h-4 w-4 text-[#33221C]" />
-          Nova Consulta
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSincronizacaoOpen(true)}
+            className="h-10 px-3.5 rounded-xl border-[#E3C89A] bg-[#FAF5EE] text-[#4A322A] hover:bg-[#F3EAD9] hover:text-[#33221C] font-semibold text-xs flex items-center gap-2 shadow-2xs transition-all"
+          >
+            <CalendarIcon className="h-3.5 w-3.5 text-[#8C6527]" />
+            <span>Sincronizar com Google Agenda (via .ics)</span>
+          </Button>
+
+          <Button
+            onClick={() => setNovaConsultaOpen(true)}
+            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
+          >
+            <Plus className="h-4 w-4 text-[#33221C]" />
+            Nova Consulta
+          </Button>
+        </div>
       </div>
 
       {/* Date Navigator Bar */}
@@ -463,6 +477,9 @@ export default function Agenda() {
         onOpenChange={setNovaConsultaOpen}
         onSuccess={() => fetchConsultasData()}
       />
+
+      {/* Modal Sincronização Google Agenda (Feed .ics) */}
+      <ModalSincronizacaoIcs open={sincronizacaoOpen} onOpenChange={setSincronizacaoOpen} />
     </div>
   )
 }

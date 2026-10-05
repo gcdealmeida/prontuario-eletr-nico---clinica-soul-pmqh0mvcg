@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T11:07:16.255Z",
+  "generatedAt": "2026-10-05T18:19:58.488Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "calendar_token",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
