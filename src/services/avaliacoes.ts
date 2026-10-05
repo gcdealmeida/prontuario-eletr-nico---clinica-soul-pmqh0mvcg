@@ -103,14 +103,40 @@ export async function getAvaliacaoById(collectionName: string, id: string) {
   })
 }
 
-export async function createAvaliacao(collectionName: string, data: Record<string, unknown>) {
+export async function createAvaliacao(
+  collectionName: string,
+  data: Record<string, unknown> | FormData,
+) {
   return await pb.collection(collectionName).create(data)
 }
 
 export async function updateAvaliacao(
   collectionName: string,
   id: string,
-  data: Record<string, unknown>,
+  data: Record<string, unknown> | FormData,
 ) {
   return await pb.collection(collectionName).update(id, data)
+}
+
+export async function gerarIaFisioterapia(avaliacaoPayload: Record<string, unknown>) {
+  const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/fisioterapia/gerar-ia`
+  const token = pb.authStore.token
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+    body: JSON.stringify({ avaliacao: avaliacaoPayload }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data?.error || 'Falha ao processar análise da IA')
+  }
+  return data
+}
+
+export function getFileUrl(collectionName: string, recordId: string, filename: string): string {
+  return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${collectionName}/${recordId}/${filename}`
 }

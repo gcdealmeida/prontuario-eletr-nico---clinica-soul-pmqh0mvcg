@@ -16,8 +16,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getAvaliacaoById, getCollectionNameByEspecialidade } from '@/services/avaliacoes'
 import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
-import type { Especialidade } from '@/types/database'
+import type { Especialidade, AvaliacaoFisioterapiaRecord } from '@/types/database'
 import { LogoSOUL } from '@/components/LogoSOUL'
+import { VisualizacaoFisioterapia } from '@/components/fisioterapia/VisualizacaoFisioterapia'
 
 export default function AvaliacaoDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -186,146 +187,7 @@ export default function AvaliacaoDetalhe() {
 
         {/* Content Renderers by Specialty */}
         {espParam === 'Fisioterapia' && (
-          <div className="space-y-6">
-            {/* Anamnese */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2 rounded-lg">
-                1. Anamnese Fisioterapêutica
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="sm:col-span-2">
-                  <span className="font-bold text-gray-700 block">Queixa Principal:</span>
-                  <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">
-                    {avaliacao.queixa_principal || '—'}
-                  </p>
-                </div>
-                {avaliacao.historia_doenca_atual && (
-                  <div className="sm:col-span-2">
-                    <span className="font-bold text-gray-700 block">
-                      História da Doença Atual (HDA):
-                    </span>
-                    <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">
-                      {avaliacao.historia_doenca_atual}
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <span className="font-bold text-gray-700 block">Histórico Médico:</span>
-                  <p className="text-gray-900 mt-0.5">{avaliacao.historico_medico || '—'}</p>
-                </div>
-                <div>
-                  <span className="font-bold text-gray-700 block">Medicamentos em uso:</span>
-                  <p className="text-gray-900 mt-0.5">{avaliacao.medicamentos || '—'}</p>
-                </div>
-                <div>
-                  <span className="font-bold text-gray-700 block">Cirurgias prévias:</span>
-                  <p className="text-gray-900 mt-0.5">{avaliacao.cirurgias || '—'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Exame Físico */}
-            <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2 rounded-lg">
-                2. Exame Físico & Amplitude Articular (ADM)
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">ADM Ombro</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.adm_ombro ?? '—'}°
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">ADM Joelho</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.adm_joelho ?? '—'}°
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">ADM Quadril</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.adm_quadril ?? '—'}°
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">ADM Coluna</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.adm_coluna ?? '—'}°
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-xs pt-1">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Força MMSS</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.forca_mmss ?? '—'}/5
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Força MMII</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.forca_mmii ?? '—'}/5
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Força Core</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.forca_core ?? '—'}/5
-                  </span>
-                </div>
-              </div>
-
-              {avaliacao.postura && (
-                <div className="text-xs pt-2">
-                  <span className="font-bold text-gray-700 block">Postura:</span>
-                  <p className="text-gray-900 mt-0.5">{avaliacao.postura}</p>
-                </div>
-              )}
-              {avaliacao.palpacao && (
-                <div className="text-xs">
-                  <span className="font-bold text-gray-700 block">Palpação:</span>
-                  <p className="text-gray-900 mt-0.5">{avaliacao.palpacao}</p>
-                </div>
-              )}
-              {avaliacao.testes_especiais && (
-                <div className="text-xs">
-                  <span className="font-bold text-gray-700 block">Testes Especiais:</span>
-                  <p className="text-gray-900 mt-0.5">{avaliacao.testes_especiais}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Diagnóstico & Plano */}
-            <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2 rounded-lg">
-                3. Diagnóstico e Conduta Terapêutica
-              </h3>
-              <div className="space-y-3 text-xs">
-                <div>
-                  <span className="font-bold text-gray-700 block">
-                    Diagnóstico Fisioterapêutico:
-                  </span>
-                  <p className="text-gray-900 mt-0.5 font-medium">
-                    {avaliacao.diagnostico_fisioterapeutico || '—'}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-bold text-gray-700 block">Objetivos de Tratamento:</span>
-                  <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">
-                    {avaliacao.objetivos_tratamento || '—'}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-bold text-gray-700 block">Plano de Tratamento:</span>
-                  <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">
-                    {avaliacao.plano_tratamento || '—'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <VisualizacaoFisioterapia avaliacao={avaliacao as AvaliacaoFisioterapiaRecord} />
         )}
 
         {espParam === 'Personal' && (

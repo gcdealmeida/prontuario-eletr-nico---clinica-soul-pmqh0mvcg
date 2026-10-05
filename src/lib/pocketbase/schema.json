@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T00:24:29.847Z",
+  "generatedAt": "2026-10-05T00:38:07.441Z",
   "collections": [
     {
       "name": "users",
@@ -432,6 +432,90 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "anamnese_detalhada",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "queixas_multiplas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visceras_sistemicas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "habitos_saude",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adm_segmentos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_muscular_grupos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_core_tabela",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "testes_especiais_segmentos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secoes_complementares",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "diagnostico_disfuncional",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hipotese_diagnostica_ia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_semanal_detalhado",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anexos_exames",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anexos_dinamometro",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"]
@@ -976,6 +1060,70 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_amedico_paciente ON avaliacoes_medico (paciente_id)"]
+    },
+    {
+      "name": "conhecimento_clinico",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "segmento_ou_area",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nivel_evidencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "referencia_bibliografica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conteudo_sintese",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "diretrizes_faseadas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_conhecimento_area ON conhecimento_clinico (segmento_ou_area)"]
     }
   ]
 }

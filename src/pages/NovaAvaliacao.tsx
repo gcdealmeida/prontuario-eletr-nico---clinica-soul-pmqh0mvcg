@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import type { PacienteRecord, Especialidade, StatusAvaliacao } from '@/types/database'
 import { ESPECIALIDADE_COLORS } from '@/lib/constants'
+import { FormFisioterapia } from '@/components/fisioterapia/FormFisioterapia'
 
 export default function NovaAvaliacao() {
   const navigate = useNavigate()
@@ -414,36 +415,74 @@ export default function NovaAvaliacao() {
       setSubmitting(true)
       const col = getCollectionNameByEspecialidade(selectedEspecialidade)
 
-      const payload: Record<string, any> = {
+      const pendingExames: File[] = formData._pending_exames_files || []
+      const pendingDinamometro: File[] = formData._pending_dinamometro_files || []
+
+      // Garantir compatibilidade de queixa_principal para Fisioterapia
+      const queixaPrincipal =
+        formData.queixa_principal ||
+        formData.queixas_multiplas?.[0]?.queixa ||
+        formData.anamnese_detalhada?.motivo_principal ||
+        'Avaliação Fisioterapêutica'
+
+      const basePayload: Record<string, any> = {
         ...formData,
         paciente_id: selectedPacienteId,
         especialidade: selectedEspecialidade,
         status: statusFinal,
+        queixa_principal: queixaPrincipal,
         profissional_responsavel:
           formData.profissional_responsavel || user?.name || 'Dr. Guilherme (Admin)',
         data_avaliacao: formData.data_avaliacao || new Date().toISOString().substring(0, 10),
       }
 
-      // Convert numbers
-      for (const sec of sections) {
-        for (const f of sec.fields) {
-          if (f.type === 'number' && payload[f.name] !== undefined) {
-            payload[f.name] = payload[f.name] === '' ? null : Number(payload[f.name])
-          }
-          if (f.type === 'slider' && payload[f.name] !== undefined) {
-            payload[f.name] = Number(payload[f.name])
+      // Limpar campos de estado temporário do form
+      delete basePayload._pending_exames_files
+      delete basePayload._pending_dinamometro_files
+
+      // Convert numbers para especialidades clássicas
+      if (selectedEspecialidade !== 'Fisioterapia') {
+        for (const sec of sections) {
+          for (const f of sec.fields) {
+            if (f.type === 'number' && basePayload[f.name] !== undefined) {
+              basePayload[f.name] = basePayload[f.name] === '' ? null : Number(basePayload[f.name])
+            }
+            if (f.type === 'slider' && basePayload[f.name] !== undefined) {
+              basePayload[f.name] = Number(basePayload[f.name])
+            }
           }
         }
       }
 
+      // Se houver uploads pendentes, empacotar em FormData para PocketBase
+      let requestData: Record<string, any> | FormData = basePayload
+      if (pendingExames.length > 0 || pendingDinamometro.length > 0) {
+        const fd = new FormData()
+        for (const [k, v] of Object.entries(basePayload)) {
+          if (v === undefined || v === null) continue
+          if (typeof v === 'object' && !(v instanceof File) && !(v instanceof Blob)) {
+            fd.append(k, JSON.stringify(v))
+          } else {
+            fd.append(k, String(v))
+          }
+        }
+        for (const f of pendingExames) {
+          fd.append('anexos_exames', f)
+        }
+        for (const f of pendingDinamometro) {
+          fd.append('anexos_dinamometro', f)
+        }
+        requestData = fd
+      }
+
       let savedRecordId = editId
       if (editId) {
-        await updateAvaliacao(col, editId, payload)
+        await updateAvaliacao(col, editId, requestData)
         toast({
           title: 'Avaliação atualizada com sucesso!',
         })
       } else {
-        const created = await createAvaliacao(col, payload)
+        const created = await createAvaliacao(col, requestData)
         savedRecordId = created.id
         toast({
           title:
@@ -456,10 +495,10 @@ export default function NovaAvaliacao() {
       // If Concluída, create a snapshot in timeline
       if (statusFinal === 'Concluída') {
         const resumoTexto =
-          payload.queixa_principal ||
-          payload.objetivo_principal ||
-          payload.objetivos ||
-          payload.hipotese_diagnostica ||
+          basePayload.queixa_principal ||
+          basePayload.objetivo_principal ||
+          basePayload.objetivos ||
+          basePayload.hipotese_diagnostica ||
           'Avaliação clínica multidisciplinar finalizada.'
 
         await createTimelineEvent({
@@ -467,7 +506,7 @@ export default function NovaAvaliacao() {
           tipo: 'Avaliação',
           especialidade: selectedEspecialidade,
           titulo: `Avaliação de ${selectedEspecialidade}`,
-          conteudo: `Avaliação concluída por ${payload.profissional_responsavel}.\nResumo/Queixa: ${resumoTexto}`,
+          conteudo: `Avaliação concluída por ${basePayload.profissional_responsavel}.\nResumo/Queixa: ${resumoTexto}`,
           data_evento: new Date().toISOString(),
         }).catch(() => {})
       }
@@ -666,217 +705,227 @@ export default function NovaAvaliacao() {
             </Button>
           </div>
 
-          {/* Stepper Progress Bar */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-              <span>
-                Etapa {currentSectionIndex + 1} de {sections.length}: {currentSection.title}
-              </span>
-              <span>
-                {Math.round(((currentSectionIndex + 1) / sections.length) * 100)}% concluído
-              </span>
-            </div>
+          {/* Se for Fisioterapia: Renderizar a nova estrutura completa em 7 etapas baseada no modelo clínico */}
+          {selectedEspecialidade === 'Fisioterapia' ? (
+            <FormFisioterapia
+              formData={formData}
+              onChange={handleFieldChange}
+              onSave={handleSaveEvaluation}
+              submitting={submitting}
+              paciente={selectedPaciente}
+              existingRecordId={editId}
+            />
+          ) : (
+            /* Formulário padrão para outras especialidades (Personal, Nutrição, Médico) */
+            <div className="space-y-6">
+              {/* Stepper Progress Bar */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+                  <span>
+                    Etapa {currentSectionIndex + 1} de {sections.length}: {currentSection.title}
+                  </span>
+                  <span>
+                    {Math.round(((currentSectionIndex + 1) / sections.length) * 100)}% concluído
+                  </span>
+                </div>
 
-            {/* Progress bar */}
-            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#C9A46A] to-[#B87355] transition-all duration-300"
-                style={{ width: `${((currentSectionIndex + 1) / sections.length) * 100}%` }}
-              />
-            </div>
+                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#C9A46A] to-[#B87355] transition-all duration-300"
+                    style={{ width: `${((currentSectionIndex + 1) / sections.length) * 100}%` }}
+                  />
+                </div>
 
-            {/* Steps pills */}
-            <div className="flex items-center gap-2 pt-2">
-              {sections.map((sec, idx) => (
-                <button
-                  key={sec.title}
-                  onClick={() => setCurrentSectionIndex(idx)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all ${
-                    currentSectionIndex === idx
-                      ? 'bg-[#1E2530] text-white shadow-xs'
-                      : idx < currentSectionIndex
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'text-gray-400 hover:bg-gray-100'
-                  }`}
-                >
-                  {idx + 1}. {sec.title}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Fields Section Card */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">{currentSection.title}</h3>
-              <p className="text-xs text-gray-400 mt-0.5">{currentSection.description}</p>
-            </div>
-
-            <div className="space-y-4">
-              {currentSection.fields.map((field: any) => {
-                const val = formData[field.name] ?? ''
-
-                // Textarea
-                if (field.type === 'textarea') {
-                  return (
-                    <div key={field.name} className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-gray-700">{field.label}</Label>
-                      <Textarea
-                        rows={3}
-                        value={val}
-                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                        placeholder={`Preencha ${field.label.toLowerCase()}...`}
-                        className="rounded-xl border-gray-200 text-xs sm:text-sm"
-                      />
-                    </div>
-                  )
-                }
-
-                // Slider (0 to 180 ADM)
-                if (field.type === 'slider') {
-                  const numVal = Number(val) || 0
-                  return (
-                    <div
-                      key={field.name}
-                      className="space-y-2 p-3 rounded-2xl bg-gray-50/70 border border-gray-100"
+                <div className="flex items-center gap-2 pt-2">
+                  {sections.map((sec, idx) => (
+                    <button
+                      key={sec.title}
+                      onClick={() => setCurrentSectionIndex(idx)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all ${
+                        currentSectionIndex === idx
+                          ? 'bg-[#1E2530] text-white shadow-xs'
+                          : idx < currentSectionIndex
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'text-gray-400 hover:bg-gray-100'
+                      }`}
                     >
-                      <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
-                        <span>{field.label}</span>
-                        <span className="font-mono text-[#8C6527] font-bold text-sm">
-                          {numVal}°
-                        </span>
-                      </div>
-                      <Slider
-                        value={[numVal]}
-                        max={field.max || 180}
-                        step={1}
-                        onValueChange={(vals) => handleFieldChange(field.name, vals[0])}
-                        className="py-1"
-                      />
-                    </div>
-                  )
-                }
+                      {idx + 1}. {sec.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                // Select
-                if (field.type === 'select') {
-                  return (
-                    <div key={field.name} className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-gray-700">{field.label}</Label>
-                      <Select
-                        value={val ? String(val) : ''}
-                        onValueChange={(v) => handleFieldChange(field.name, v)}
+              {/* Form Fields Section Card */}
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">{currentSection.title}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{currentSection.description}</p>
+                </div>
+
+                <div className="space-y-4">
+                  {currentSection.fields.map((field: any) => {
+                    const val = formData[field.name] ?? ''
+
+                    if (field.type === 'textarea') {
+                      return (
+                        <div key={field.name} className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-gray-700">
+                            {field.label}
+                          </Label>
+                          <Textarea
+                            rows={3}
+                            value={val}
+                            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                            placeholder={`Preencha ${field.label.toLowerCase()}...`}
+                            className="rounded-xl border-gray-200 text-xs sm:text-sm"
+                          />
+                        </div>
+                      )
+                    }
+
+                    if (field.type === 'slider') {
+                      const numVal = Number(val) || 0
+                      return (
+                        <div
+                          key={field.name}
+                          className="space-y-2 p-3 rounded-2xl bg-gray-50/70 border border-gray-100"
+                        >
+                          <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                            <span>{field.label}</span>
+                            <span className="font-mono text-[#8C6527] font-bold text-sm">
+                              {numVal}°
+                            </span>
+                          </div>
+                          <Slider
+                            value={[numVal]}
+                            max={field.max || 180}
+                            step={1}
+                            onValueChange={(vals) => handleFieldChange(field.name, vals[0])}
+                            className="py-1"
+                          />
+                        </div>
+                      )
+                    }
+
+                    if (field.type === 'select') {
+                      return (
+                        <div key={field.name} className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-gray-700">
+                            {field.label}
+                          </Label>
+                          <Select
+                            value={val ? String(val) : ''}
+                            onValueChange={(v) => handleFieldChange(field.name, v)}
+                          >
+                            <SelectTrigger className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm">
+                              <SelectValue placeholder="Selecione uma opção..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options.map((opt: string) => (
+                                <SelectItem key={opt} value={opt}>
+                                  {opt}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )
+                    }
+
+                    if (field.type === 'imc-badge') {
+                      const imc = formData.imc || '—'
+                      let classificacao = 'Aguardando peso e altura'
+                      if (typeof imc === 'number') {
+                        if (imc < 18.5) classificacao = 'Abaixo do peso'
+                        else if (imc < 24.9) classificacao = 'Peso adequado'
+                        else if (imc < 29.9) classificacao = 'Sobrepeso'
+                        else classificacao = 'Obesidade'
+                      }
+
+                      return (
+                        <div
+                          key={field.name}
+                          className="p-3.5 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="text-xs font-bold text-[#8C6527] block">
+                              Índice IMC Calculado
+                            </span>
+                            <span className="text-xs text-gray-600">{classificacao}</span>
+                          </div>
+                          <div className="text-xl font-black text-[#8C6527] font-mono">
+                            {imc} {typeof imc === 'number' ? 'kg/m²' : ''}
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-gray-700">{field.label}</Label>
+                        <Input
+                          type={field.type === 'number' ? 'number' : 'text'}
+                          step={field.type === 'number' ? 'any' : undefined}
+                          value={val}
+                          onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                          placeholder={`Informe ${field.label.toLowerCase()}...`}
+                          className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-gray-100">
+                  <Button
+                    variant="outline"
+                    disabled={currentSectionIndex === 0}
+                    onClick={handlePrevSection}
+                    className="rounded-xl h-10 px-4 text-xs font-semibold w-full sm:w-auto"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Etapa Anterior
+                  </Button>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <Button
+                      variant="outline"
+                      disabled={submitting}
+                      onClick={() => handleSaveEvaluation('Rascunho')}
+                      className="rounded-xl h-10 px-4 text-xs font-semibold border-gray-200 hover:bg-gray-50 flex items-center gap-1.5"
+                    >
+                      <Save className="h-3.5 w-3.5 text-gray-500" />
+                      Salvar Rascunho
+                    </Button>
+
+                    {currentSectionIndex < sections.length - 1 ? (
+                      <Button
+                        onClick={handleNextSection}
+                        className="bg-gray-900 hover:bg-black text-white rounded-xl h-10 px-5 text-xs font-semibold flex items-center gap-1"
                       >
-                        <SelectTrigger className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm">
-                          <SelectValue placeholder="Selecione uma opção..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options.map((opt: string) => (
-                            <SelectItem key={opt} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )
-                }
-
-                // IMC Badge (Auto-computed)
-                if (field.type === 'imc-badge') {
-                  const imc = formData.imc || '—'
-                  let classificacao = 'Aguardando peso e altura'
-                  if (typeof imc === 'number') {
-                    if (imc < 18.5) classificacao = 'Abaixo do peso'
-                    else if (imc < 24.9) classificacao = 'Peso adequado'
-                    else if (imc < 29.9) classificacao = 'Sobrepeso'
-                    else classificacao = 'Obesidade'
-                  }
-
-                  return (
-                    <div
-                      key={field.name}
-                      className="p-3.5 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-center justify-between"
-                    >
-                      <div>
-                        <span className="text-xs font-bold text-[#8C6527] block">
-                          Índice IMC Calculado
-                        </span>
-                        <span className="text-xs text-gray-600">{classificacao}</span>
-                      </div>
-                      <div className="text-xl font-black text-[#8C6527] font-mono">
-                        {imc} {typeof imc === 'number' ? 'kg/m²' : ''}
-                      </div>
-                    </div>
-                  )
-                }
-
-                // Default Input (text / number)
-                return (
-                  <div key={field.name} className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-gray-700">{field.label}</Label>
-                    <Input
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      step={field.type === 'number' ? 'any' : undefined}
-                      value={val}
-                      onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                      placeholder={`Informe ${field.label.toLowerCase()}...`}
-                      className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
-                    />
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Stepper Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-gray-100">
-              <Button
-                variant="outline"
-                disabled={currentSectionIndex === 0}
-                onClick={handlePrevSection}
-                className="rounded-xl h-10 px-4 text-xs font-semibold w-full sm:w-auto"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Etapa Anterior
-              </Button>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                {/* Rascunho */}
-                <Button
-                  variant="outline"
-                  disabled={submitting}
-                  onClick={() => handleSaveEvaluation('Rascunho')}
-                  className="rounded-xl h-10 px-4 text-xs font-semibold border-gray-200 hover:bg-gray-50 flex items-center gap-1.5"
-                >
-                  <Save className="h-3.5 w-3.5 text-gray-500" />
-                  Salvar Rascunho
-                </Button>
-
-                {currentSectionIndex < sections.length - 1 ? (
-                  <Button
-                    onClick={handleNextSection}
-                    className="bg-gray-900 hover:bg-black text-white rounded-xl h-10 px-5 text-xs font-semibold flex items-center gap-1"
-                  >
-                    Próxima Etapa <ChevronRight className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    disabled={submitting}
-                    onClick={() => handleSaveEvaluation('Concluída')}
-                    className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-6 text-xs shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/40"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Concluindo...
-                      </>
+                        Próxima Etapa <ChevronRight className="h-4 w-4" />
+                      </Button>
                     ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" /> Concluir Avaliação
-                      </>
+                      <Button
+                        disabled={submitting}
+                        onClick={() => handleSaveEvaluation('Concluída')}
+                        className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-6 text-xs shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/40"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Concluindo...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" /> Concluir Avaliação
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
