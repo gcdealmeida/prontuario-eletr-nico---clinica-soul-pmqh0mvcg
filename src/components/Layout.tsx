@@ -6,6 +6,7 @@ import {
   Calendar,
   FileText,
   BarChart3,
+  BookOpen,
   Menu,
   X,
   Plus,
@@ -73,6 +74,7 @@ export default function Layout() {
       badge: consultasHojeCount > 0 ? consultasHojeCount : null,
     },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
+    { name: 'Guia de Uso', path: '/guia', icon: BookOpen },
   ]
 
   const handleGlobalSearchSubmit = (e: React.FormEvent) => {
@@ -93,6 +95,7 @@ export default function Layout() {
       return 'Visualização de Prontuário'
     if (path.startsWith('/prontuarios')) return 'Prontuários & Avaliações'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
+    if (path.startsWith('/guia')) return 'Guia de Uso & Ajuda'
     return 'Soul Clínica'
   }
 

@@ -24,6 +24,7 @@ import Prontuarios from '@/pages/Prontuarios'
 import NovaAvaliacao from '@/pages/NovaAvaliacao'
 import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
 import Relatorios from '@/pages/Relatorios'
+import GuiaUso from '@/pages/GuiaUso'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/prontuarios/novo" element={<NovaAvaliacao />} />
               <Route path="/prontuarios/:id" element={<AvaliacaoDetalhe />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/guia" element={<GuiaUso />} />
             </Route>
           </Route>
 
