@@ -385,6 +385,48 @@ export const BERG_ITENS = [
   },
 ]
 
+export const CIRTOMETRIA_REGIOES_PADRAO = [
+  'Acima da Patela',
+  '8 cm acima da patela (Quadríceps)',
+  '15 cm acima da patela (Quadríceps)',
+  'Linha Articular do Joelho',
+  'Abaixo da Patela',
+  '12 cm abaixo da patela (Panturrilha)',
+] as const
+
+export const SEGMENTOS_GONIOMETRIA_MAP: Record<string, string[]> = {
+  Ombro: [
+    'Flexão',
+    'Extensão',
+    'Abdução',
+    'Adução Horizontal',
+    'Rotação Externa',
+    'Rotação Interna',
+  ],
+  Cotovelo: ['Flexão', 'Extensão', 'Pronação', 'Supinação'],
+  Punho: ['Flexão (Palmar)', 'Extensão (Dorsiflexão)', 'Desvio Radial', 'Desvio Ulnar'],
+  Quadril: ['Flexão', 'Extensão', 'Abdução', 'Adução', 'Rotação Externa', 'Rotação Interna'],
+  Joelho: ['Flexão', 'Extensão'],
+  Tornozelo: ['Dorsiflexão', 'Flexão Plantar', 'Inversão', 'Eversão'],
+  'Coluna Cervical': [
+    'Flexão',
+    'Extensão',
+    'Rotação Direita',
+    'Rotação Esquerda',
+    'Inclinação Lateral Direita',
+    'Inclinação Lateral Esquerda',
+  ],
+  'Coluna Torácica': ['Flexão', 'Extensão', 'Rotação Direita', 'Rotação Esquerda'],
+  'Coluna Lombar': [
+    'Flexão',
+    'Extensão',
+    'Latero-flexão Direita',
+    'Latero-flexão Esquerda',
+    'Rotação Direita',
+    'Rotação Esquerda',
+  ],
+}
+
 export const ELEMENTOS_PALMILHA = [
   {
     id: 'bic',

@@ -249,20 +249,118 @@ export interface SecoesComplementaresFisio {
   inspecao_dados?: Record<string, string>
   // Cirtometria
   cirtometria_ativo?: boolean
-  cirtometria_dados?: Record<string, { direito?: string; esquerdo?: string }>
-  // Goniometria
+  cirtometria_dados?: Record<string, { direito?: string; esquerdo?: string }> // Legado / retrocompatibilidade
+  cirtometria_fases?: Array<{
+    id: string
+    fase: string // ex: "Medida Inicial", "Fase 1 (Reavaliação)", etc.
+    data: string
+    medidas: Record<string, { direito?: string; esquerdo?: string }>
+    observacoes?: string
+  }>
+  // Goniometria (por segmento + movimento)
   goniometria_ativo?: boolean
   goniometria_medicoes?: Array<{
     data: string
     joelho_d?: string
     joelho_e?: string
     outros?: string
+  }> // Legado
+  goniometria_avaliacoes?: Array<{
+    id: string
+    data: string
+    segmento: string
+    movimento: string
+    esquerdo_graus?: string | number
+    direito_graus?: string | number
+    observacoes?: string
   }>
-  // Palmilha
+  // Palmilha - Avaliação Podal + Prescrição
   palmilha_ativo?: boolean
   palmilha_elementos?: Record<string, boolean>
   palmilha_tamanho?: string
   palmilha_obs?: string
+  // Avaliação Podal Específica em Etapas
+  palmilha_avaliacao?: {
+    // 1. Postura Podal Estática e Alinhamento
+    postura_antepe?: 'Valgo' | 'Varo' | 'Neutro / Alinhado' | ''
+    postura_retrope?: 'Valgo' | 'Varo' | 'Neutro / Alinhado' | ''
+    postura_joelho?: 'Valgo' | 'Varo' | 'Neutro / Alinhado' | ''
+    postura_quadril?: 'Rotação Interna' | 'Rotação Externa' | 'Neutro' | ''
+    altura_crista_iliaca?: 'Simétrica' | 'Direita Mais Alta' | 'Esquerda Mais Alta' | ''
+    altura_ombro?: 'Simétrica' | 'Direito Mais Alto' | 'Esquerdo Mais Alto' | ''
+    inclinacao_cabeca?: 'Simétrica' | 'Direita' | 'Esquerda' | ''
+    plano_sagital?:
+      | 'Retificado'
+      | 'Anteriorizado'
+      | 'Neutro'
+      | 'Hiperlordose / Aumento de Curvas'
+      | 'Posteriorizado'
+      | ''
+    // 2. Testes Biomecânicos Podais
+    jack_test_direito?: 'POSITIVO' | 'NEGATIVO' | 'NÃO REALIZADO' | ''
+    jack_test_esquerdo?: 'POSITIVO' | 'NEGATIVO' | 'NÃO REALIZADO' | ''
+    hubscher_modificado?:
+      | 'Estrutural (sem melhora)'
+      | 'Funcional (melhora sem carga)'
+      | 'Normal'
+      | ''
+    tripe_podal_direito?: { calcaneo?: boolean; meta1?: boolean; meta5?: boolean }
+    tripe_podal_esquerdo?: { calcaneo?: boolean; meta1?: boolean; meta5?: boolean }
+    drop_navicular_mm_direito?: string | number
+    drop_navicular_mm_esquerdo?: string | number
+    core_podal_direito?: 'NORMAL' | 'ALTERADO' | ''
+    core_podal_esquerdo?: 'NORMAL' | 'ALTERADO' | ''
+    mobilidade_1_raio_direito?: 'NORMAL' | 'HIPOMÓVEL' | 'HIPERMÓVEL' | ''
+    mobilidade_1_raio_esquerdo?: 'NORMAL' | 'HIPOMÓVEL' | 'HIPERMÓVEL' | ''
+    equilibrio_unipodal_direito?: 'NORMAL' | 'ALTERADO' | ''
+    equilibrio_unipodal_esquerdo?: 'NORMAL' | 'ALTERADO' | ''
+    perna_curta?: 'Nenhuma / Simétrica' | 'Perna Curta Direita' | 'Perna Curta Esquerda' | ''
+    perna_curta_mm?: string | number
+    lunge_test_cm_direito?: string | number
+    lunge_test_cm_esquerdo?: string | number
+    // 3. Testes Posturológicos e Cadeia Ascendente
+    polegares_ascendentes?: 'Simétrico' | 'Assimetria Direita' | 'Assimetria Esquerda' | ''
+    posturodinamico?: 'Normal' | 'Bloqueio à Direita' | 'Bloqueio à Esquerda' | ''
+    rotacao_cabeca_estimulo_podal?: 'Melhora com Estímulo' | 'Sem Alteração' | 'Piora' | ''
+    marcha_observacoes?: string
+    tipo_pisada?: 'Pronada' | 'Supinada' | 'Neutra' | 'Hiperpronada' | ''
+  }
+  // Prescrição e Pedido da Palmilha
+  palmilha_pedido?: {
+    prescricao_aberta?: boolean
+    modelo_palmilha?:
+      | 'Postural / Proprioceptiva'
+      | 'Mecânica / Esportiva'
+      | 'Conforto / Diabético'
+      | 'Infantil'
+      | ''
+    calçado_tamanho?: string
+    espessura_base_mm?: string
+    densidade_eva?:
+      | 'Macia (25-30 shore)'
+      | 'Média (35-40 shore)'
+      | 'Firme (45-50 shore)'
+      | 'Rígida (60+ shore)'
+      | ''
+    cobertura_tipo?:
+      | 'EVA Perfurado'
+      | 'Couro Sintético'
+      | 'Camurça'
+      | 'Plastazote'
+      | 'Neoprene'
+      | ''
+    elementos_selecionados?: Record<string, boolean>
+    elementos_detalhes?: Record<
+      string,
+      { lado?: 'Bilateral' | 'Direito' | 'Esquerdo'; tamanho_mm?: string }
+    >
+    compensacao_dismetria_lado?: 'Nenhum' | 'Direito' | 'Esquerdo' | ''
+    compensacao_dismetria_mm?: string | number
+    data_pedido?: string
+    prazo_previsto?: string
+    laboratorio_fornecedor?: string
+    observacoes_laboratorio?: string
+  }
 }
 
 export interface PlanoSemanalItem {

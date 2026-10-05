@@ -9,7 +9,7 @@ import type {
   PlanoSemanalItem,
   QueixaItem,
 } from '@/types/database'
-import { BERG_ITENS, ELEMENTOS_PALMILHA } from '@/lib/fisioterapiaModel'
+import { BERG_ITENS, ELEMENTOS_PALMILHA, CIRTOMETRIA_REGIOES_PADRAO } from '@/lib/fisioterapiaModel'
 import { getFileUrl } from '@/services/avaliacoes'
 import {
   FileText,
@@ -21,6 +21,11 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
+  Footprints,
+  Calendar,
+  TrendingDown,
+  TrendingUp,
+  Minus,
 } from 'lucide-react'
 
 interface VisualizacaoFisioterapiaProps {
@@ -435,8 +440,12 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
 
       {/* 5. SEÇÕES COMPLEMENTARES */}
       {comp &&
-        (comp.berg_ativo || comp.tug_ativo || comp.cirtometria_ativo || comp.palmilha_ativo) && (
-          <div className="space-y-4">
+        (comp.berg_ativo ||
+          comp.tug_ativo ||
+          comp.cirtometria_ativo ||
+          comp.goniometria_ativo ||
+          comp.palmilha_ativo) && (
+          <div className="space-y-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2.5 rounded-xl flex items-center gap-2">
               <Layers className="h-4 w-4" /> 5. Fichas e Testes Complementares
             </h3>
@@ -467,29 +476,538 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
               </div>
             )}
 
-            {/* Palmilha */}
-            {comp.palmilha_ativo && (
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs space-y-2">
-                <span className="font-bold text-gray-800 block">
-                  Prescrição de Palmilha Postural:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(comp.palmilha_elementos || {}).map(([k, v]) => {
-                    if (!v) return null
-                    const elem = ELEMENTOS_PALMILHA.find((e) => e.id === k)
-                    return (
-                      <span
-                        key={k}
-                        className="px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-700 font-semibold"
-                      >
-                        {elem?.nome || k}
-                      </span>
-                    )
-                  })}
+            {/* Cirtometria com Comparação Evolutiva entre Fases */}
+            {comp.cirtometria_ativo && (
+              <div className="p-4 bg-gray-50/70 rounded-2xl border border-gray-200 text-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-gray-200">
+                  <span className="font-bold text-sm text-gray-900 block">
+                    Cirtometria / Perimetria de Membros Inferiores — Análise Comparativa por Fases
+                  </span>
+                  <span className="text-[11px] text-gray-500">
+                    Evolução cronológica de perímetros com destaque de variações (D / E)
+                  </span>
                 </div>
-                {comp.palmilha_tamanho && (
-                  <span className="text-gray-500 block">Tamanho: {comp.palmilha_tamanho}</span>
+
+                {/* Normalização de fases (compatibilidade com versões anteriores) */}
+                {(() => {
+                  const fases =
+                    comp.cirtometria_fases && comp.cirtometria_fases.length > 0
+                      ? [...comp.cirtometria_fases].sort(
+                          (a, b) =>
+                            new Date(a.data || '').getTime() - new Date(b.data || '').getTime(),
+                        )
+                      : comp.cirtometria_dados
+                        ? [
+                            {
+                              id: 'legado',
+                              fase: 'Medida Inicial',
+                              data: avaliacao.data_avaliacao || '',
+                              medidas: comp.cirtometria_dados,
+                            },
+                          ]
+                        : []
+
+                  if (fases.length === 0) {
+                    return <p className="text-gray-500">Nenhuma medição registrada.</p>
+                  }
+
+                  const primeiraFase = fases[0]
+                  const ultimaFase = fases[fases.length - 1]
+                  const temComparativo = fases.length > 1
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Tabela Comparativa de Perímetros */}
+                      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                        <table className="w-full text-xs">
+                          <thead className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200">
+                            <tr>
+                              <th className="py-2 px-3 text-left font-bold">Região / Ponto</th>
+                              {fases.map((f, i) => (
+                                <th
+                                  key={f.id || i}
+                                  colSpan={2}
+                                  className="py-2 px-2 text-center font-bold border-l border-gray-200"
+                                >
+                                  <div>{f.fase || `Fase ${i + 1}`}</div>
+                                  <div className="text-[9px] font-normal text-gray-400">
+                                    {f.data || 'Data N/I'}
+                                  </div>
+                                </th>
+                              ))}
+                              {temComparativo && (
+                                <th
+                                  colSpan={2}
+                                  className="py-2 px-2 text-center font-bold border-l-2 border-[#8C6527] bg-[#FAF4EA] text-[#8C6527]"
+                                >
+                                  <div>Variação Total (Última vs Inicial)</div>
+                                  <div className="text-[9px] font-normal">Diferença em cm</div>
+                                </th>
+                              )}
+                            </tr>
+                            <tr className="border-t border-gray-200 text-[9px] text-gray-400">
+                              <th className="py-1 px-3 text-left"></th>
+                              {fases.map((f, i) => (
+                                <React.Fragment key={`sub-${f.id || i}`}>
+                                  <th className="py-1 px-2 text-center border-l border-gray-100">
+                                    D
+                                  </th>
+                                  <th className="py-1 px-2 text-center">E</th>
+                                </React.Fragment>
+                              ))}
+                              {temComparativo && (
+                                <React.Fragment key="sub-diff">
+                                  <th className="py-1 px-2 text-center border-l-2 border-[#8C6527] bg-[#FAF4EA] text-[#8C6527] font-bold">
+                                    D (Δ)
+                                  </th>
+                                  <th className="py-1 px-2 text-center bg-[#FAF4EA] text-[#8C6527] font-bold">
+                                    E (Δ)
+                                  </th>
+                                </React.Fragment>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {CIRTOMETRIA_REGIOES_PADRAO.map((reg) => {
+                              // Valores da primeira fase
+                              const dIni = parseFloat(primeiraFase.medidas?.[reg]?.direito || '')
+                              const eIni = parseFloat(primeiraFase.medidas?.[reg]?.esquerdo || '')
+                              // Valores da última fase
+                              const dUlt = parseFloat(ultimaFase.medidas?.[reg]?.direito || '')
+                              const eUlt = parseFloat(ultimaFase.medidas?.[reg]?.esquerdo || '')
+
+                              const diffD = !isNaN(dIni) && !isNaN(dUlt) ? dUlt - dIni : null
+                              const diffE = !isNaN(eIni) && !isNaN(eUlt) ? eUlt - eIni : null
+
+                              return (
+                                <tr key={reg} className="hover:bg-gray-50/50">
+                                  <td className="py-2 px-3 font-semibold text-gray-800">{reg}</td>
+                                  {fases.map((f, i) => (
+                                    <React.Fragment key={`cell-${f.id || i}`}>
+                                      <td className="py-2 px-2 text-center font-mono border-l border-gray-100">
+                                        {f.medidas?.[reg]?.direito
+                                          ? `${f.medidas[reg]?.direito} cm`
+                                          : '—'}
+                                      </td>
+                                      <td className="py-2 px-2 text-center font-mono">
+                                        {f.medidas?.[reg]?.esquerdo
+                                          ? `${f.medidas[reg]?.esquerdo} cm`
+                                          : '—'}
+                                      </td>
+                                    </React.Fragment>
+                                  ))}
+                                  {temComparativo && (
+                                    <React.Fragment key="cell-diff">
+                                      <td className="py-2 px-2 text-center font-mono font-bold border-l-2 border-[#8C6527] bg-[#FAF4EA]/50">
+                                        {diffD !== null ? (
+                                          <span
+                                            className={`inline-flex items-center gap-0.5 ${
+                                              diffD > 0
+                                                ? 'text-emerald-700'
+                                                : diffD < 0
+                                                  ? 'text-blue-700'
+                                                  : 'text-gray-500'
+                                            }`}
+                                          >
+                                            {diffD > 0 ? (
+                                              <TrendingUp className="h-3 w-3 inline" />
+                                            ) : diffD < 0 ? (
+                                              <TrendingDown className="h-3 w-3 inline" />
+                                            ) : (
+                                              <Minus className="h-3 w-3 inline" />
+                                            )}
+                                            {diffD > 0 ? `+${diffD.toFixed(1)}` : diffD.toFixed(1)}{' '}
+                                            cm
+                                          </span>
+                                        ) : (
+                                          '—'
+                                        )}
+                                      </td>
+                                      <td className="py-2 px-2 text-center font-mono font-bold bg-[#FAF4EA]/50">
+                                        {diffE !== null ? (
+                                          <span
+                                            className={`inline-flex items-center gap-0.5 ${
+                                              diffE > 0
+                                                ? 'text-emerald-700'
+                                                : diffE < 0
+                                                  ? 'text-blue-700'
+                                                  : 'text-gray-500'
+                                            }`}
+                                          >
+                                            {diffE > 0 ? (
+                                              <TrendingUp className="h-3 w-3 inline" />
+                                            ) : diffE < 0 ? (
+                                              <TrendingDown className="h-3 w-3 inline" />
+                                            ) : (
+                                              <Minus className="h-3 w-3 inline" />
+                                            )}
+                                            {diffE > 0 ? `+${diffE.toFixed(1)}` : diffE.toFixed(1)}{' '}
+                                            cm
+                                          </span>
+                                        ) : (
+                                          '—'
+                                        )}
+                                      </td>
+                                    </React.Fragment>
+                                  )}
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Observações das Fases */}
+                      {fases.some((f) => f.observacoes) && (
+                        <div className="space-y-1 bg-white p-3 rounded-xl border border-gray-200">
+                          <span className="font-bold text-[11px] text-gray-700 block">
+                            Notas Clínicas das Fases de Cirtometria:
+                          </span>
+                          {fases.map(
+                            (f, i) =>
+                              f.observacoes && (
+                                <div key={i} className="text-gray-700 text-xs">
+                                  <span className="font-semibold">
+                                    {f.fase || `Fase ${i + 1}`}:
+                                  </span>{' '}
+                                  {f.observacoes}
+                                </div>
+                              ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
+            {/* Goniometria: Segmento — Movimento (Esq X° / Dir Y°) com Assimetria */}
+            {comp.goniometria_ativo && (
+              <div className="p-4 bg-gray-50/70 rounded-2xl border border-gray-200 text-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-gray-200">
+                  <span className="font-bold text-sm text-gray-900 block">
+                    Goniometria Articular Específica
+                  </span>
+                  <span className="text-[11px] text-gray-500">
+                    Registro de segmento e movimento com destaque para assimetrias
+                  </span>
+                </div>
+
+                {comp.goniometria_avaliacoes && comp.goniometria_avaliacoes.length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200">
+                        <tr>
+                          <th className="py-2.5 px-3 text-left font-bold">Data</th>
+                          <th className="py-2.5 px-3 text-left font-bold">Segmento & Movimento</th>
+                          <th className="py-2.5 px-3 text-center font-bold">Lado Esquerdo</th>
+                          <th className="py-2.5 px-3 text-center font-bold">Lado Direito</th>
+                          <th className="py-2.5 px-3 text-center font-bold">
+                            Assimetria (|D - E|)
+                          </th>
+                          <th className="py-2.5 px-3 text-left font-bold">Observações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {comp.goniometria_avaliacoes.map((item) => {
+                          const esqNum = parseFloat(String(item.esquerdo_graus || ''))
+                          const dirNum = parseFloat(String(item.direito_graus || ''))
+                          const temValores = !isNaN(esqNum) && !isNaN(dirNum)
+                          const assimetria = temValores ? Math.abs(dirNum - esqNum) : null
+                          const isAssimetriaRelevante = assimetria !== null && assimetria >= 10
+
+                          return (
+                            <tr key={item.id} className="hover:bg-gray-50/50">
+                              <td className="py-2.5 px-3 font-mono text-gray-500">
+                                {item.data || '—'}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <span className="font-bold text-gray-900">
+                                  {item.segmento} — {item.movimento}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-mono font-bold text-gray-800">
+                                {item.esquerdo_graus !== '' && item.esquerdo_graus !== undefined
+                                  ? `${item.esquerdo_graus}°`
+                                  : '—'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-mono font-bold text-gray-800">
+                                {item.direito_graus !== '' && item.direito_graus !== undefined
+                                  ? `${item.direito_graus}°`
+                                  : '—'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-mono">
+                                {assimetria !== null ? (
+                                  <span
+                                    className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                                      isAssimetriaRelevante
+                                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                        : 'bg-gray-100 text-gray-700'
+                                    }`}
+                                  >
+                                    {assimetria}° {isAssimetriaRelevante ? '(Significativa)' : ''}
+                                  </span>
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-gray-600">
+                                {item.observacoes || '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : comp.goniometria_medicoes && comp.goniometria_medicoes.length > 0 ? (
+                  /* Fallback para avaliações legadas de goniometria */
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200">
+                        <tr>
+                          <th className="py-2 px-3 text-left">Data</th>
+                          <th className="py-2 px-2 text-center">Joelho D</th>
+                          <th className="py-2 px-2 text-center">Joelho E</th>
+                          <th className="py-2 px-3 text-left">Observações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {comp.goniometria_medicoes.map((m, idx) => (
+                          <tr key={idx}>
+                            <td className="py-2 px-3">{m.data}</td>
+                            <td className="py-2 px-2 text-center font-mono">{m.joelho_d}°</td>
+                            <td className="py-2 px-2 text-center font-mono">{m.joelho_e}°</td>
+                            <td className="py-2 px-3 text-gray-500">{m.outros || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Nenhum registro de goniometria encontrado.</p>
                 )}
+              </div>
+            )}
+
+            {/* Avaliação Podopostural Completa & Prescrição da Palmilha */}
+            {comp.palmilha_ativo && (
+              <div className="space-y-4 p-5 bg-[#FAF4EA]/40 rounded-2xl border border-[#DFBF8E]/60 text-xs">
+                <div className="flex items-center gap-2 pb-2 border-b border-[#DFBF8E]/40">
+                  <Footprints className="h-4 w-4 text-[#8C6527]" />
+                  <span className="font-bold text-sm text-gray-900 block">
+                    Avaliação Podopostural e Prescrição de Palmilha
+                  </span>
+                </div>
+
+                {/* 1. Postura Podal Estática se preenchida */}
+                {comp.palmilha_avaliacao &&
+                  Object.values(comp.palmilha_avaliacao).some(Boolean) && (
+                    <div className="space-y-3">
+                      <span className="font-bold text-[11px] text-[#8C6527] uppercase tracking-wider block">
+                        Achados da Avaliação Podopostural:
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {comp.palmilha_avaliacao.tipo_pisada && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">
+                              Pisada Predominante
+                            </span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.tipo_pisada}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.postura_retrope && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">
+                              Retropé / Tornozelo
+                            </span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.postura_retrope}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.postura_antepe && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">Antepé</span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.postura_antepe}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.postura_joelho && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">Joelhos</span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.postura_joelho}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.plano_sagital && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">Plano Sagital</span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.plano_sagital}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.perna_curta && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">
+                              Dismetria de Membros
+                            </span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.perna_curta}{' '}
+                              {comp.palmilha_avaliacao.perna_curta_mm
+                                ? `(${comp.palmilha_avaliacao.perna_curta_mm}mm)`
+                                : ''}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.jack_test_direito && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">Jack Test (D/E)</span>
+                            <span className="font-bold text-gray-900">
+                              D: {comp.palmilha_avaliacao.jack_test_direito} | E:{' '}
+                              {comp.palmilha_avaliacao.jack_test_esquerdo || 'N/R'}
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.hubscher_modificado && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">
+                              Hubscher Modificado
+                            </span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.hubscher_modificado}
+                            </span>
+                          </div>
+                        )}
+                        {(comp.palmilha_avaliacao.drop_navicular_mm_direito ||
+                          comp.palmilha_avaliacao.drop_navicular_mm_esquerdo) && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">
+                              Drop do Navicular
+                            </span>
+                            <span className="font-bold text-gray-900 font-mono">
+                              D: {comp.palmilha_avaliacao.drop_navicular_mm_direito || '—'}mm | E:{' '}
+                              {comp.palmilha_avaliacao.drop_navicular_mm_esquerdo || '—'}mm
+                            </span>
+                          </div>
+                        )}
+                        {comp.palmilha_avaliacao.rotacao_cabeca_estimulo_podal && (
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200">
+                            <span className="text-[10px] text-gray-500 block">
+                              Estímulo Podal / Rotação
+                            </span>
+                            <span className="font-bold text-gray-900">
+                              {comp.palmilha_avaliacao.rotacao_cabeca_estimulo_podal}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* 2. Prescrição Técnica da Palmilha */}
+                <div className="space-y-3 pt-2">
+                  <span className="font-bold text-[11px] text-[#8C6527] uppercase tracking-wider block">
+                    Prescrição da Palmilha & Elementos Posturais:
+                  </span>
+
+                  {/* Elementos prescritos */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(
+                      comp.palmilha_pedido?.elementos_selecionados || comp.palmilha_elementos || {},
+                    ).map(([k, v]) => {
+                      if (!v) return null
+                      const elem = ELEMENTOS_PALMILHA.find((e) => e.id === k)
+                      return (
+                        <span
+                          key={k}
+                          className="px-2.5 py-1 rounded-xl bg-white border border-[#C9A46A] text-gray-800 font-bold shadow-2xs"
+                        >
+                          {elem?.nome || k}
+                        </span>
+                      )
+                    })}
+                  </div>
+
+                  {/* Dados do Pedido */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-white p-3.5 rounded-xl border border-gray-200">
+                    <div>
+                      <span className="text-[10px] text-gray-500 block">Modelo Prescrito</span>
+                      <span className="font-semibold text-gray-900">
+                        {comp.palmilha_pedido?.modelo_palmilha || 'Postural / Proprioceptiva'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-500 block">Tamanho</span>
+                      <span className="font-semibold text-gray-900">
+                        {comp.palmilha_pedido?.calçado_tamanho || comp.palmilha_tamanho || '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-500 block">Densidade EVA</span>
+                      <span className="font-semibold text-gray-900">
+                        {comp.palmilha_pedido?.densidade_eva || '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-500 block">Cobertura</span>
+                      <span className="font-semibold text-gray-900">
+                        {comp.palmilha_pedido?.cobertura_tipo || '—'}
+                      </span>
+                    </div>
+                    {comp.palmilha_pedido?.espessura_base_mm && (
+                      <div>
+                        <span className="text-[10px] text-gray-500 block">Espessura Base</span>
+                        <span className="font-semibold text-gray-900">
+                          {comp.palmilha_pedido.espessura_base_mm}
+                        </span>
+                      </div>
+                    )}
+                    {comp.palmilha_pedido?.compensacao_dismetria_mm && (
+                      <div>
+                        <span className="text-[10px] text-gray-500 block">
+                          Compensação Dismetria
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                          {comp.palmilha_pedido.compensacao_dismetria_lado}{' '}
+                          {comp.palmilha_pedido.compensacao_dismetria_mm}mm
+                        </span>
+                      </div>
+                    )}
+                    {comp.palmilha_pedido?.laboratorio_fornecedor && (
+                      <div>
+                        <span className="text-[10px] text-gray-500 block">Laboratório</span>
+                        <span className="font-semibold text-gray-900">
+                          {comp.palmilha_pedido.laboratorio_fornecedor}
+                        </span>
+                      </div>
+                    )}
+                    {comp.palmilha_pedido?.prazo_previsto && (
+                      <div>
+                        <span className="text-[10px] text-gray-500 block">Previsão Entrega</span>
+                        <span className="font-semibold text-gray-900">
+                          {comp.palmilha_pedido.prazo_previsto}
+                        </span>
+                      </div>
+                    )}
+                    {(comp.palmilha_pedido?.observacoes_laboratorio || comp.palmilha_obs) && (
+                      <div className="col-span-2 sm:col-span-4 pt-1 border-t border-gray-100">
+                        <span className="text-[10px] text-gray-500 block">
+                          Observações para Confecção:
+                        </span>
+                        <span className="text-gray-800">
+                          {comp.palmilha_pedido?.observacoes_laboratorio || comp.palmilha_obs}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
