@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T09:23:29.090Z",
+  "generatedAt": "2026-10-05T09:30:01.660Z",
   "collections": [
     {
       "name": "users",
@@ -1220,6 +1220,112 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_conhecimento_area ON conhecimento_clinico (segmento_ou_area)"]
+    },
+    {
+      "name": "evolucoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "avaliacao_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico"]
+        },
+        {
+          "name": "data_evolucao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "profissional",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "subjetivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objetivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avaliacao_clinica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conduta_procedimentos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_livre",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Finalizada", "Rascunho"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_evolucoes_paciente ON evolucoes (paciente_id, data_evolucao DESC)",
+        "CREATE INDEX idx_evolucoes_avaliacao ON evolucoes (avaliacao_id)"
+      ]
     }
   ]
 }

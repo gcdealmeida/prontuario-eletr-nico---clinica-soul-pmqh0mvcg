@@ -8,6 +8,32 @@ export type TipoTimeline = 'Consulta' | 'Avaliação' | 'Nota'
 
 export type StatusAvaliacao = 'Rascunho' | 'Concluída'
 
+export type StatusEvolucao = 'Finalizada' | 'Rascunho'
+
+export interface EvolucaoRecord {
+  id: string
+  paciente_id: string
+  avaliacao_id?: string
+  especialidade: Especialidade
+  data_evolucao: string
+  profissional: string
+  // SOAP
+  subjetivo?: string
+  objetivo?: string
+  avaliacao_clinica?: string
+  plano?: string
+  // Condutas e procedimentos da sessão
+  conduta_procedimentos?: string
+  // Texto livre de evolução rápida
+  texto_livre?: string
+  status: StatusEvolucao
+  created: string
+  updated: string
+  expand?: {
+    paciente_id?: PacienteRecord
+  }
+}
+
 export interface UserRecord {
   id: string
   email: string

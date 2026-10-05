@@ -25,6 +25,7 @@ import {
   Layers,
   TrendingUp,
   RefreshCw,
+  Bell,
   Search,
   UploadCloud,
   Check,
@@ -243,7 +244,14 @@ export default function GuiaUso() {
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
-            3. Como ir Atualizando o Prontuário
+            3. Atualizações & Reavaliações
+          </TabsTrigger>
+          <TabsTrigger
+            value="evolucoes-alertas"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4 text-amber-300" />
+            4. Evoluções & Botão ALERTA
           </TabsTrigger>
           <TabsTrigger
             value="faq"
@@ -757,7 +765,125 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 4: PERGUNTAS FREQUENTES (FAQ) */}
+        {/* TAB 4: EVOLUÇÕES & BOTÃO ALERTA */}
+        <TabsContent value="evolucoes-alertas" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold mb-2">
+                <Bell className="h-3.5 w-3.5 text-amber-600 fill-amber-500/20" />
+                <span>Padrão Clínico Brasileiro</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Evoluções do Paciente (Sessões) e Botão ALERTA
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Como registrar sessões diárias pelo modelo SOAP e programar tarefas e lembretes
+                automáticos na Agenda Clínica.
+              </p>
+            </div>
+
+            {/* Passo a Passo Estilo Círculos Dourados */}
+            <div className="space-y-5 pt-2">
+              {/* Passo 1 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  1
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Acessar as Evoluções dentro do Prontuário
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Na tela de Visualização do Prontuário (<code>/prontuarios/:id</code>), utilize
+                    as abas no topo para alternar entre{' '}
+                    <strong>"Avaliação Clínica (Prontuário Oficial)"</strong> e{' '}
+                    <strong>"Evoluções do Paciente (Sessões)"</strong>. O contador de sessões já
+                    registradas aparece na aba.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 2 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  2
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Registrar Sessões com o Modelo SOAP ou Evolução Rápida
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Clique em <strong>"Nova Evolução"</strong> para abrir o modal clínico
+                    padronizado (mesmo padrão dos principais softwares como Amplimed, Ninsaúde e
+                    iClinic):
+                    <br />• <strong>S (Subjetivo):</strong> relato do paciente, nível de dor (EVA),
+                    resposta aos exercícios domiciliares.
+                    <br />• <strong>O (Objetivo):</strong> mensurações, goniometria do dia, testes
+                    físicos executados, palpação.
+                    <br />• <strong>A (Avaliação):</strong> análise clínica do profissional e
+                    raciocínio terapêutico.
+                    <br />• <strong>P (Plano):</strong> planejamento da próxima sessão e
+                    orientações.
+                    <br />• <strong>Conduta / Procedimentos:</strong> exercícios realizados, séries,
+                    técnicas de terapia manual ou eletroterapia.
+                    <br />
+                    <em>
+                      Dica: Para anotações diretas sem subdivisões, alterne para "Evolução Rápida
+                      (Texto Único)".
+                    </em>
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 3 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  3
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Botão ALERTA: Lembrete Automático na Agenda
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    No topo do prontuário ou em qualquer evolução clínica, clique no botão âmbar{' '}
+                    <strong>"ALERTA"</strong> com ícone de sino:
+                    <br />• <strong>O que lembrar:</strong> digite o item (ex:{' '}
+                    <em>"Reavaliar goniometria de ombro"</em>,{' '}
+                    <em>"Refazer cirtometria — Fase 2"</em>, <em>"Reaplicar FMS"</em>) ou escolha
+                    uma das sugestões rápidas.
+                    <br />• <strong>Quando lembrar:</strong> selecione o atalho{' '}
+                    <strong>"Daqui a 30 dias"</strong> (calcula a data automaticamente) ou clique em{' '}
+                    <strong>"Data específica"</strong> para escolher o dia e horário exatos.
+                    <br />• Ao confirmar, a tarefa é{' '}
+                    <strong>lançada automaticamente na Agenda Clínica</strong> com destaque visual
+                    âmbar e sininho de alerta, além de ser registrada na Timeline do paciente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 4 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  4
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Sincronização com o Perfil do Paciente e Impressão
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    • <strong>Perfil do Paciente:</strong> Todas as evoluções aparecem organizadas
+                    na aba "Evoluções" do paciente e na Timeline com as cores de cada especialidade.
+                    <br />• <strong>Impressão / PDF:</strong> O prontuário oficial preserva o
+                    cabeçalho oficial SOUL com o logotipo em alta definição, layout A4 e linha de
+                    assinatura intactos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 5: PERGUNTAS FREQUENTES (FAQ) */}
         <TabsContent value="faq" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>

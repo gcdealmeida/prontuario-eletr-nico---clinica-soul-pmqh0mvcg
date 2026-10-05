@@ -12,6 +12,8 @@ import {
   XCircle,
   User,
   Filter,
+  Bell,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -270,15 +272,30 @@ export default function Agenda() {
                 const espStyle =
                   ESPECIALIDADE_COLORS[c.especialidade] || ESPECIALIDADE_COLORS.Fisioterapia
                 const pacNome = c.expand?.paciente_id?.nome || 'Paciente'
+                const isAlerta = (c.notas || '').toUpperCase().includes('[ALERTA')
 
                 return (
                   <div
                     key={c.id}
-                    className="p-4 rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-sm bg-white transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                      isAlerta
+                        ? 'border-amber-300 bg-amber-50/50 hover:bg-amber-50/80 shadow-2xs'
+                        : 'border-gray-100 hover:border-gray-200 hover:shadow-sm bg-white'
+                    }`}
                   >
                     <div className="flex items-start sm:items-center gap-4">
-                      <div className="flex flex-col items-center justify-center px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-100 text-gray-900 font-bold text-sm min-w-[75px]">
-                        <Clock className="h-3.5 w-3.5 text-gray-400 mb-1" />
+                      <div
+                        className={`flex flex-col items-center justify-center px-3.5 py-2 rounded-xl border font-bold text-sm min-w-[75px] ${
+                          isAlerta
+                            ? 'bg-amber-100/70 border-amber-300 text-amber-900'
+                            : 'bg-gray-50 border-gray-100 text-gray-900'
+                        }`}
+                      >
+                        {isAlerta ? (
+                          <Bell className="h-3.5 w-3.5 text-amber-600 mb-1 animate-pulse" />
+                        ) : (
+                          <Clock className="h-3.5 w-3.5 text-gray-400 mb-1" />
+                        )}
                         {formatHoraPTBR(c.data_hora)}
                       </div>
 
@@ -295,11 +312,23 @@ export default function Agenda() {
                           >
                             {c.especialidade}
                           </span>
+                          {isAlerta && (
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 border border-amber-300 flex items-center gap-1">
+                              <Bell className="h-3 w-3" />
+                              Lembrete de Reavaliação
+                            </span>
+                          )}
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
                           <span>Duração: {c.duracao_min || 45} min</span>
-                          {c.notas && <span>• Obs: {c.notas}</span>}
+                          {c.notas && (
+                            <span
+                              className={isAlerta ? 'font-medium text-amber-950' : 'text-gray-500'}
+                            >
+                              • {c.notas}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -390,17 +419,32 @@ export default function Agenda() {
                         const espStyle =
                           ESPECIALIDADE_COLORS[c.especialidade] || ESPECIALIDADE_COLORS.Fisioterapia
                         const pacNome = c.expand?.paciente_id?.nome || 'Paciente'
+                        const isAlerta = (c.notas || '').toUpperCase().includes('[ALERTA')
 
                         return (
                           <div
                             key={c.id}
-                            className={`p-2 rounded-xl text-left border shadow-2xs transition-all hover:scale-[1.02] ${espStyle.badge}`}
+                            className={`p-2 rounded-xl text-left border shadow-2xs transition-all hover:scale-[1.02] ${
+                              isAlerta
+                                ? 'bg-amber-100/90 text-amber-950 border-amber-300 ring-1 ring-amber-400/40'
+                                : espStyle.badge
+                            }`}
                           >
-                            <div className="font-bold text-[11px] truncate">{pacNome}</div>
+                            <div className="font-bold text-[11px] truncate flex items-center gap-1">
+                              {isAlerta && <Bell className="h-2.5 w-2.5 text-amber-700 shrink-0" />}
+                              <span>{pacNome}</span>
+                            </div>
                             <div className="text-[10px] opacity-80 flex items-center justify-between mt-0.5">
                               <span>{formatHoraPTBR(c.data_hora)}</span>
-                              <span className="font-semibold">{c.especialidade.slice(0, 3)}</span>
+                              <span className="font-semibold">
+                                {isAlerta ? 'ALERTA' : c.especialidade.slice(0, 3)}
+                              </span>
                             </div>
+                            {isAlerta && c.notas && (
+                              <div className="text-[9px] text-amber-800 truncate mt-0.5 font-medium">
+                                {c.notas.replace(/\[ALERTA[^\]]*\]/i, '').trim()}
+                              </div>
+                            )}
                           </div>
                         )
                       })

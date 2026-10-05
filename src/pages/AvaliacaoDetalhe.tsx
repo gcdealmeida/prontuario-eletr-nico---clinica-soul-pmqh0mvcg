@@ -11,38 +11,78 @@ import {
   FileText,
   Clock,
   Loader2,
+  Bell,
+  Layers,
+  ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getAvaliacaoById, getCollectionNameByEspecialidade } from '@/services/avaliacoes'
+import { getEvolucoesByPaciente } from '@/services/evolucoes'
 import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
-import type { Especialidade, AvaliacaoFisioterapiaRecord } from '@/types/database'
+import type { Especialidade, AvaliacaoFisioterapiaRecord, EvolucaoRecord } from '@/types/database'
 import { LogoSOUL } from '@/components/LogoSOUL'
 import { VisualizacaoFisioterapia } from '@/components/fisioterapia/VisualizacaoFisioterapia'
 import { VisualizacaoPersonal } from '@/components/personal/VisualizacaoPersonal'
+import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
+import { ModalAlertaReavaliacao } from '@/components/ModalAlertaReavaliacao'
 
 export default function AvaliacaoDetalhe() {
   const { id } = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const espParam = (searchParams.get('esp') || 'Fisioterapia') as Especialidade
+  const tabParam = (searchParams.get('tab') || 'avaliacao') as 'avaliacao' | 'evolucoes'
   const navigate = useNavigate()
 
   const [avaliacao, setAvaliacao] = useState<any>(null)
+  const [evolucoesCount, setEvolucoesCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [abaAtiva, setAbaAtiva] = useState<'avaliacao' | 'evolucoes'>(tabParam)
+
+  // Modal Alerta
+  const [modalAlertaOpen, setModalAlertaOpen] = useState(false)
+  const [itemAlertaSugerido, setItemAlertaSugerido] = useState('')
 
   useEffect(() => {
+    if (tabParam && (tabParam === 'avaliacao' || tabParam === 'evolucoes')) {
+      setAbaAtiva(tabParam)
+    }
+  }, [tabParam])
+
+  const carregarDados = () => {
     if (!id) return
     setLoading(true)
     const col = getCollectionNameByEspecialidade(espParam)
     getAvaliacaoById(col, id)
       .then((res) => {
         setAvaliacao(res)
+        if (res?.paciente_id) {
+          getEvolucoesByPaciente(res.paciente_id)
+            .then((evos) => setEvolucoesCount(evos.length))
+            .catch(() => {})
+        }
       })
       .catch((err) => {
         console.error('Erro ao carregar prontuário:', err)
       })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    carregarDados()
   }, [id, espParam])
+
+  const handleTabChange = (novaAba: 'avaliacao' | 'evolucoes') => {
+    setAbaAtiva(novaAba)
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('tab', novaAba)
+    setSearchParams(newParams, { replace: true })
+  }
+
+  const handleAbrirAlerta = (sugestao = '') => {
+    setItemAlertaSugerido(sugestao || 'Reavaliar paciente')
+    setModalAlertaOpen(true)
+  }
 
   const handlePrint = () => {
     window.print()
@@ -86,8 +126,32 @@ export default function AvaliacaoDetalhe() {
           <span className="font-bold text-[#8C6527]">{espParam}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Editar */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* BOTÃO ALERTA DE REAVALIAÇÃO EM DESTAQUE SOUL */}
+          <Button
+            size="sm"
+            onClick={() => handleAbrirAlerta('Reavaliar goniometria e força')}
+            className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:brightness-105 text-white font-bold rounded-xl h-9 px-3.5 text-xs flex items-center gap-1.5 shadow-md border border-amber-400/40 animate-pulse hover:animate-none"
+            title="Agendar lembrete/tarefa na Agenda Clínica (ex: daqui 30 dias)"
+          >
+            <Bell className="h-4 w-4 fill-white/20" />
+            <span>ALERTA</span>
+          </Button>
+
+          {/* Ver Perfil / Timeline do Paciente */}
+          {avaliacao.paciente_id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/pacientes/${avaliacao.paciente_id}`)}
+              className="rounded-xl h-9 text-xs font-semibold border-gray-200 hover:bg-gray-50 flex items-center gap-1.5"
+            >
+              <User className="h-3.5 w-3.5 text-gray-600" />
+              Ver Paciente
+            </Button>
+          )}
+
+          {/* Editar Avaliação */}
           <Button
             variant="outline"
             size="sm"
@@ -116,8 +180,66 @@ export default function AvaliacaoDetalhe() {
         </div>
       </div>
 
-      {/* Main Document Card (rendered for view & print) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
+      {/* SELETOR DE ABAS: AVALIAÇÃO VS EVOLUÇÕES (oculto na impressão) */}
+      <div className="bg-white rounded-2xl p-1.5 border border-[#E9E1D2] shadow-xs flex items-center gap-1 print:hidden">
+        <button
+          type="button"
+          onClick={() => handleTabChange('avaliacao')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+            abaAtiva === 'avaliacao'
+              ? 'bg-[#1E2530] text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          <span>Avaliação Clínica (Prontuário Oficial)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('evolucoes')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+            abaAtiva === 'evolucoes'
+              ? 'bg-[#1E2530] text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <Activity className="h-4 w-4" />
+          <span>Evoluções do Paciente (Sessões)</span>
+          {evolucoesCount > 0 && (
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                abaAtiva === 'evolucoes'
+                  ? 'bg-[#C9A46A] text-[#33221C]'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {evolucoesCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ABA 2: EVOLUÇÕES (exibida quando a aba for selecionada) */}
+      {abaAtiva === 'evolucoes' && (
+        <div className="print:hidden">
+          <SecaoEvolucoes
+            pacienteId={avaliacao.paciente_id}
+            avaliacaoId={avaliacao.id}
+            especialidade={espParam}
+            pacienteNome={pacNome}
+            profissionalPadrao={avaliacao.profissional_responsavel}
+            onOpenAlerta={handleAbrirAlerta}
+          />
+        </div>
+      )}
+
+      {/* Main Document Card (sempre renderizado para view da aba 'avaliacao' e SEMPRE renderizado para PRINT) */}
+      <div
+        className={`bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0 ${
+          abaAtiva !== 'avaliacao' ? 'hidden print:block' : ''
+        }`}
+      >
         {/* Cabeçalho Oficial do Prontuário Clínico Oficial:
             Disposição vertical oficial empilhada e centralizada:
             - Símbolo oficial fiel à imagem no topo
@@ -376,6 +498,17 @@ export default function AvaliacaoDetalhe() {
           </div>
         </div>
       </div>
+
+      {/* MODAL ALERTA DE REAVALIAÇÃO */}
+      <ModalAlertaReavaliacao
+        open={modalAlertaOpen}
+        onOpenChange={setModalAlertaOpen}
+        pacienteId={avaliacao.paciente_id}
+        pacienteNome={pacNome}
+        especialidade={espParam}
+        itemSugerido={itemAlertaSugerido}
+        onSuccess={() => {}}
+      />
     </div>
   )
 }

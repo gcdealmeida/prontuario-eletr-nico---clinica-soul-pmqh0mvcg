@@ -70,6 +70,9 @@ export default function PacienteDetalhe() {
     medico: any[]
   }>({ fisio: [], personal: [], nutri: [], medico: [] })
 
+  // Evoluções clínicas do paciente
+  const [evolucoesPaciente, setEvolucoesPaciente] = useState<any[]>([])
+
   // Modal Consulta
   const [consultaModalOpen, setConsultaModalOpen] = useState(false)
 
@@ -106,6 +109,15 @@ export default function PacienteDetalhe() {
       // Avaliações
       const avs = await getAvaliacoesByPaciente(id)
       setAvaliacoes(avs)
+
+      // Evoluções
+      try {
+        const { getEvolucoesByPaciente } = await import('@/services/evolucoes')
+        const evos = await getEvolucoesByPaciente(id)
+        setEvolucoesPaciente(evos)
+      } catch (errEvos) {
+        console.warn('Erro ao carregar evoluções do paciente:', errEvos)
+      }
     } catch (err) {
       console.error('Erro ao carregar paciente:', err)
       toast({
@@ -122,12 +134,22 @@ export default function PacienteDetalhe() {
     loadData()
   }, [id])
 
-  // Realtime timeline
+  // Realtime timeline e evolucoes
   useRealtime('timeline', () => {
     if (id) {
       getTimelineByPaciente(id)
         .then(setTimeline)
         .catch(() => {})
+    }
+  })
+
+  useRealtime('evolucoes', () => {
+    if (id) {
+      import('@/services/evolucoes').then(({ getEvolucoesByPaciente }) => {
+        getEvolucoesByPaciente(id)
+          .then(setEvolucoesPaciente)
+          .catch(() => {})
+      })
     }
   })
 
@@ -313,10 +335,16 @@ export default function PacienteDetalhe() {
             Timeline Cronológica ({timeline.length})
           </TabsTrigger>
           <TabsTrigger
+            value="evolucoes"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#1E2530] data-[state=checked]:text-white transition-all h-10 px-4"
+          >
+            Evoluções ({evolucoesPaciente.length})
+          </TabsTrigger>
+          <TabsTrigger
             value="avaliacoes"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#1E2530] data-[state=checked]:text-white transition-all h-10 px-4"
           >
-            Avaliações Clínicas (
+            Avaliações (
             {avaliacoes.fisio.length +
               avaliacoes.personal.length +
               avaliacoes.nutri.length +
@@ -418,6 +446,99 @@ export default function PacienteDetalhe() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB: EVOLUÇÕES DO PACIENTE */}
+        <TabsContent value="evolucoes" className="pt-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Evoluções Clínicas Registradas</h3>
+                <p className="text-xs text-gray-400">
+                  Histórico de sessões SOAP e condutas dos atendimentos do paciente.
+                </p>
+              </div>
+            </div>
+
+            {evolucoesPaciente.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-600">
+                  Nenhuma evolução registrada para este paciente.
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Acesse qualquer prontuário deste paciente na aba Avaliações para registrar sessões
+                  de evolução.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {evolucoesPaciente.map((evo) => {
+                  const espStyle =
+                    ESPECIALIDADE_COLORS[evo.especialidade] || ESPECIALIDADE_COLORS.Fisioterapia
+                  return (
+                    <div
+                      key={evo.id}
+                      className="p-4 rounded-2xl border border-gray-100 hover:border-[#C9A46A]/50 bg-gray-50/40 hover:bg-white transition-all shadow-2xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${espStyle.badge}`}
+                          >
+                            {evo.especialidade}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-700">
+                            {formatDataHoraPTBR(evo.data_evolucao || evo.created)}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            • Profissional: <strong>{evo.profissional}</strong>
+                          </span>
+                        </div>
+
+                        {evo.avaliacao_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(
+                                `/prontuarios/${evo.avaliacao_id}?esp=${encodeURIComponent(
+                                  evo.especialidade,
+                                )}&tab=evolucoes`,
+                              )
+                            }
+                            className="text-xs text-[#8C6527] hover:text-[#4A322A] h-7 px-2"
+                          >
+                            Abrir Prontuário →
+                          </Button>
+                        )}
+                      </div>
+
+                      {evo.conduta_procedimentos && (
+                        <div className="text-xs text-gray-800 font-medium mb-1">
+                          <span className="text-[#8C6527] font-bold">Conduta: </span>
+                          {evo.conduta_procedimentos}
+                        </div>
+                      )}
+
+                      {evo.avaliacao_clinica && (
+                        <div className="text-xs text-gray-600">
+                          <span className="font-semibold text-gray-700">Análise (A): </span>
+                          {evo.avaliacao_clinica}
+                        </div>
+                      )}
+
+                      {evo.texto_livre && !evo.conduta_procedimentos && (
+                        <div className="text-xs text-gray-700 whitespace-pre-wrap">
+                          {evo.texto_livre}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
