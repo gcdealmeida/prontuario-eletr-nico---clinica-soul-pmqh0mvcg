@@ -774,3 +774,42 @@ export interface AvaliacaoMedicoRecord {
     paciente_id?: PacienteRecord
   }
 }
+
+export type ClinicalUpdateAction =
+  | 'criar'
+  | 'editar'
+  | 'concluir'
+  | 'assinar'
+  | 'evolucao_corretiva'
+  | 'excluir'
+
+export type ClinicalUpdateEntityType = 'avaliacao' | 'prontuario' | 'evolucao'
+
+export interface ClinicalUpdateLogRecord {
+  id: string
+  user_id: string
+  user_name?: string
+  user_email: string
+  acao: ClinicalUpdateAction
+  tipo_entidade: ClinicalUpdateEntityType
+  especialidade?: Especialidade | 'Geral'
+  entidade_id: string
+  paciente_id?: string
+  paciente_nome?: string
+  detalhes?: string
+  created: string
+  updated: string
+}
+
+export interface NotificationRecord {
+  id: string
+  user_id: string
+  titulo: string
+  descricao?: string
+  tipo: 'clinical_update' | 'access_request' | 'system'
+  lida: boolean
+  link?: string
+  metadata?: Record<string, any>
+  created: string
+  updated: string
+}

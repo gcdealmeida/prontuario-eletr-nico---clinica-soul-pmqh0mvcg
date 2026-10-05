@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   ShieldCheck,
   UserCheck,
@@ -16,6 +17,13 @@ import {
   Shield,
   Activity,
   Calendar,
+  FileText,
+  FileCheck2,
+  Filter,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,19 +40,56 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
-import { getAllUsers, getAccessLogs, manageUserAccess } from '@/services/acessos'
-import type { UserRecord, AccessLogRecord, AccessStatus } from '@/types/database'
-import { formatDataHoraPTBR, getInitials } from '@/lib/constants'
+import {
+  getAllUsers,
+  getAccessLogs,
+  manageUserAccess,
+  getClinicalUpdateLogs,
+} from '@/services/acessos'
+import type {
+  UserRecord,
+  AccessLogRecord,
+  AccessStatus,
+  ClinicalUpdateLogRecord,
+  ClinicalUpdateAction,
+} from '@/types/database'
+import { formatDataHoraPTBR, getInitials, ESPECIALIDADE_COLORS } from '@/lib/constants'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Acessos() {
   const { toast } = useToast()
   const { user: currentUser, isAdmin } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const [users, setUsers] = useState<UserRecord[]>([])
   const [logs, setLogs] = useState<AccessLogRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState('pendentes')
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabParam = searchParams.get('tab')
+    if (
+      tabParam === 'atualizacoes' ||
+      tabParam === 'pendentes' ||
+      tabParam === 'ativos' ||
+      tabParam === 'suspensos' ||
+      tabParam === 'historico'
+    ) {
+      return tabParam
+    }
+    return 'pendentes'
+  })
+
+  // Estado da aba Atualizações Clínicas
+  const [clinicalLogs, setClinicalLogs] = useState<ClinicalUpdateLogRecord[]>([])
+  const [clinicalTotal, setClinicalTotal] = useState(0)
+  const [clinicalTotalPages, setClinicalTotalPages] = useState(1)
+  const [clinicalPage, setClinicalPage] = useState(1)
+  const [clinicalLoading, setClinicalLoading] = useState(false)
+  const [filterTipo, setFilterTipo] = useState<string>('Todos')
+  const [filterEspecialidade, setFilterEspecialidade] = useState<string>('Todos')
+  const [filterProfissional, setFilterProfissional] = useState<string>('Todos')
+  const [clinicalSearch, setClinicalSearch] = useState('')
 
   // Modal de confirmação de ação
   const [modalAction, setModalAction] = useState<{
@@ -78,9 +123,41 @@ export default function Acessos() {
     }
   }
 
+  const loadClinicalLogs = useCallback(
+    async (page: number = 1) => {
+      try {
+        setClinicalLoading(true)
+        const res = await getClinicalUpdateLogs(page, 20, {
+          tipo_entidade: filterTipo,
+          especialidade: filterEspecialidade,
+          user_email: filterProfissional,
+          search: clinicalSearch,
+        })
+        setClinicalLogs(res.items)
+        setClinicalTotal(res.totalItems)
+        setClinicalTotalPages(res.totalPages)
+        setClinicalPage(page)
+      } catch (err: any) {
+        console.error('Erro ao buscar logs clínicos:', err)
+      } finally {
+        setClinicalLoading(false)
+      }
+    },
+    [filterTipo, filterEspecialidade, filterProfissional, clinicalSearch],
+  )
+
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    loadClinicalLogs(1)
+  }, [loadClinicalLogs])
+
+  // Realtime em clinical_update_logs
+  useRealtime('clinical_update_logs', () => {
+    loadClinicalLogs(clinicalPage)
+  })
 
   // Filtragem dos usuários por busca
   const filteredUsers = useMemo(() => {
@@ -274,6 +351,83 @@ export default function Acessos() {
     }
   }
 
+  const renderClinicalActionBadge = (acao: ClinicalUpdateAction) => {
+    switch (acao) {
+      case 'assinar':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF4EA] text-[#8C6527] border border-[#C9A46A]/50">
+            <FileCheck2 className="h-3 w-3 text-[#8C6527]" />
+            Assinatura Oficial
+          </span>
+        )
+      case 'concluir':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Conclusão
+          </span>
+        )
+      case 'editar':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <RefreshCw className="h-3 w-3 text-blue-600" />
+            Edição
+          </span>
+        )
+      case 'evolucao_corretiva':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+            <History className="h-3 w-3 text-purple-600" />
+            Evolução Corretiva
+          </span>
+        )
+      case 'criar':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <FileText className="h-3 w-3 text-amber-600" />
+            Criação
+          </span>
+        )
+      case 'excluir':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+            <Trash2 className="h-3 w-3 text-red-600" />
+            Exclusão
+          </span>
+        )
+      default:
+        return <Badge variant="secondary">{acao}</Badge>
+    }
+  }
+
+  const renderEntityTypeBadge = (tipo: string) => {
+    switch (tipo) {
+      case 'avaliacao':
+        return (
+          <Badge variant="outline" className="text-xs bg-white text-gray-700 border-gray-300">
+            Avaliação
+          </Badge>
+        )
+      case 'evolucao':
+        return (
+          <Badge
+            variant="outline"
+            className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
+          >
+            Evolução
+          </Badge>
+        )
+      case 'prontuario':
+        return (
+          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-800 border-amber-200">
+            Prontuário
+          </Badge>
+        )
+      default:
+        return <Badge variant="outline">{tipo}</Badge>
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="p-8 text-center bg-white rounded-3xl border border-[#E9E1D2] space-y-4 max-w-md mx-auto my-12">
@@ -404,11 +558,19 @@ export default function Acessos() {
           </TabsTrigger>
 
           <TabsTrigger
+            value="atualizacoes"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-4 flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4 text-[#C9A46A]" />
+            Atualizações Clínicas ({clinicalTotal})
+          </TabsTrigger>
+
+          <TabsTrigger
             value="historico"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-4 flex items-center gap-2"
           >
             <History className="h-4 w-4" />
-            Histórico & Auditoria ({logs.length})
+            Auditoria de Acessos ({logs.length})
           </TabsTrigger>
         </TabsList>
 
@@ -643,7 +805,277 @@ export default function Acessos() {
           )}
         </TabsContent>
 
-        {/* TAB 4: HISTÓRICO & AUDITORIA */}
+        {/* TAB 4: ATUALIZAÇÕES CLÍNICAS (AUDITORIA COMPLETA DE EDIÇÕES) */}
+        <TabsContent value="atualizacoes" className="space-y-4">
+          <div className="bg-white rounded-3xl p-6 border border-[#E9E1D2] shadow-xs space-y-4">
+            {/* Header com filtros */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#E9E1D2]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#C9A46A]" />
+                  <h3 className="font-serif font-bold text-base text-[#4A322A]">
+                    Controle de Atualizações Clínicas
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Histórico empilhado cronologicamente de toda criação, edição ou assinatura em
+                  avaliações, prontuários e evoluções.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => loadClinicalLogs(1)}
+                  disabled={clinicalLoading}
+                  className="h-9 border-[#E9E1D2] text-[#4A322A] hover:bg-[#FAF7F1] rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${clinicalLoading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+                <Badge
+                  variant="outline"
+                  className="bg-[#FAF7F1] text-[#73574A] border-[#E9E1D2] text-xs"
+                >
+                  {clinicalTotal} registro(s)
+                </Badge>
+              </div>
+            </div>
+
+            {/* Barra de Filtros */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#FAF7F1] p-3 rounded-2xl border border-[#E9E1D2]">
+              <div>
+                <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                  Tipo de Entidade:
+                </label>
+                <select
+                  value={filterTipo}
+                  onChange={(e) => setFilterTipo(e.target.value)}
+                  className="w-full text-xs h-9 bg-white border border-[#E9E1D2] rounded-xl px-2.5 focus:border-[#C9A46A] focus:outline-hidden"
+                >
+                  <option value="Todos">Todas as entidades</option>
+                  <option value="avaliacao">Avaliações</option>
+                  <option value="evolucao">Evoluções</option>
+                  <option value="prontuario">Prontuários (Ficha)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                  Especialidade:
+                </label>
+                <select
+                  value={filterEspecialidade}
+                  onChange={(e) => setFilterEspecialidade(e.target.value)}
+                  className="w-full text-xs h-9 bg-white border border-[#E9E1D2] rounded-xl px-2.5 focus:border-[#C9A46A] focus:outline-hidden"
+                >
+                  <option value="Todos">Todas as especialidades</option>
+                  <option value="Fisioterapia">Fisioterapia</option>
+                  <option value="Personal">Personal Trainer</option>
+                  <option value="Nutrição">Nutrição</option>
+                  <option value="Médico">Médico</option>
+                  <option value="Geral">Geral</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                  Profissional:
+                </label>
+                <select
+                  value={filterProfissional}
+                  onChange={(e) => setFilterProfissional(e.target.value)}
+                  className="w-full text-xs h-9 bg-white border border-[#E9E1D2] rounded-xl px-2.5 focus:border-[#C9A46A] focus:outline-hidden truncate"
+                >
+                  <option value="Todos">Todos os profissionais</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.email}>
+                      {u.name || u.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                  Buscar no histórico:
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input
+                    type="search"
+                    placeholder="Paciente, autor, notas..."
+                    value={clinicalSearch}
+                    onChange={(e) => setClinicalSearch(e.target.value)}
+                    className="pl-8 text-xs h-9 bg-white border-[#E9E1D2] rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tabela de logs clínicos */}
+            <div className="bg-white rounded-2xl border border-[#E9E1D2] overflow-hidden shadow-xs">
+              {clinicalLoading ? (
+                <div className="p-12 text-center text-xs text-gray-500 space-y-2">
+                  <RefreshCw className="h-6 w-6 animate-spin text-[#C9A46A] mx-auto" />
+                  <p>Carregando registros de auditoria clínica...</p>
+                </div>
+              ) : clinicalLogs.length === 0 ? (
+                <div className="p-12 text-center text-xs text-gray-500 space-y-2">
+                  <FileText className="h-8 w-8 text-gray-300 mx-auto" />
+                  <p className="font-semibold text-gray-700 text-sm">
+                    Nenhuma atualização clínica encontrada
+                  </p>
+                  <p className="text-gray-400 max-w-sm mx-auto">
+                    Toda vez que uma avaliação for criada/editada, ou uma evolução for assinada, o
+                    evento será gravado aqui automaticamente com nome, e-mail, horário e dia.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF7F1] border-b border-[#E9E1D2] text-[#73574A] font-semibold uppercase text-[10px] tracking-wider">
+                      <tr>
+                        <th className="p-3.5 pl-5">Horário e Dia</th>
+                        <th className="p-3.5">Profissional (Quem Fez)</th>
+                        <th className="p-3.5">Ação</th>
+                        <th className="p-3.5">O Que Foi Alterado</th>
+                        <th className="p-3.5">Paciente</th>
+                        <th className="p-3.5 pr-5 text-right">Acesso</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {clinicalLogs.map((log) => {
+                        const espStyle =
+                          ESPECIALIDADE_COLORS[
+                            log.especialidade as keyof typeof ESPECIALIDADE_COLORS
+                          ] || ESPECIALIDADE_COLORS.Fisioterapia
+
+                        let targetUrl = ''
+                        if (log.tipo_entidade === 'avaliacao') {
+                          targetUrl = `/prontuarios/${log.entidade_id}?esp=${encodeURIComponent(
+                            log.especialidade || 'Fisioterapia',
+                          )}`
+                        } else if (log.tipo_entidade === 'evolucao') {
+                          if (log.paciente_id) {
+                            targetUrl = `/pacientes/${log.paciente_id}`
+                          } else {
+                            targetUrl = `/prontuarios`
+                          }
+                        } else if (log.tipo_entidade === 'prontuario') {
+                          targetUrl = `/pacientes/${log.entidade_id}`
+                        }
+
+                        return (
+                          <tr key={log.id} className="hover:bg-gray-50/70 transition-colors">
+                            <td className="p-3.5 pl-5 font-mono text-[11px] text-gray-600 whitespace-nowrap">
+                              {formatDataHoraPTBR(log.created)}
+                            </td>
+                            <td className="p-3.5">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-7 w-7 rounded-lg bg-[#FAF4EA] text-[#5C4033] border border-[#C9A46A]/30">
+                                  <AvatarFallback className="font-bold text-[10px]">
+                                    {getInitials(log.user_name || log.user_email)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-[#4A322A] truncate">
+                                    {log.user_name || 'Profissional'}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 truncate">
+                                    {log.user_email}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3.5 whitespace-nowrap">
+                              {renderClinicalActionBadge(log.acao)}
+                            </td>
+                            <td className="p-3.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {renderEntityTypeBadge(log.tipo_entidade)}
+                                {log.especialidade && (
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${espStyle.badge}`}
+                                  >
+                                    {log.especialidade}
+                                  </span>
+                                )}
+                              </div>
+                              {log.detalhes && (
+                                <p
+                                  className="text-[11px] text-gray-600 mt-1 line-clamp-1"
+                                  title={log.detalhes}
+                                >
+                                  {log.detalhes}
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-3.5">
+                              <p className="font-medium text-[#4A322A] truncate max-w-xs">
+                                {log.paciente_nome || 'Paciente SOUL'}
+                              </p>
+                              {log.paciente_id && (
+                                <p className="text-[10px] text-gray-400 font-mono">
+                                  ID: {log.paciente_id.slice(0, 8)}...
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-3.5 pr-5 text-right whitespace-nowrap">
+                              {targetUrl && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(targetUrl)}
+                                  className="h-8 px-2.5 text-xs text-[#8C6527] hover:text-[#4A322A] hover:bg-[#FAF4EA] rounded-lg"
+                                >
+                                  Ver Registro <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Paginação */}
+              {clinicalTotalPages > 1 && (
+                <div className="p-3 bg-[#FAF7F1] border-t border-[#E9E1D2] flex items-center justify-between text-xs text-gray-600">
+                  <span>
+                    Página {clinicalPage} de {clinicalTotalPages} ({clinicalTotal} registros no
+                    total)
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={clinicalPage <= 1 || clinicalLoading}
+                      onClick={() => loadClinicalLogs(clinicalPage - 1)}
+                      className="h-8 px-2.5 rounded-lg text-xs"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={clinicalPage >= clinicalTotalPages || clinicalLoading}
+                      onClick={() => loadClinicalLogs(clinicalPage + 1)}
+                      className="h-8 px-2.5 rounded-lg text-xs"
+                    >
+                      Próxima <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 5: HISTÓRICO & AUDITORIA DE ACESSOS */}
         <TabsContent value="historico" className="space-y-4">
           <div className="bg-white rounded-2xl border border-[#E9E1D2] overflow-hidden shadow-xs">
             <div className="p-4 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between">

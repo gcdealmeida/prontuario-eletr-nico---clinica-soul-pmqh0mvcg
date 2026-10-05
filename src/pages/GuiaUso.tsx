@@ -1096,25 +1096,54 @@ export default function GuiaUso() {
                   </div>
                   <div className="space-y-1">
                     <h5 className="font-bold text-sm text-[#33221C]">
-                      Consultar a Trilha de Auditoria
+                      Consultar a Auditoria de Acessos
                     </h5>
                     <p className="text-xs text-gray-600 leading-relaxed">
-                      Na aba <strong>"Histórico & Auditoria"</strong>, veja todos os eventos
+                      Na aba <strong>"Auditoria de Acessos"</strong>, veja todos os eventos
                       registrados: quem aprovou ou suspendeu quem, data e hora exatas, tentativas de
                       login bloqueadas e logins realizados com sucesso.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    5
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="font-bold text-sm text-[#33221C]">
+                      Auditoria de Atualizações Clínicas & Notificações em Tempo Real
+                    </h5>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Para conformidade e segurança clínica, cada criação ou edição em avaliações
+                      (Fisioterapia, Personal, Nutrição, Médico), prontuários e assinaturas de
+                      evoluções gera um registro de auditoria gravado diretamente pelo servidor na
+                      aba <strong>"Atualizações Clínicas"</strong> (em <code>/acessos</code>). O
+                      histórico empilha cronologicamente o nome do profissional, seu e-mail, ação,
+                      especialidade, paciente e carimbo temporal exato do servidor. Além disso, o
+                      ícone de sino no topo do sistema exibe alertas imediatos para o administrador
+                      com link direto para o registro modificado.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-wrap gap-2">
               <Button
                 onClick={() => navigate('/acessos')}
                 className="bg-[#4A322A] hover:bg-[#3D2922] text-[#FAF4EA] rounded-xl text-xs font-semibold h-10 px-5 flex items-center gap-2"
               >
                 <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
                 Abrir Painel de Acessos Agora
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/acessos?tab=atualizacoes')}
+                className="border-[#C9A46A]/60 text-[#4A322A] hover:bg-[#FAF4EA] rounded-xl text-xs font-semibold h-10 px-4 flex items-center gap-2"
+              >
+                <Activity className="h-4 w-4 text-[#8C6527]" />
+                Ver Atualizações Clínicas
               </Button>
             </div>
           </div>

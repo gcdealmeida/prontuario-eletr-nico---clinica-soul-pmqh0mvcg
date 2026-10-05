@@ -25,9 +25,18 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getConsultasHoje } from '@/services/consultas'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getInitials } from '@/lib/constants'
+import { getInitials, formatDataHoraPTBR } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { LogoSOUL } from '@/components/LogoSOUL'
+import {
+  getNotifications,
+  getUnreadNotificationsCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from '@/services/notifications'
+import type { NotificationRecord } from '@/types/database'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CheckCheck, ExternalLink } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
@@ -41,6 +50,11 @@ export default function Layout() {
   const [globalSearch, setGlobalSearch] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
 
+  // Notificações in-app
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0)
+  const [notifPopoverOpen, setNotifPopoverOpen] = useState<boolean>(false)
+
   const fetchConsultasCount = async () => {
     try {
       const res = await getConsultasHoje()
@@ -50,13 +64,32 @@ export default function Layout() {
     }
   }
 
+  const fetchNotificationsData = async () => {
+    try {
+      const [list, count] = await Promise.all([getNotifications(20), getUnreadNotificationsCount()])
+      setNotifications(list)
+      setUnreadNotifsCount(count)
+    } catch {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     fetchConsultasCount()
+    fetchNotificationsData()
   }, [])
 
-  // Realtime em consultas
+  // Realtime em consultas e notifications
   useRealtime('consultas', () => {
     fetchConsultasCount()
+  })
+
+  useRealtime('notifications', () => {
+    fetchNotificationsData()
+  })
+
+  useRealtime('clinical_update_logs', () => {
+    fetchNotificationsData()
   })
 
   // Close mobile drawer on route change
@@ -362,19 +395,154 @@ export default function Layout() {
                 />
               </form>
 
-              {/* Notification bell with badge count for today's appointments */}
-              <button
-                onClick={() => navigate('/agenda')}
-                className="relative p-2 rounded-xl text-[#5C4033] hover:bg-[#F0E3CC]/50 hover:text-[#33221C] transition-colors"
-                title={`${consultasHojeCount} consultas hoje`}
-              >
-                <Bell className="h-5 w-5" />
-                {consultasHojeCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#B87355] text-[10px] font-bold text-white shadow-sm animate-pulse">
-                    {consultasHojeCount}
-                  </span>
-                )}
-              </button>
+              {/* Notificações in-app (Sino com popover e contagem de atualizações clínicas + consultas) */}
+              <Popover open={notifPopoverOpen} onOpenChange={setNotifPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="relative p-2 rounded-xl text-[#5C4033] hover:bg-[#F0E3CC]/50 hover:text-[#33221C] transition-colors"
+                    title={
+                      unreadNotifsCount > 0
+                        ? `${unreadNotifsCount} nova(s) atualização(ões) clínica(s)`
+                        : `${consultasHojeCount} consultas hoje`
+                    }
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadNotifsCount > 0 ? (
+                      <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                        {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
+                      </span>
+                    ) : consultasHojeCount > 0 ? (
+                      <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#B87355] text-[10px] font-bold text-white shadow-sm">
+                        {consultasHojeCount}
+                      </span>
+                    ) : null}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-80 sm:w-96 p-0 bg-white border border-[#E9E1D2] rounded-2xl shadow-xl overflow-hidden"
+                >
+                  <div className="p-3.5 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#C9A46A]" />
+                      <h4 className="font-serif font-bold text-sm text-[#4A322A]">
+                        Notificações & Atualizações
+                      </h4>
+                      {unreadNotifsCount > 0 && (
+                        <Badge className="bg-red-500 hover:bg-red-600 text-white text-[10px] px-1.5 py-0">
+                          {unreadNotifsCount} novas
+                        </Badge>
+                      )}
+                    </div>
+                    {unreadNotifsCount > 0 && (
+                      <button
+                        onClick={async () => {
+                          await markAllNotificationsAsRead()
+                          fetchNotificationsData()
+                        }}
+                        className="text-[11px] text-[#8C6527] hover:underline font-semibold flex items-center gap-1"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" />
+                        Marcar lidas
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                    {/* Alerta de consultas hoje */}
+                    {consultasHojeCount > 0 && (
+                      <div
+                        onClick={() => {
+                          setNotifPopoverOpen(false)
+                          navigate('/agenda')
+                        }}
+                        className="p-3 bg-amber-50/60 hover:bg-amber-50 transition-colors cursor-pointer flex items-start gap-3"
+                      >
+                        <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0">
+                          <Calendar className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-amber-900">Agenda do Dia</p>
+                          <p className="text-[11px] text-amber-700">
+                            Você tem {consultasHojeCount} consulta(s) programada(s) para hoje.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-xs text-gray-500 space-y-1">
+                        <Bell className="h-6 w-6 text-gray-300 mx-auto" />
+                        <p className="font-medium text-gray-700">Nenhuma notificação clínica</p>
+                        <p className="text-[11px] text-gray-400">
+                          Edições em avaliações e evoluções assinadas aparecerão aqui em tempo real.
+                        </p>
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={async () => {
+                            if (!n.lida) {
+                              await markNotificationAsRead(n.id)
+                              fetchNotificationsData()
+                            }
+                            if (n.link) {
+                              setNotifPopoverOpen(false)
+                              navigate(n.link)
+                            }
+                          }}
+                          className={cn(
+                            'p-3 hover:bg-[#FAF7F1] transition-colors cursor-pointer flex items-start gap-3 text-left',
+                            !n.lida ? 'bg-[#FAF4EA]/40' : 'bg-white',
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'h-2 w-2 rounded-full mt-1.5 shrink-0',
+                              !n.lida ? 'bg-[#C9A46A]' : 'bg-transparent',
+                            )}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-bold text-[#4A322A] truncate">
+                                {n.titulo}
+                              </p>
+                              <span className="text-[10px] text-gray-400 font-mono shrink-0">
+                                {formatDataHoraPTBR(n.created)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-2 leading-relaxed">
+                              {n.descricao}
+                            </p>
+                            {n.link && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-[#8C6527] font-semibold mt-1 hover:underline">
+                                Ver registro <ExternalLink className="h-2.5 w-2.5" />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {isAdmin && (
+                    <div className="p-2.5 bg-[#FAF7F1] border-t border-[#E9E1D2] text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setNotifPopoverOpen(false)
+                          navigate('/acessos?tab=atualizacoes')
+                        }}
+                        className="w-full text-xs font-semibold text-[#4A322A] hover:text-[#8C6527] h-8"
+                      >
+                        Ver Histórico Completo de Atualizações →
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
 
               {/* Nova Consulta Primary Button em dourado SOUL */}
               <Button
