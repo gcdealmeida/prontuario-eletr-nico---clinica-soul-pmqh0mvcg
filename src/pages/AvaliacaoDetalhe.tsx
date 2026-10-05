@@ -119,8 +119,13 @@ export default function AvaliacaoDetalhe() {
         {/* Cabeçalho Oficial com LogoSOUL (variante horizontal) - Perfeitamente alinhado e sem distorção em tela e impressão */}
         <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:pb-4 print:mb-4 print:flex-row print:items-center">
           <div className="flex items-center gap-4 shrink-0">
-            <LogoSOUL variant="horizontal" size="sm" theme="light" className="shrink-0" />
-            <div className="hidden sm:block print:block border-l border-[#D4B278]/60 pl-4 py-0.5 shrink-0">
+            <LogoSOUL
+              variant="horizontal"
+              size="sm"
+              theme="light"
+              className="shrink-0 print:shrink-0"
+            />
+            <div className="hidden sm:block print:block border-l-2 border-[#D4B278]/60 pl-4 py-0.5 shrink-0">
               <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block leading-tight">
                 Prontuário Clínico Oficial
               </span>

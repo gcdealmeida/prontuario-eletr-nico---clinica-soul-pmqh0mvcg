@@ -227,9 +227,9 @@ export default function Relatorios() {
 
       {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL */}
       <div className="hidden print:flex items-center justify-between pb-4 mb-4 border-b-2 border-[#E9E1D2]">
-        <div className="flex items-center gap-4">
-          <LogoSOUL variant="horizontal" size="sm" theme="light" />
-          <div className="border-l border-[#D4B278]/60 pl-4 py-0.5">
+        <div className="flex items-center gap-4 shrink-0">
+          <LogoSOUL variant="horizontal" size="sm" theme="light" className="shrink-0" />
+          <div className="border-l-2 border-[#D4B278]/60 pl-4 py-0.5 shrink-0">
             <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block leading-tight">
               Relatório Clínico Oficial
             </span>

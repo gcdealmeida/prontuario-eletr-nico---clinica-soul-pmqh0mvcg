@@ -29,113 +29,209 @@ export function LogoSOUL({
   const textSubColor = isDark ? '#E3C89A' : '#73574A'
   const lineGold = isDark ? '#D4B278' : '#C9A46A'
 
-  // Variantes de tamanho para o símbolo
+  // Variantes de tamanho para o símbolo dos 3 anéis entrelaçados (proporção 230:110 ≈ 2.09)
   const symbolDimensions = {
-    xs: { width: 28, height: 16 },
-    sm: { width: 44, height: 24 },
-    md: { width: 72, height: 40 },
-    lg: { width: 110, height: 60 },
-    xl: { width: 160, height: 86 },
+    xs: { width: 34, height: 16 },
+    sm: { width: 50, height: 24 },
+    md: { width: 84, height: 40 },
+    lg: { width: 125, height: 60 },
+    xl: { width: 178, height: 85 },
   }[size]
 
-  // Render do símbolo (3 loops em serpentina contínua + centro rosé/cobre)
+  // Render do símbolo oficial dos 3 anéis entrelaçados (Trefoil / Borromean Loops)
+  // Geometria precisa do símbolo SOUL:
+  // - 3 anéis de mesmo raio (~32px)
+  // - Anel Esquerdo (ouro champagne quente)
+  // - Anel Central (sobreposto com botão rosé/cobre radiante e ponto de brilho)
+  // - Anel Direito (ouro champagne quente)
+  // - Efeito de entrelaçamento contínuo com arcos sobrepostos e iluminação especular
   const renderSymbol = (uid: string) => (
     <svg
-      viewBox="0 0 240 120"
+      viewBox="0 0 230 110"
       preserveAspectRatio="xMidYMid meet"
       width={symbolDimensions.width}
       height={symbolDimensions.height}
       style={{
         width: `${symbolDimensions.width}px`,
         height: `${symbolDimensions.height}px`,
-        aspectRatio: '240 / 120',
+        aspectRatio: '230 / 110',
       }}
-      className="shrink-0 overflow-visible"
+      className="shrink-0 overflow-visible select-none"
       aria-hidden="true"
     >
       <defs>
-        {/* Gradiente Dourado Champagne principal */}
-        <linearGradient id={`goldGrad-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#AF8349" />
-          <stop offset="25%" stopColor="#DFBF8E" />
-          <stop offset="50%" stopColor="#F5E7CB" />
-          <stop offset="75%" stopColor="#DFBF8E" />
-          <stop offset="100%" stopColor="#C9A46A" />
+        {/* Gradiente Dourado Principal: ouro champagne acetinado com reflexo brilhante central */}
+        <linearGradient id={`goldMain-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#9C7338" />
+          <stop offset="18%" stopColor="#C9A46A" />
+          <stop offset="38%" stopColor="#EAD2A8" />
+          <stop offset="50%" stopColor="#FFF3DC" />
+          <stop offset="62%" stopColor="#DFBF8E" />
+          <stop offset="82%" stopColor="#C49B5B" />
+          <stop offset="100%" stopColor="#9E753B" />
         </linearGradient>
 
-        {/* Gradiente Dourado para reflexos internos */}
-        <linearGradient id={`goldShine-${uid}`} x1="30%" y1="0%" x2="70%" y2="100%">
-          <stop offset="0%" stopColor="#FFF2DC" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#9C7339" stopOpacity="0.2" />
+        {/* Gradiente Dourado Vertical para dar volume tubular aos aros */}
+        <linearGradient id={`goldTube-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FDF7EA" stopOpacity="0.9" />
+          <stop offset="45%" stopColor="#C9A46A" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#7F5724" stopOpacity="0.8" />
         </linearGradient>
 
-        {/* Gradiente Cobre/Rosé do núcleo central */}
-        <radialGradient id={`roseCore-${uid}`} cx="40%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#E5A894" />
-          <stop offset="45%" stopColor="#B87355" />
-          <stop offset="90%" stopColor="#8A4A33" />
+        {/* Gradiente Diagonal Suave para o anel central */}
+        <linearGradient id={`goldCenter-${uid}`} x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stopColor="#FFF8ED" />
+          <stop offset="30%" stopColor="#E3C393" />
+          <stop offset="70%" stopColor="#B68B4B" />
+          <stop offset="100%" stopColor="#8C6228" />
+        </linearGradient>
+
+        {/* Gradiente do Núcleo Central: Rosé / Cobre Metálico com profundidade e brilho perolado */}
+        <radialGradient id={`roseCore-${uid}`} cx="38%" cy="32%" r="68%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+          <stop offset="18%" stopColor="#F5C6B3" />
+          <stop offset="42%" stopColor="#D98A6C" />
+          <stop offset="75%" stopColor="#B87355" />
+          <stop offset="92%" stopColor="#874730" />
           <stop offset="100%" stopColor="#5E2C1A" />
         </radialGradient>
 
-        {/* Sombra suave para o núcleo rosé */}
-        <filter id={`softShadow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow
-            dx="0"
-            dy="1.5"
-            stdDeviation="1.5"
-            floodColor="#33221C"
-            floodOpacity="0.3"
-          />
+        {/* Sombra de profundidade sob os aros e o núcleo central */}
+        <filter id={`ringShadow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="#33221C" floodOpacity="0.28" />
         </filter>
       </defs>
 
-      {/* Traçado dos 3 anéis entrelaçados:
-          Loop 1: centro x=50, raio ~35, espessura ~12
-          Loop 2: centro x=120, raio ~35
-          Loop 3: centro x=190, raio ~35
-          Desenhados em curvas suaves com espessura uniforme de 11.5px */}
+      {/* Camada 1: Sombra projetada sutil para realçar os aros */}
       <g
         fill="none"
-        stroke={`url(#goldGrad-${uid})`}
-        strokeWidth="11.5"
+        stroke="#4A322A"
+        strokeWidth="11"
+        strokeOpacity="0.08"
         strokeLinecap="round"
-        strokeLinejoin="round"
+        transform="translate(0, 1.5)"
       >
-        {/* Círculo / Loop Esquerdo */}
-        <circle cx="50" cy="60" r="34" />
-        {/* Círculo / Loop Direito */}
-        <circle cx="190" cy="60" r="34" />
-        {/* Círculo / Loop Central (entrelaçado sobreposto) */}
-        <circle cx="120" cy="60" r="34" />
+        <circle cx="55" cy="55" r="32" />
+        <circle cx="175" cy="55" r="32" />
+        <circle cx="115" cy="55" r="32" />
       </g>
 
-      {/* Curvas de reforço nos entrelaçamentos para dar a sensação de fita contínua em serpentina */}
+      {/* Camada 2: Aro Esquerdo (Loop 1) */}
+      <g fill="none">
+        {/* Aro base dourado com espessura uniforme 10.5px */}
+        <circle
+          cx="55"
+          cy="55"
+          r="32"
+          stroke={`url(#goldMain-${uid})`}
+          strokeWidth="10.5"
+          strokeLinecap="round"
+        />
+        {/* Filete de luz superior para efeito tridimensional */}
+        <path
+          d="M 28 45 A 32 32 0 0 1 82 45"
+          stroke={`url(#goldTube-${uid})`}
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+      </g>
+
+      {/* Camada 3: Aro Direito (Loop 3) */}
+      <g fill="none">
+        <circle
+          cx="175"
+          cy="55"
+          r="32"
+          stroke={`url(#goldMain-${uid})`}
+          strokeWidth="10.5"
+          strokeLinecap="round"
+        />
+        {/* Filete de luz superior */}
+        <path
+          d="M 148 45 A 32 32 0 0 1 202 45"
+          stroke={`url(#goldTube-${uid})`}
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+      </g>
+
+      {/* Camada 4: Aro Central (Loop 2) — entrelaçado sobre os aros laterais */}
+      <g fill="none">
+        {/* Aro central dourado completo */}
+        <circle
+          cx="115"
+          cy="55"
+          r="32"
+          stroke={`url(#goldCenter-${uid})`}
+          strokeWidth="10.8"
+          strokeLinecap="round"
+          filter={`url(#ringShadow-${uid})`}
+        />
+        {/* Filete de luz superior do aro central */}
+        <path
+          d="M 88 45 A 32 32 0 0 1 142 45"
+          stroke="#FFFDF7"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          opacity="0.75"
+        />
+      </g>
+
+      {/* Camada 5: Pontes de entrelaçamento (weave effect)
+          Para conferir o entrelaçamento perfeito dos 3 anéis da marca SOUL */}
+      {/* Arco de sobreposição no cruzamento esquerdo inferior */}
       <path
-        d="M 85 60 C 85 41 97 26 120 26 C 143 26 155 41 155 60"
+        d="M 80 62 A 32 32 0 0 0 88 77"
         fill="none"
-        stroke={`url(#goldGrad-${uid})`}
-        strokeWidth="11.5"
+        stroke={`url(#goldMain-${uid})`}
+        strokeWidth="10.5"
         strokeLinecap="round"
       />
+      {/* Arco de sobreposição no cruzamento direito superior */}
       <path
-        d="M 50 26 C 73 26 85 41 85 60 C 85 79 97 94 120 94"
+        d="M 142 33 A 32 32 0 0 1 150 48"
         fill="none"
-        stroke={`url(#goldShine-${uid})`}
-        strokeWidth="4"
+        stroke={`url(#goldMain-${uid})`}
+        strokeWidth="10.5"
         strokeLinecap="round"
-        opacity="0.6"
       />
 
-      {/* Núcleo Central: pequeno botão sólido em tom rosé/cobre metálico com anel sutil */}
-      <circle
-        cx="120"
-        cy="60"
-        r="14.5"
-        fill={`url(#roseCore-${uid})`}
-        filter={`url(#softShadow-${uid})`}
-      />
-      {/* Detalhe de reflexo metálico cônico no núcleo */}
-      <circle cx="119" cy="58" r="4.5" fill="#FFFFFF" opacity="0.35" />
+      {/* Camada 6: Núcleo Central Rosé/Cobre Metálico
+          Pequeno medalhão circular sólido perfeitamente centralizado no loop do meio */}
+      <g>
+        {/* Anel de borda dourada fina ao redor do medalhão rosé */}
+        <circle
+          cx="115"
+          cy="55"
+          r="15"
+          fill="none"
+          stroke={`url(#goldCenter-${uid})`}
+          strokeWidth="1.2"
+          opacity="0.8"
+        />
+        {/* Núcleo sólido com gradiente rosé metálico e sombra */}
+        <circle
+          cx="115"
+          cy="55"
+          r="14"
+          fill={`url(#roseCore-${uid})`}
+          filter={`url(#ringShadow-${uid})`}
+        />
+        {/* Ponto de brilho especular perolado (reflexo de luz superior) */}
+        <ellipse
+          cx="111.5"
+          cy="50.5"
+          rx="4"
+          ry="2.4"
+          transform="rotate(-25 111.5 50.5)"
+          fill="#FFFFFF"
+          opacity="0.85"
+        />
+        {/* Ponto de brilho secundário menor */}
+        <circle cx="117.5" cy="58" r="1.2" fill="#FFFFFF" opacity="0.35" />
+      </g>
     </svg>
   )
 
@@ -190,7 +286,7 @@ export function LogoSOUL({
         ruleW: 'max-w-[20px]',
         tagline: '7px',
         trackingTagline: '0.30em',
-        gap: 'gap-2.5',
+        gap: 'gap-3',
       },
       sm: {
         clinica: '9.5px',
@@ -240,9 +336,14 @@ export function LogoSOUL({
 
     return (
       <div
-        className={cn('inline-flex items-center select-none shrink-0', typography.gap, className)}
+        className={cn(
+          'inline-flex items-center select-none shrink-0 print:shrink-0',
+          typography.gap,
+          className,
+        )}
+        style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
       >
-        {/* Símbolo com dimensões fixas proporcionais e preservação estrita de aspect ratio */}
+        {/* Símbolo com dimensões fixas proporcionais e travamento estrito de aspect ratio */}
         <div className="shrink-0 flex items-center justify-center">{renderSymbol(uid)}</div>
 
         {/* Bloco tipográfico oficial alinhado centralmente com o símbolo */}
@@ -254,7 +355,7 @@ export function LogoSOUL({
               style={{ backgroundColor: lineGold }}
             />
             <span
-              className="uppercase font-semibold leading-none"
+              className="uppercase font-semibold leading-none tracking-widest"
               style={{
                 color: textSubColor,
                 fontSize: typography.clinica,
@@ -270,9 +371,9 @@ export function LogoSOUL({
             />
           </div>
 
-          {/* SOUL em Cormorant Garamond maiúsculo */}
+          {/* SOUL em Cormorant Garamond serifada sofisticada */}
           <span
-            className="font-serif font-bold leading-none uppercase my-0.5"
+            className="font-serif font-bold leading-none uppercase my-0.5 tracking-wider"
             style={{
               color: textColor,
               fontSize: typography.soul,
