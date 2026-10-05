@@ -42,20 +42,30 @@ export const SEGMENTOS_ADM_PADRAO: AdmSegmento[] = [
     segmento: 'Coluna Cervical',
     ativo: false,
     movimentos: [
-      { movimento: 'Flexão', direito: '', esquerdo: '' },
-      { movimento: 'Extensão', direito: '', esquerdo: '' },
-      { movimento: 'Rotação Direita / Esquerda', direito: '', esquerdo: '' },
-      { movimento: 'Inclinação Lateral D / E', direito: '', esquerdo: '' },
+      { movimento: 'Flexão', graus: '' },
+      { movimento: 'Extensão', graus: '' },
+      { movimento: 'Rotação', direito: '', esquerdo: '' },
+      { movimento: 'Lateroflexão (Inclinação)', direito: '', esquerdo: '' },
     ],
   },
   {
-    segmento: 'Coluna Torácica e Lombar',
+    segmento: 'Coluna Torácica',
     ativo: false,
     movimentos: [
-      { movimento: 'Flexão', direito: '', esquerdo: '' },
-      { movimento: 'Extensão', direito: '', esquerdo: '' },
-      { movimento: 'Rotação D / E', direito: '', esquerdo: '' },
-      { movimento: 'Latero-flexão D / E', direito: '', esquerdo: '' },
+      { movimento: 'Flexão', graus: '' },
+      { movimento: 'Extensão', graus: '' },
+      { movimento: 'Rotação', direito: '', esquerdo: '' },
+      { movimento: 'Lateroflexão (Inclinação)', direito: '', esquerdo: '' },
+    ],
+  },
+  {
+    segmento: 'Coluna Lombar',
+    ativo: false,
+    movimentos: [
+      { movimento: 'Flexão', graus: '' },
+      { movimento: 'Extensão', graus: '' },
+      { movimento: 'Lateroflexão (Inclinação)', direito: '', esquerdo: '' },
+      { movimento: 'Rotação', direito: '', esquerdo: '' },
     ],
   },
   {
@@ -408,23 +418,42 @@ export const SEGMENTOS_GONIOMETRIA_MAP: Record<string, string[]> = {
   Quadril: ['Flexão', 'Extensão', 'Abdução', 'Adução', 'Rotação Externa', 'Rotação Interna'],
   Joelho: ['Flexão', 'Extensão'],
   Tornozelo: ['Dorsiflexão', 'Flexão Plantar', 'Inversão', 'Eversão'],
-  'Coluna Cervical': [
-    'Flexão',
-    'Extensão',
-    'Rotação Direita',
-    'Rotação Esquerda',
-    'Inclinação Lateral Direita',
-    'Inclinação Lateral Esquerda',
-  ],
-  'Coluna Torácica': ['Flexão', 'Extensão', 'Rotação Direita', 'Rotação Esquerda'],
-  'Coluna Lombar': [
-    'Flexão',
-    'Extensão',
-    'Latero-flexão Direita',
-    'Latero-flexão Esquerda',
-    'Rotação Direita',
-    'Rotação Esquerda',
-  ],
+  'Coluna Cervical': ['Flexão', 'Extensão', 'Rotação', 'Lateroflexão'],
+  'Coluna Torácica': ['Flexão', 'Extensão', 'Rotação', 'Lateroflexão'],
+  'Coluna Lombar': ['Flexão', 'Extensão', 'Lateroflexão', 'Rotação'],
+}
+
+/**
+ * Helpers para regras de mobilidade/ADM e goniometria de Coluna:
+ * 1. Segmentos de Coluna: Coluna Cervical, Coluna Torácica, Coluna Lombar (e compatibilidade com legados)
+ * 2. Movimentos de linha média na coluna (Flexão e Extensão) NÃO possuem Esquerdo/Direito — possuem apenas 1 campo de graus.
+ * 3. Movimentos de Coluna com lateralidade (Esquerda/Direita) são APENAS Rotações e Lateroflexão/Inclinação lateral.
+ */
+export function isSegmentoColuna(segmento: string): boolean {
+  if (!segmento) return false
+  const segLower = segmento.toLowerCase()
+  return (
+    segLower.includes('coluna') ||
+    segLower.includes('cervical') ||
+    segLower.includes('torácica') ||
+    segLower.includes('toracica') ||
+    segLower.includes('lombar')
+  )
+}
+
+export function isMovimentoColunaLinhaMedia(segmento: string, movimento: string): boolean {
+  if (!isSegmentoColuna(segmento)) return false
+  const movLower = (movimento || '').toLowerCase()
+  // Rotação e lateroflexão/inclinação possuem lados (D/E). Flexão, extensão ou outros são linha média.
+  if (
+    movLower.includes('rotaç') ||
+    movLower.includes('rotac') ||
+    movLower.includes('latero') ||
+    movLower.includes('inclina')
+  ) {
+    return false
+  }
+  return true
 }
 
 export const ELEMENTOS_PALMILHA = [

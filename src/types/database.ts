@@ -200,6 +200,7 @@ export interface AdmItem {
   movimento: string
   direito?: number | string
   esquerdo?: number | string
+  graus?: number | string
 }
 
 export interface AdmSegmento {
@@ -318,6 +319,7 @@ export interface SecoesComplementaresFisio {
     movimento: string
     esquerdo_graus?: string | number
     direito_graus?: string | number
+    graus?: string | number
     observacoes?: string
   }>
   // Palmilha - Avaliação Podal + Prescrição

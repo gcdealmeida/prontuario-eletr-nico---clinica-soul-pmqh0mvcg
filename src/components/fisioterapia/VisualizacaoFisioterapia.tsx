@@ -9,7 +9,13 @@ import type {
   PlanoSemanalItem,
   QueixaItem,
 } from '@/types/database'
-import { BERG_ITENS, ELEMENTOS_PALMILHA, CIRTOMETRIA_REGIOES_PADRAO } from '@/lib/fisioterapiaModel'
+import {
+  BERG_ITENS,
+  ELEMENTOS_PALMILHA,
+  CIRTOMETRIA_REGIOES_PADRAO,
+  isSegmentoColuna,
+  isMovimentoColunaLinhaMedia,
+} from '@/lib/fisioterapiaModel'
 import { getFileUrl } from '@/services/avaliacoes'
 import {
   FileText,
@@ -225,43 +231,94 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
               Amplitudes Articulares por Segmento Testado
             </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {admSegmentos.map((seg) => (
-                <div
-                  key={seg.segmento}
-                  className="rounded-2xl border border-gray-200 overflow-hidden bg-white text-xs"
-                >
-                  <div className="bg-blue-50/80 px-3 py-2 font-bold text-blue-900 border-b border-gray-200 flex justify-between">
-                    <span>{seg.segmento}</span>
-                    <span className="text-[10px] text-gray-500 font-normal">Graus (°)</span>
-                  </div>
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-gray-400 uppercase text-[10px]">
-                        <th className="text-left py-1.5 px-3">Movimento</th>
-                        <th className="text-center py-1.5 px-2">D (°)</th>
-                        <th className="text-center py-1.5 px-2">E (°)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {seg.movimentos.map((mov) => (
-                        <tr key={mov.movimento} className="hover:bg-gray-50/50">
-                          <td className="py-1.5 px-3 font-medium text-gray-700">{mov.movimento}</td>
-                          <td className="py-1.5 px-2 text-center font-mono font-bold text-gray-900">
-                            {mov.direito !== '' && mov.direito !== undefined
-                              ? `${mov.direito}°`
-                              : '—'}
-                          </td>
-                          <td className="py-1.5 px-2 text-center font-mono font-bold text-gray-900">
-                            {mov.esquerdo !== '' && mov.esquerdo !== undefined
-                              ? `${mov.esquerdo}°`
-                              : '—'}
-                          </td>
+              {admSegmentos.map((seg) => {
+                const isColuna = isSegmentoColuna(seg.segmento)
+
+                return (
+                  <div
+                    key={seg.segmento}
+                    className="rounded-2xl border border-gray-200 overflow-hidden bg-white text-xs"
+                  >
+                    <div className="bg-blue-50/80 px-3 py-2 font-bold text-blue-900 border-b border-gray-200 flex justify-between">
+                      <span>{seg.segmento}</span>
+                      <span className="text-[10px] text-gray-500 font-normal">Graus (°)</span>
+                    </div>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-gray-400 uppercase text-[10px]">
+                          <th className="text-left py-1.5 px-3">Movimento</th>
+                          {isColuna ? (
+                            <th className="text-center py-1.5 px-2" colSpan={2}>
+                              Graus (°) / Lados (D / E)
+                            </th>
+                          ) : (
+                            <>
+                              <th className="text-center py-1.5 px-2">D (°)</th>
+                              <th className="text-center py-1.5 px-2">E (°)</th>
+                            </>
+                          )}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {seg.movimentos.map((mov) => {
+                          const isLinhaMedia = isMovimentoColunaLinhaMedia(
+                            seg.segmento,
+                            mov.movimento,
+                          )
+
+                          // Movimento de linha média na coluna (Flexão / Extensão)
+                          if (isColuna && isLinhaMedia) {
+                            const valorGrau =
+                              mov.graus !== undefined && mov.graus !== ''
+                                ? mov.graus
+                                : mov.direito !== undefined && mov.direito !== ''
+                                  ? mov.direito
+                                  : mov.esquerdo !== undefined && mov.esquerdo !== ''
+                                    ? mov.esquerdo
+                                    : null
+
+                            return (
+                              <tr key={mov.movimento} className="hover:bg-gray-50/50">
+                                <td className="py-1.5 px-3 font-medium text-gray-700">
+                                  <span>{mov.movimento}</span>
+                                  <span className="text-[10px] text-gray-400 ml-1.5">
+                                    (linha média)
+                                  </span>
+                                </td>
+                                <td
+                                  className="py-1.5 px-2 text-center font-mono font-bold text-gray-900"
+                                  colSpan={2}
+                                >
+                                  {valorGrau !== null ? `${valorGrau}°` : '—'}
+                                </td>
+                              </tr>
+                            )
+                          }
+
+                          // Movimento com lateralidade (D/E)
+                          return (
+                            <tr key={mov.movimento} className="hover:bg-gray-50/50">
+                              <td className="py-1.5 px-3 font-medium text-gray-700">
+                                {mov.movimento}
+                              </td>
+                              <td className="py-1.5 px-2 text-center font-mono font-bold text-gray-900">
+                                {mov.direito !== '' && mov.direito !== undefined
+                                  ? `${mov.direito}°`
+                                  : '—'}
+                              </td>
+                              <td className="py-1.5 px-2 text-center font-mono font-bold text-gray-900">
+                                {mov.esquerdo !== '' && mov.esquerdo !== undefined
+                                  ? `${mov.esquerdo}°`
+                                  : '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })}
             </div>
           </div>
         ) : (
@@ -711,11 +768,56 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {comp.goniometria_avaliacoes.map((item) => {
+                          const isColuna = isSegmentoColuna(item.segmento)
+                          const isLinhaMedia = isMovimentoColunaLinhaMedia(
+                            item.segmento,
+                            item.movimento,
+                          )
+
                           const esqNum = parseFloat(String(item.esquerdo_graus || ''))
                           const dirNum = parseFloat(String(item.direito_graus || ''))
                           const temValores = !isNaN(esqNum) && !isNaN(dirNum)
                           const assimetria = temValores ? Math.abs(dirNum - esqNum) : null
                           const isAssimetriaRelevante = assimetria !== null && assimetria >= 10
+
+                          if (isColuna && isLinhaMedia) {
+                            const valorGrau =
+                              item.graus !== undefined && item.graus !== ''
+                                ? item.graus
+                                : item.direito_graus !== undefined && item.direito_graus !== ''
+                                  ? item.direito_graus
+                                  : item.esquerdo_graus !== undefined && item.esquerdo_graus !== ''
+                                    ? item.esquerdo_graus
+                                    : null
+
+                            return (
+                              <tr key={item.id} className="hover:bg-gray-50/50">
+                                <td className="py-2.5 px-3 font-mono text-gray-500">
+                                  {item.data || '—'}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className="font-bold text-gray-900">
+                                    {item.segmento} — {item.movimento}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 block font-normal">
+                                    Linha média (sem lado D/E)
+                                  </span>
+                                </td>
+                                <td
+                                  className="py-2.5 px-3 text-center font-mono font-bold text-gray-900"
+                                  colSpan={2}
+                                >
+                                  {valorGrau !== null ? `${valorGrau}°` : '—'}
+                                </td>
+                                <td className="py-2.5 px-3 text-center text-gray-400 font-mono text-[11px]">
+                                  N/A (Linha média)
+                                </td>
+                                <td className="py-2.5 px-3 text-gray-600">
+                                  {item.observacoes || '—'}
+                                </td>
+                              </tr>
+                            )
+                          }
 
                           return (
                             <tr key={item.id} className="hover:bg-gray-50/50">

@@ -9,6 +9,8 @@ import {
   ELEMENTOS_PALMILHA,
   CIRTOMETRIA_REGIOES_PADRAO,
   SEGMENTOS_GONIOMETRIA_MAP,
+  isSegmentoColuna,
+  isMovimentoColunaLinhaMedia,
 } from '@/lib/fisioterapiaModel'
 import type { SecoesComplementaresFisio } from '@/types/database'
 import {
@@ -176,17 +178,33 @@ export const Etapa5Complementares: React.FC<Etapa5ComplementaresProps> = ({
 
   const updateGoniometriaLinha = (
     id: string,
-    field: 'data' | 'segmento' | 'movimento' | 'esquerdo_graus' | 'direito_graus' | 'observacoes',
+    field:
+      | 'data'
+      | 'segmento'
+      | 'movimento'
+      | 'esquerdo_graus'
+      | 'direito_graus'
+      | 'graus'
+      | 'observacoes',
     val: any,
   ) => {
     const updated = goniometriaItens.map((item) => {
       if (item.id !== id) return item
       if (field === 'segmento') {
         const novosMovs = SEGMENTOS_GONIOMETRIA_MAP[val] || []
+        const novoMov = novosMovs[0] || ''
         return {
           ...item,
           segmento: val,
-          movimento: novosMovs[0] || '',
+          movimento: novoMov,
+        }
+      }
+      if (field === 'graus') {
+        return {
+          ...item,
+          graus: val,
+          direito_graus: val,
+          esquerdo_graus: val,
         }
       }
       return { ...item, [field]: val }
@@ -899,7 +917,7 @@ export const Etapa5Complementares: React.FC<Etapa5ComplementaresProps> = ({
                       <th className="py-2.5 px-3 text-left font-bold w-28">Data</th>
                       <th className="py-2.5 px-2 text-left font-bold w-36">Segmento</th>
                       <th className="py-2.5 px-2 text-left font-bold w-44">Movimento</th>
-                      <th className="py-2.5 px-2 text-center font-bold w-24">Lado E (°)</th>
+                      <th className="py-2.5 px-2 text-center font-bold w-24">Graus / Lado E (°)</th>
                       <th className="py-2.5 px-2 text-center font-bold w-24">Lado D (°)</th>
                       <th className="py-2.5 px-3 text-left font-bold">Observações</th>
                       <th className="py-2.5 px-2 text-center font-bold w-12">Ação</th>
@@ -908,6 +926,19 @@ export const Etapa5Complementares: React.FC<Etapa5ComplementaresProps> = ({
                   <tbody className="divide-y divide-gray-100">
                     {goniometriaItens.map((item) => {
                       const movimentosSegmento = SEGMENTOS_GONIOMETRIA_MAP[item.segmento] || []
+                      const isColuna = isSegmentoColuna(item.segmento)
+                      const isLinhaMedia = isMovimentoColunaLinhaMedia(
+                        item.segmento,
+                        item.movimento,
+                      )
+
+                      const valorGrauLinhaMedia =
+                        item.graus !== undefined && item.graus !== ''
+                          ? item.graus
+                          : item.direito_graus !== undefined && item.direito_graus !== ''
+                            ? item.direito_graus
+                            : (item.esquerdo_graus ?? '')
+
                       return (
                         <tr key={item.id} className="hover:bg-gray-50/50">
                           <td className="py-2 px-3">
@@ -950,28 +981,56 @@ export const Etapa5Complementares: React.FC<Etapa5ComplementaresProps> = ({
                               ))}
                             </select>
                           </td>
-                          <td className="py-2 px-2 text-center">
-                            <Input
-                              type="number"
-                              placeholder="°"
-                              value={item.esquerdo_graus ?? ''}
-                              onChange={(e) =>
-                                updateGoniometriaLinha(item.id, 'esquerdo_graus', e.target.value)
-                              }
-                              className="h-8 w-20 text-center text-xs font-mono font-bold rounded-xl mx-auto"
-                            />
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            <Input
-                              type="number"
-                              placeholder="°"
-                              value={item.direito_graus ?? ''}
-                              onChange={(e) =>
-                                updateGoniometriaLinha(item.id, 'direito_graus', e.target.value)
-                              }
-                              className="h-8 w-20 text-center text-xs font-mono font-bold rounded-xl mx-auto"
-                            />
-                          </td>
+
+                          {/* Se for movimento de linha média na coluna (Flexão/Extensão), exibe um único campo de graus ocupando as duas colunas */}
+                          {isColuna && isLinhaMedia ? (
+                            <td className="py-2 px-2 text-center" colSpan={2}>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <Input
+                                  type="number"
+                                  placeholder="Graus (°)"
+                                  value={valorGrauLinhaMedia}
+                                  onChange={(e) =>
+                                    updateGoniometriaLinha(item.id, 'graus', e.target.value)
+                                  }
+                                  className="h-8 w-28 text-center text-xs font-mono font-bold rounded-xl border-blue-300 bg-blue-50/30"
+                                />
+                                <span className="text-[10px] text-gray-400 font-medium">
+                                  (linha média)
+                                </span>
+                              </div>
+                            </td>
+                          ) : (
+                            <>
+                              <td className="py-2 px-2 text-center">
+                                <Input
+                                  type="number"
+                                  placeholder={isColuna ? 'Esq (°)' : '°'}
+                                  value={item.esquerdo_graus ?? ''}
+                                  onChange={(e) =>
+                                    updateGoniometriaLinha(
+                                      item.id,
+                                      'esquerdo_graus',
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="h-8 w-20 text-center text-xs font-mono font-bold rounded-xl mx-auto"
+                                />
+                              </td>
+                              <td className="py-2 px-2 text-center">
+                                <Input
+                                  type="number"
+                                  placeholder={isColuna ? 'Dir (°)' : '°'}
+                                  value={item.direito_graus ?? ''}
+                                  onChange={(e) =>
+                                    updateGoniometriaLinha(item.id, 'direito_graus', e.target.value)
+                                  }
+                                  className="h-8 w-20 text-center text-xs font-mono font-bold rounded-xl mx-auto"
+                                />
+                              </td>
+                            </>
+                          )}
+
                           <td className="py-2 px-3">
                             <Input
                               placeholder="Dor em fim de arco, compensação..."
