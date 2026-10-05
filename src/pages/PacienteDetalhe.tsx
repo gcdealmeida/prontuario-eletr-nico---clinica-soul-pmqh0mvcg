@@ -86,6 +86,12 @@ export default function PacienteDetalhe() {
   const [editEndereco, setEditEndereco] = useState('')
   const [editObs, setEditObs] = useState('')
   const [editStatus, setEditStatus] = useState<StatusPaciente>('Ativo')
+  const [editOrigem, setEditOrigem] = useState('')
+  const [editMotivo, setEditMotivo] = useState('')
+  const [editLimitacoes, setEditLimitacoes] = useState('')
+  const [editTratamentos, setEditTratamentos] = useState('')
+  const [editResultado, setEditResultado] = useState('')
+  const [editDiagnostico, setEditDiagnostico] = useState('')
   const [savingDados, setSavingDados] = useState(false)
 
   const loadData = async () => {
@@ -102,6 +108,12 @@ export default function PacienteDetalhe() {
       setEditEndereco(p.endereco || '')
       setEditObs(p.observacoes || '')
       setEditStatus(p.status || 'Ativo')
+      setEditOrigem(p.origem_como_chegou || '')
+      setEditMotivo(p.motivo_procura || '')
+      setEditLimitacoes(p.limitacoes_incomodo || '')
+      setEditTratamentos(p.tratamentos_anteriores || '')
+      setEditResultado(p.resultado_esperado || '')
+      setEditDiagnostico(p.diagnostico_medico || '')
 
       // Timeline
       const t = await getTimelineByPaciente(id)
@@ -173,6 +185,12 @@ export default function PacienteDetalhe() {
         endereco: editEndereco.trim() || undefined,
         observacoes: editObs.trim() || undefined,
         status: editStatus,
+        origem_como_chegou: editOrigem.trim() || undefined,
+        motivo_procura: editMotivo.trim() || undefined,
+        limitacoes_incomodo: editLimitacoes.trim() || undefined,
+        tratamentos_anteriores: editTratamentos.trim() || undefined,
+        resultado_esperado: editResultado.trim() || undefined,
+        diagnostico_medico: editDiagnostico.trim() || undefined,
       })
       setPaciente(updated)
       toast({
@@ -249,12 +267,14 @@ export default function PacienteDetalhe() {
                 <Badge
                   variant="outline"
                   className={
-                    paciente.status === 'Ativo'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
-                      : 'bg-gray-100 text-gray-600 border-gray-200 text-xs'
+                    paciente.status === 'Pré-cadastro'
+                      ? 'bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs shadow-2xs'
+                      : paciente.status === 'Ativo'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
+                        : 'bg-gray-100 text-gray-600 border-gray-200 text-xs'
                   }
                 >
-                  {paciente.status}
+                  {paciente.status === 'Pré-cadastro' ? '⚡ Pré-cadastro' : paciente.status}
                 </Badge>
               </div>
 
@@ -307,6 +327,16 @@ export default function PacienteDetalhe() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {paciente.status === 'Pré-cadastro' && (
+              <Button
+                onClick={() =>
+                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
+                }
+                className="bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold rounded-xl h-10 px-4 text-xs shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/50"
+              >
+                Abrir Prontuário →
+              </Button>
+            )}
             <Button
               onClick={() => setConsultaModalOpen(true)}
               variant="outline"
@@ -324,6 +354,78 @@ export default function PacienteDetalhe() {
             </Button>{' '}
           </div>
         </div>
+
+        {/* Banner de Pré-Cadastro se o paciente possuir respostas */}
+        {(paciente.motivo_procura ||
+          paciente.origem_como_chegou ||
+          paciente.status === 'Pré-cadastro') && (
+          <div className="mt-6 p-4 rounded-2xl bg-[#FAF5EE] border border-[#E3C89A]/70 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#C9A46A] text-white font-bold text-xs">
+                  ✓
+                </span>
+                <h4 className="font-bold text-sm text-[#33221C]">
+                  Respostas do Link de Pré-Cadastro
+                </h4>
+                {paciente.origem_como_chegou && (
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] bg-white border-[#C9A46A]/50 text-[#8C6527]"
+                  >
+                    Origem: {paciente.origem_como_chegou}
+                  </Badge>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={() =>
+                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
+                }
+                className="bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold text-xs h-8 px-3 rounded-xl shadow-2xs self-start sm:self-auto"
+              >
+                Abrir Prontuário com estes Dados →
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-[#5C4033] pt-1">
+              {paciente.motivo_procura && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">Motivo / Queixa Principal:</span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.motivo_procura}</p>
+                </div>
+              )}
+              {paciente.limitacoes_incomodo && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">
+                    Limitações / O que incomoda:
+                  </span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.limitacoes_incomodo}</p>
+                </div>
+              )}
+              {paciente.tratamentos_anteriores && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">Tratamentos Anteriores:</span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.tratamentos_anteriores}</p>
+                </div>
+              )}
+              {paciente.resultado_esperado && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">Resultado Esperado:</span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.resultado_esperado}</p>
+                </div>
+              )}
+              {paciente.diagnostico_medico && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">
+                    Diagnóstico Médico Informado:
+                  </span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.diagnostico_medico}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -920,12 +1022,87 @@ export default function PacienteDetalhe() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Pré-cadastro">Pré-cadastro</SelectItem>
                     <SelectItem value="Inativo">Inativo</SelectItem>
-                  </SelectContent>
+                  </SelectContent>{' '}
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              {/* Seção adicional de respostas do formulário de pré-cadastro */}
+              <div className="pt-4 border-t border-gray-100 space-y-4">
+                <h4 className="text-xs font-bold text-[#8C6527] uppercase tracking-wider">
+                  Informações de Pré-Cadastro (Questionário)
+                </h4>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700">Como chegou até nós</Label>
+                  <Input
+                    value={editOrigem}
+                    onChange={(e) => setEditOrigem(e.target.value)}
+                    placeholder="Indicação, Google, Instagram..."
+                    className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Motivo que trouxe até aqui
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    value={editMotivo}
+                    onChange={(e) => setEditMotivo(e.target.value)}
+                    className="rounded-xl border-gray-200 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Limitações / O que incomoda
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    value={editLimitacoes}
+                    onChange={(e) => setEditLimitacoes(e.target.value)}
+                    className="rounded-xl border-gray-200 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Tratamentos já tentados
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    value={editTratamentos}
+                    onChange={(e) => setEditTratamentos(e.target.value)}
+                    className="rounded-xl border-gray-200 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Resultado que espera
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    value={editResultado}
+                    onChange={(e) => setEditResultado(e.target.value)}
+                    className="rounded-xl border-gray-200 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700">Diagnóstico Médico</Label>
+                  <Input
+                    value={editDiagnostico}
+                    onChange={(e) => setEditDiagnostico(e.target.value)}
+                    className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-2">
                 <Label className="text-xs font-semibold text-gray-700">
                   Observações Clínicas / Gerais
                 </Label>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T09:59:28.486Z",
+  "generatedAt": "2026-10-05T11:07:16.255Z",
   "collections": [
     {
       "name": "users",
@@ -50,7 +50,7 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' || @request.body.status = 'Pré-cadastro'",
         "update": "@request.auth.id != ''",
         "delete": "@request.auth.id != ''"
       },
@@ -102,7 +102,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Ativo", "Inativo"]
+          "selectValues": ["Ativo", "Inativo", "Pré-cadastro"]
         },
         {
           "name": "created",
@@ -117,6 +117,42 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "origem_como_chegou",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "motivo_procura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "limitacoes_incomodo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tratamentos_anteriores",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resultado_esperado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "diagnostico_medico",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

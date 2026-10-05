@@ -1,6 +1,6 @@
 export type Especialidade = 'Fisioterapia' | 'Personal' | 'Nutrição' | 'Médico'
 
-export type StatusPaciente = 'Ativo' | 'Inativo'
+export type StatusPaciente = 'Ativo' | 'Inativo' | 'Pré-cadastro'
 
 export type StatusConsulta = 'Agendada' | 'Confirmada' | 'Concluída' | 'Cancelada'
 
@@ -65,6 +65,13 @@ export interface PacienteRecord {
   endereco?: string
   observacoes?: string
   status: StatusPaciente
+  // Dados de Pré-Cadastro
+  origem_como_chegou?: string
+  motivo_procura?: string
+  limitacoes_incomodo?: string
+  tratamentos_anteriores?: string
+  resultado_esperado?: string
+  diagnostico_medico?: string
   created: string
   updated: string
 }

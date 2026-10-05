@@ -71,7 +71,53 @@ export default function NovaAvaliacao() {
 
   useEffect(() => {
     getAllPacientes()
-      .then(setPacientes)
+      .then((all) => {
+        setPacientes(all)
+        // Se já houver um paciente pré-selecionado via URL, verificar se possui dados de pré-cadastro
+        if (prePacienteId && !editId) {
+          const found = all.find((p) => p.id === prePacienteId)
+          if (
+            found &&
+            (found.motivo_procura || found.limitacoes_incomodo || found.diagnostico_medico)
+          ) {
+            setFormData((prev) => ({
+              ...prev,
+              queixa_principal: prev.queixa_principal || found.motivo_procura || '',
+              anamnese_detalhada: {
+                ...(prev.anamnese_detalhada || {}),
+                motivo_principal:
+                  prev.anamnese_detalhada?.motivo_principal || found.motivo_procura || '',
+                impacto_dia_a_dia:
+                  prev.anamnese_detalhada?.impacto_dia_a_dia || found.limitacoes_incomodo || '',
+                o_que_evita_fazer:
+                  prev.anamnese_detalhada?.o_que_evita_fazer || found.limitacoes_incomodo || '',
+                tentativas_anteriores:
+                  prev.anamnese_detalhada?.tentativas_anteriores ||
+                  found.tratamentos_anteriores ||
+                  '',
+                resultado_valeu_a_pena:
+                  prev.anamnese_detalhada?.resultado_valeu_a_pena || found.resultado_esperado || '',
+                desejo_voltar_fazer:
+                  prev.anamnese_detalhada?.desejo_voltar_fazer || found.resultado_esperado || '',
+                diagnostico_medico:
+                  prev.anamnese_detalhada?.diagnostico_medico || found.diagnostico_medico || '',
+                frase_chave_paciente:
+                  prev.anamnese_detalhada?.frase_chave_paciente || found.resultado_esperado || '',
+              },
+              historia_doenca_atual:
+                prev.historia_doenca_atual ||
+                `[Pré-cadastro] Motivo: ${found.motivo_procura || 'Não informado'}\nLimitações: ${found.limitacoes_incomodo || 'Não informado'}\nTratamentos prévios: ${found.tratamentos_anteriores || 'Não informado'}`,
+              diagnostico_fisioterapeutico:
+                prev.diagnostico_fisioterapeutico ||
+                (found.diagnostico_medico !== 'Não tenho / não sei'
+                  ? found.diagnostico_medico
+                  : ''),
+              diagnostico_medico: prev.diagnostico_medico || found.diagnostico_medico || '',
+              objetivos_tratamento: prev.objetivos_tratamento || found.resultado_esperado || '',
+            }))
+          }
+        }
+      })
       .catch(() => {})
 
     if (editId && preEspecialidade) {
@@ -563,6 +609,48 @@ export default function NovaAvaliacao() {
 
   const selectedPaciente = pacientes.find((p) => p.id === selectedPacienteId)
 
+  // Ao trocar de paciente manualmente no select, pré-preencher com dados do pré-cadastro se existirem e formData estiver limpo
+  const handleSelectPaciente = (pacienteId: string) => {
+    setSelectedPacienteId(pacienteId)
+    const found = pacientes.find((p) => p.id === pacienteId)
+    if (
+      found &&
+      !editId &&
+      (found.motivo_procura || found.limitacoes_incomodo || found.diagnostico_medico)
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        queixa_principal: prev.queixa_principal || found.motivo_procura || '',
+        anamnese_detalhada: {
+          ...(prev.anamnese_detalhada || {}),
+          motivo_principal: prev.anamnese_detalhada?.motivo_principal || found.motivo_procura || '',
+          impacto_dia_a_dia:
+            prev.anamnese_detalhada?.impacto_dia_a_dia || found.limitacoes_incomodo || '',
+          o_que_evita_fazer:
+            prev.anamnese_detalhada?.o_que_evita_fazer || found.limitacoes_incomodo || '',
+          tentativas_anteriores:
+            prev.anamnese_detalhada?.tentativas_anteriores || found.tratamentos_anteriores || '',
+          resultado_valeu_a_pena:
+            prev.anamnese_detalhada?.resultado_valeu_a_pena || found.resultado_esperado || '',
+          desejo_voltar_fazer:
+            prev.anamnese_detalhada?.desejo_voltar_fazer || found.resultado_esperado || '',
+          diagnostico_medico:
+            prev.anamnese_detalhada?.diagnostico_medico || found.diagnostico_medico || '',
+          frase_chave_paciente:
+            prev.anamnese_detalhada?.frase_chave_paciente || found.resultado_esperado || '',
+        },
+        historia_doenca_atual:
+          prev.historia_doenca_atual ||
+          `[Pré-cadastro] Motivo: ${found.motivo_procura || 'Não informado'}\nLimitações: ${found.limitacoes_incomodo || 'Não informado'}\nTratamentos prévios: ${found.tratamentos_anteriores || 'Não informado'}`,
+        diagnostico_fisioterapeutico:
+          prev.diagnostico_fisioterapeutico ||
+          (found.diagnostico_medico !== 'Não tenho / não sei' ? found.diagnostico_medico : ''),
+        diagnostico_medico: prev.diagnostico_medico || found.diagnostico_medico || '',
+        objetivos_tratamento: prev.objetivos_tratamento || found.resultado_esperado || '',
+      }))
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Top back */}
@@ -594,7 +682,7 @@ export default function NovaAvaliacao() {
             <Label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
               <User className="h-4 w-4 text-[#8C6527]" /> Paciente do Atendimento *
             </Label>
-            <Select value={selectedPacienteId} onValueChange={setSelectedPacienteId}>
+            <Select value={selectedPacienteId} onValueChange={handleSelectPaciente}>
               <SelectTrigger className="h-12 rounded-xl border-gray-200 text-sm">
                 <SelectValue placeholder="Selecione um paciente cadastrado..." />
               </SelectTrigger>

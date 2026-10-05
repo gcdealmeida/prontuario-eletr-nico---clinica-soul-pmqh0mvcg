@@ -46,6 +46,8 @@ import { formatCPF, formatTelefone, formatDataPTBR, getInitials } from '@/lib/co
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
+import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
+import { Link as LinkIcon, Sparkles } from 'lucide-react'
 
 export default function Pacientes() {
   const navigate = useNavigate()
@@ -59,7 +61,9 @@ export default function Pacientes() {
   // Filtros
   const [search, setSearch] = useState(searchParams.get('busca') || '')
   const [debouncedSearch, setDebouncedSearch] = useState(search)
-  const [statusFilter, setStatusFilter] = useState<'Todas' | 'Ativo' | 'Inativo'>('Todas')
+  const [statusFilter, setStatusFilter] = useState<'Todas' | 'Ativo' | 'Inativo' | 'Pré-cadastro'>(
+    'Todas',
+  )
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
 
@@ -78,6 +82,9 @@ export default function Pacientes() {
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formStatus, setFormStatus] = useState<StatusPaciente>('Ativo')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // Modal Link de Pré-cadastro
+  const [linkPreCadastroOpen, setLinkPreCadastroOpen] = useState(false)
 
   // Modal Nova Consulta a partir de paciente
   const [consultaModalOpen, setConsultaModalOpen] = useState(false)
@@ -226,13 +233,25 @@ export default function Pacientes() {
             Gerenciamento completo da base de pacientes e prontuários da SOUL.
           </p>
         </div>
-        <Button
-          onClick={openNewPacienteModal}
-          className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
-        >
-          <Plus className="h-4 w-4 text-[#33221C]" />
-          Novo Paciente
-        </Button>{' '}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setLinkPreCadastroOpen(true)}
+            className="rounded-xl h-10 px-3.5 text-xs font-semibold border-[#C9A46A]/60 bg-[#FAF5EE] text-[#8C6527] hover:bg-[#F3EAD9] flex items-center gap-2 shadow-2xs"
+          >
+            <LinkIcon className="h-4 w-4 text-[#8C6527]" />
+            Pré-Cadastro via Link
+          </Button>
+
+          <Button
+            onClick={openNewPacienteModal}
+            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold rounded-xl h-10 px-4 text-sm flex items-center gap-2 shadow-sm border border-[#DFBF8E]/40"
+          >
+            <Plus className="h-4 w-4 text-[#33221C]" />
+            Novo Paciente
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -266,6 +285,7 @@ export default function Pacientes() {
               <SelectContent>
                 <SelectItem value="Todas">Todos</SelectItem>
                 <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Pré-cadastro">Pré-cadastro</SelectItem>
                 <SelectItem value="Inativo">Inativo</SelectItem>
               </SelectContent>
             </Select>
@@ -351,12 +371,14 @@ export default function Pacientes() {
                         <Badge
                           variant="outline"
                           className={
-                            p.status === 'Ativo'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
-                              : 'bg-gray-100 text-gray-600 border-gray-200 text-xs'
+                            p.status === 'Pré-cadastro'
+                              ? 'bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs shadow-2xs'
+                              : p.status === 'Ativo'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
+                                : 'bg-gray-100 text-gray-600 border-gray-200 text-xs'
                           }
                         >
-                          {p.status}
+                          {p.status === 'Pré-cadastro' ? '⚡ Pré-cadastro' : p.status}
                         </Badge>
                       </td>
 
@@ -371,6 +393,18 @@ export default function Pacientes() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44 rounded-xl">
+                            {p.status === 'Pré-cadastro' && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia`,
+                                  )
+                                }
+                                className="text-xs cursor-pointer flex items-center gap-2 font-bold text-[#8C6527] bg-[#FAF5EE]"
+                              >
+                                <Sparkles className="h-3.5 w-3.5 text-[#8C6527]" /> Abrir Prontuário
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               onClick={() => navigate(`/pacientes/${p.id}`)}
                               className="text-xs cursor-pointer flex items-center gap-2"
@@ -430,14 +464,34 @@ export default function Pacientes() {
                     <Badge
                       variant="outline"
                       className={
-                        p.status === 'Ativo'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
-                          : 'bg-gray-100 text-gray-600 border-gray-200 text-xs'
+                        p.status === 'Pré-cadastro'
+                          ? 'bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs'
+                          : p.status === 'Ativo'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
+                            : 'bg-gray-100 text-gray-600 border-gray-200 text-xs'
                       }
                     >
-                      {p.status}
+                      {p.status === 'Pré-cadastro' ? '⚡ Pré-cadastro' : p.status}
                     </Badge>
                   </div>
+
+                  {p.status === 'Pré-cadastro' && (
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] text-[#8C6527] font-semibold">
+                        Aguardando abertura de prontuário
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia`)
+                        }}
+                        className="h-7 px-2.5 text-[11px] bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold rounded-lg"
+                      >
+                        Abrir Prontuário →
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="text-xs text-gray-500 flex justify-between pt-1 border-t border-gray-50">
                     <span>CPF: {formatCPF(p.cpf)}</span>
@@ -601,6 +655,7 @@ export default function Pacientes() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Pré-cadastro">Pré-cadastro</SelectItem>
                     <SelectItem value="Inativo">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
@@ -655,6 +710,9 @@ export default function Pacientes() {
           fetchPacientesList()
         }}
       />
+
+      {/* Modal Link de Pré-cadastro */}
+      <ModalLinkPreCadastro open={linkPreCadastroOpen} onOpenChange={setLinkPreCadastroOpen} />
     </div>
   )
 }

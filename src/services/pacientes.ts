@@ -18,6 +18,28 @@ export async function getPacienteById(id: string) {
   return await pb.collection('pacientes').getOne<PacienteRecord>(id)
 }
 
+export interface PreCadastroPayload {
+  nome: string
+  cpf?: string
+  data_nascimento?: string
+  telefone: string
+  endereco?: string
+  email?: string
+  origem_como_chegou: string
+  motivo_procura: string
+  limitacoes_incomodo: string
+  tratamentos_anteriores: string
+  resultado_esperado: string
+  diagnostico_medico?: string
+}
+
+export async function submitPreCadastro(payload: PreCadastroPayload) {
+  return await pb.collection('pacientes').create<PacienteRecord>({
+    ...payload,
+    status: 'Pré-cadastro',
+  })
+}
+
 export async function createPaciente(data: Partial<PacienteRecord>) {
   return await pb.collection('pacientes').create<PacienteRecord>(data)
 }

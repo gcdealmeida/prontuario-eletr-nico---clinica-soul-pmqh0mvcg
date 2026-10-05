@@ -14,6 +14,7 @@ import ForgotPassword from '@/pages/ForgotPassword'
 import ResetPassword from '@/pages/ResetPassword'
 import VerifyEmail from '@/pages/VerifyEmail'
 import ConfirmEmailChange from '@/pages/ConfirmEmailChange'
+import PreCadastroPublico from '@/pages/PreCadastroPublico'
 
 // Protected Clinic Pages
 import Dashboard from '@/pages/Dashboard'
@@ -83,6 +84,10 @@ const App = () => (
               </PublicOnlyRoute>
             }
           />
+
+          {/* Public Patient Pre-Registration Link (token opcional) */}
+          <Route path="/pre-cadastro" element={<PreCadastroPublico />} />
+          <Route path="/pre-cadastro/:token" element={<PreCadastroPublico />} />
 
           {/* Protected Routes inside Global Layout */}
           <Route element={<ProtectedRoute />}>

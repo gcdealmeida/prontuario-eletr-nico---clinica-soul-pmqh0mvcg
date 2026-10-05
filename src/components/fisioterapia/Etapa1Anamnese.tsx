@@ -48,6 +48,34 @@ export const Etapa1Anamnese: React.FC<Etapa1AnamneseProps> = ({ formData, onChan
     }
   }, [anamnese.peso, anamnese.altura])
 
+  // Se o paciente veio de pré-cadastro e a anamnese ainda não estiver preenchida, injetar valores
+  useEffect(() => {
+    if (
+      paciente &&
+      (paciente.motivo_procura || paciente.diagnostico_medico || paciente.resultado_esperado)
+    ) {
+      const needsUpdate = !anamnese.motivo_principal && !!paciente.motivo_procura
+      if (needsUpdate) {
+        onChange('anamnese_detalhada', {
+          ...anamnese,
+          motivo_principal: anamnese.motivo_principal || paciente.motivo_procura || '',
+          impacto_dia_a_dia: anamnese.impacto_dia_a_dia || paciente.limitacoes_incomodo || '',
+          o_que_evita_fazer: anamnese.o_que_evita_fazer || paciente.limitacoes_incomodo || '',
+          tentativas_anteriores:
+            anamnese.tentativas_anteriores || paciente.tratamentos_anteriores || '',
+          resultado_valeu_a_pena:
+            anamnese.resultado_valeu_a_pena || paciente.resultado_esperado || '',
+          desejo_voltar_fazer: anamnese.desejo_voltar_fazer || paciente.resultado_esperado || '',
+          diagnostico_medico: anamnese.diagnostico_medico || paciente.diagnostico_medico || '',
+          frase_chave_paciente: anamnese.frase_chave_paciente || paciente.resultado_esperado || '',
+        })
+        if (!formData.queixa_principal && paciente.motivo_procura) {
+          onChange('queixa_principal', paciente.motivo_procura)
+        }
+      }
+    }
+  }, [paciente?.id])
+
   const handleAnamneseChange = (key: keyof AnamneseDetalhadaFisio, val: any) => {
     const updated = { ...anamnese, [key]: val }
     onChange('anamnese_detalhada', updated)
@@ -83,6 +111,25 @@ export const Etapa1Anamnese: React.FC<Etapa1AnamneseProps> = ({ formData, onChan
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Alerta de dados importados do pré-cadastro */}
+      {paciente && (paciente.motivo_procura || paciente.origem_como_chegou) && (
+        <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E3C89A] flex items-start gap-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#C9A46A] text-white shrink-0 font-bold text-xs mt-0.5">
+            ⚡
+          </div>
+          <div className="space-y-1 text-xs text-[#5C4033]">
+            <span className="font-bold text-[#8C6527] block">
+              Dados do Pré-Cadastro Vinculados Automaticamente
+            </span>
+            <p className="text-gray-600 leading-relaxed">
+              As respostas do formulário respondido pelo paciente (motivo da consulta, limitações,
+              tentativas prévias, resultado esperado e diagnóstico médico) foram pré-carregadas
+              nesta anamnese. Você pode revisá-las e complementá-las normalmente.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* (A) Dados Iniciais do Paciente */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-[#E9E1D2]">
