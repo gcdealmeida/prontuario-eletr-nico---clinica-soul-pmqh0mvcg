@@ -116,32 +116,35 @@ export default function AvaliacaoDetalhe() {
 
       {/* Main Document Card (rendered for view & print) */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
-        {/* Cabeçalho Oficial com LogoSOUL (variante horizontal) - Perfeitamente alinhado e sem distorção em tela e impressão */}
-        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:pb-4 print:mb-4 print:flex-row print:items-center">
-          <div className="flex items-center gap-4 shrink-0">
-            <LogoSOUL
-              variant="horizontal"
-              size="sm"
-              theme="light"
-              className="shrink-0 print:shrink-0"
-            />
-            <div className="hidden sm:block print:block border-l-2 border-[#D4B278]/60 pl-4 py-0.5 shrink-0">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block leading-tight">
-                Prontuário Clínico Oficial
-              </span>
-              <span className="text-xs text-[#5C4033] font-serif leading-tight">
-                Clínica Integrada de Saúde e Bem-Estar
-              </span>
-            </div>
-          </div>
-          <div className="text-left sm:text-right print:text-right text-xs text-[#73574A] space-y-1 shrink-0">
+        {/* Cabeçalho Oficial do Prontuário Clínico Oficial:
+            Disposição vertical oficial empilhada e centralizada:
+            - Símbolo oficial fiel à imagem no topo
+            - "CLÍNICA" com as linhas douradas laterais
+            - "SOUL" em serifada grande
+            - Lótus com linha divisória
+            - "SAÚDE E BEM ESTAR"
+            Mantendo fidelidade total e sem distorção tanto em tela quanto na impressão */}
+        <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col items-center justify-center text-center gap-3 print:pb-4 print:mb-6">
+          <LogoSOUL
+            variant="full"
+            size="md"
+            theme="light"
+            className="shrink-0 print:shrink-0 mx-auto"
+          />
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mt-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
+              Prontuário Clínico Oficial
+            </span>
+            <span className="hidden sm:inline-block text-[#D4B278]">•</span>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
-              Documento Clínico Confidencial
+              Documento Confidencial
             </div>
-            <p className="text-[11px] text-[#73574A]">
+            <span className="hidden sm:inline-block text-[#D4B278]">•</span>
+            <span className="text-[11px] text-[#73574A]">
               Emitido em {new Date().toLocaleDateString('pt-BR')} às{' '}
               {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-            </p>
+            </span>
           </div>
         </div>
 

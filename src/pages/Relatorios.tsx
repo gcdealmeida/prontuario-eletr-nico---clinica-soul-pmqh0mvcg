@@ -225,23 +225,18 @@ export default function Relatorios() {
         </Button>
       </div>
 
-      {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL */}
-      <div className="hidden print:flex items-center justify-between pb-4 mb-4 border-b-2 border-[#E9E1D2]">
-        <div className="flex items-center gap-4 shrink-0">
-          <LogoSOUL variant="horizontal" size="sm" theme="light" className="shrink-0" />
-          <div className="border-l-2 border-[#D4B278]/60 pl-4 py-0.5 shrink-0">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#8C6527] font-bold block leading-tight">
-              Relatório Clínico Oficial
-            </span>
-            <span className="text-xs text-[#5C4033] font-serif leading-tight">
-              Clínica Integrada de Saúde e Bem-Estar
-            </span>
-          </div>
-        </div>
-        <div className="text-right text-xs text-[#73574A] space-y-1">
+      {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL vertical empilhado */}
+      <div className="hidden print:flex flex-col items-center justify-center pb-4 mb-4 border-b-2 border-[#E9E1D2] text-center gap-2">
+        <LogoSOUL variant="full" size="sm" theme="light" className="shrink-0 mx-auto" />
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
+            Relatório Clínico Oficial
+          </span>
+          <span className="text-[#D4B278]">•</span>
           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
             Documento de Gestão Clínica
           </div>
+          <span className="text-[#D4B278]">•</span>
           <p className="text-[11px] text-[#73574A]">
             Emitido em {new Date().toLocaleDateString('pt-BR')} às{' '}
             {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}

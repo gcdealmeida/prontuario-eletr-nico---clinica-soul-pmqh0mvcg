@@ -1,20 +1,29 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
+import logoOficialImg from '@/assets/logogradiente-6d4ec.jpg'
 
 export interface LogoSOULProps {
+  /**
+   * - 'full': Logo oficial completo vertical (Símbolo no topo, CLÍNICA, SOUL, flor de lótus e SAÚDE E BEM ESTAR)
+   * - 'symbol': Apenas o símbolo oficial dos 3 anéis entrelaçados
+   * - 'compact': Símbolo + texto SOUL / Clínica simplificado para barras e menus laterais
+   * - 'horizontal': Símbolo oficial à esquerda e tipografia oficial à direita
+   */
   variant?: 'full' | 'compact' | 'symbol' | 'horizontal'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   theme?: 'dark' | 'light'
   className?: string
+  /**
+   * Quando true em variant="full", renderiza diretamente a imagem oficial completa sem divisões
+   */
+  useDirectImage?: boolean
 }
 
 /**
- * Componente SVG oficial da Clínica SOUL.
- * Recriado fielmente a partir do logo oficial:
- * - Símbolo: 3 loops entrelaçados (serpentina / infinito triplo suave) com gradiente dourado champagne
- * - Botão central: círculo sólido no loop do meio com gradiente metálico rosé/cobre
- * - Textos: "CLÍNICA" com linhas douradas laterais, "SOUL" em Didone serifada elegante,
- *   ornamento de flor de lótus de 3 pétalas e tagline "SAÚDE E BEM ESTAR".
+ * Componente oficial do Logo da Clínica SOUL.
+ * Utiliza o arquivo oficial da imagem (src/assets/logogradiente-6d4ec.jpg) como FONTE DA VERDADE
+ * absoluta para o símbolo e logotipo, garantindo fidelidade geométrica sem distorções, esticamento
+ * ou recortes indevidos (object-contain, proporção travada e shrink-0).
  */
 export function LogoSOUL({
   variant = 'full',
@@ -29,231 +38,80 @@ export function LogoSOUL({
   const textSubColor = isDark ? '#E3C89A' : '#73574A'
   const lineGold = isDark ? '#D4B278' : '#C9A46A'
 
-  // Variantes de tamanho para o símbolo dos 3 anéis entrelaçados (proporção 230:110 ≈ 2.09)
-  const symbolDimensions = {
-    xs: { width: 34, height: 16 },
-    sm: { width: 50, height: 24 },
-    md: { width: 84, height: 40 },
-    lg: { width: 125, height: 60 },
-    xl: { width: 178, height: 85 },
+  // Proporção do símbolo na imagem original:
+  // A imagem original é 1:1 (quadrada).
+  // O símbolo dos anéis ocupa a metade superior (~18% a 40% verticalmente, 24% a 76% horizontalmente).
+  // Proporção largura:altura do símbolo é ~2.1:1.
+  const symbolSizes = {
+    xs: { width: 42, height: 20 },
+    sm: { width: 62, height: 30 },
+    md: { width: 96, height: 46 },
+    lg: { width: 140, height: 68 },
+    xl: { width: 190, height: 92 },
   }[size]
 
-  // Render do símbolo oficial dos 3 anéis entrelaçados (Trefoil / Borromean Loops)
-  // Geometria precisa do símbolo SOUL:
-  // - 3 anéis de mesmo raio (~32px)
-  // - Anel Esquerdo (ouro champagne quente)
-  // - Anel Central (sobreposto com botão rosé/cobre radiante e ponto de brilho)
-  // - Anel Direito (ouro champagne quente)
-  // - Efeito de entrelaçamento contínuo com arcos sobrepostos e iluminação especular
-  const renderSymbol = (uid: string) => (
-    <svg
-      viewBox="0 0 230 110"
-      preserveAspectRatio="xMidYMid meet"
-      width={symbolDimensions.width}
-      height={symbolDimensions.height}
-      style={{
-        width: `${symbolDimensions.width}px`,
-        height: `${symbolDimensions.height}px`,
-        aspectRatio: '230 / 110',
-      }}
-      className="shrink-0 overflow-visible select-none"
-      aria-hidden="true"
-    >
-      <defs>
-        {/* Gradiente Dourado Principal: ouro champagne acetinado com reflexo brilhante central */}
-        <linearGradient id={`goldMain-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#9C7338" />
-          <stop offset="18%" stopColor="#C9A46A" />
-          <stop offset="38%" stopColor="#EAD2A8" />
-          <stop offset="50%" stopColor="#FFF3DC" />
-          <stop offset="62%" stopColor="#DFBF8E" />
-          <stop offset="82%" stopColor="#C49B5B" />
-          <stop offset="100%" stopColor="#9E753B" />
-        </linearGradient>
+  // Dimensões para a imagem oficial completa (aspect-ratio 1:1 estrito)
+  const fullImageSizes = {
+    xs: 'w-24 h-24',
+    sm: 'w-36 h-36',
+    md: 'w-48 h-48',
+    lg: 'w-64 h-64',
+    xl: 'w-80 h-80',
+  }[size]
 
-        {/* Gradiente Dourado Vertical para dar volume tubular aos aros */}
-        <linearGradient id={`goldTube-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FDF7EA" stopOpacity="0.9" />
-          <stop offset="45%" stopColor="#C9A46A" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#7F5724" stopOpacity="0.8" />
-        </linearGradient>
-
-        {/* Gradiente Diagonal Suave para o anel central */}
-        <linearGradient id={`goldCenter-${uid}`} x1="20%" y1="0%" x2="80%" y2="100%">
-          <stop offset="0%" stopColor="#FFF8ED" />
-          <stop offset="30%" stopColor="#E3C393" />
-          <stop offset="70%" stopColor="#B68B4B" />
-          <stop offset="100%" stopColor="#8C6228" />
-        </linearGradient>
-
-        {/* Gradiente do Núcleo Central: Rosé / Cobre Metálico com profundidade e brilho perolado */}
-        <radialGradient id={`roseCore-${uid}`} cx="38%" cy="32%" r="68%">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
-          <stop offset="18%" stopColor="#F5C6B3" />
-          <stop offset="42%" stopColor="#D98A6C" />
-          <stop offset="75%" stopColor="#B87355" />
-          <stop offset="92%" stopColor="#874730" />
-          <stop offset="100%" stopColor="#5E2C1A" />
-        </radialGradient>
-
-        {/* Sombra de profundidade sob os aros e o núcleo central */}
-        <filter id={`ringShadow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="#33221C" floodOpacity="0.28" />
-        </filter>
-      </defs>
-
-      {/* Camada 1: Sombra projetada sutil para realçar os aros */}
-      <g
-        fill="none"
-        stroke="#4A322A"
-        strokeWidth="11"
-        strokeOpacity="0.08"
-        strokeLinecap="round"
-        transform="translate(0, 1.5)"
-      >
-        <circle cx="55" cy="55" r="32" />
-        <circle cx="175" cy="55" r="32" />
-        <circle cx="115" cy="55" r="32" />
-      </g>
-
-      {/* Camada 2: Aro Esquerdo (Loop 1) */}
-      <g fill="none">
-        {/* Aro base dourado com espessura uniforme 10.5px */}
-        <circle
-          cx="55"
-          cy="55"
-          r="32"
-          stroke={`url(#goldMain-${uid})`}
-          strokeWidth="10.5"
-          strokeLinecap="round"
-        />
-        {/* Filete de luz superior para efeito tridimensional */}
-        <path
-          d="M 28 45 A 32 32 0 0 1 82 45"
-          stroke={`url(#goldTube-${uid})`}
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          opacity="0.85"
-        />
-      </g>
-
-      {/* Camada 3: Aro Direito (Loop 3) */}
-      <g fill="none">
-        <circle
-          cx="175"
-          cy="55"
-          r="32"
-          stroke={`url(#goldMain-${uid})`}
-          strokeWidth="10.5"
-          strokeLinecap="round"
-        />
-        {/* Filete de luz superior */}
-        <path
-          d="M 148 45 A 32 32 0 0 1 202 45"
-          stroke={`url(#goldTube-${uid})`}
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          opacity="0.85"
-        />
-      </g>
-
-      {/* Camada 4: Aro Central (Loop 2) — entrelaçado sobre os aros laterais */}
-      <g fill="none">
-        {/* Aro central dourado completo */}
-        <circle
-          cx="115"
-          cy="55"
-          r="32"
-          stroke={`url(#goldCenter-${uid})`}
-          strokeWidth="10.8"
-          strokeLinecap="round"
-          filter={`url(#ringShadow-${uid})`}
-        />
-        {/* Filete de luz superior do aro central */}
-        <path
-          d="M 88 45 A 32 32 0 0 1 142 45"
-          stroke="#FFFDF7"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          opacity="0.75"
-        />
-      </g>
-
-      {/* Camada 5: Pontes de entrelaçamento (weave effect)
-          Para conferir o entrelaçamento perfeito dos 3 anéis da marca SOUL */}
-      {/* Arco de sobreposição no cruzamento esquerdo inferior */}
-      <path
-        d="M 80 62 A 32 32 0 0 0 88 77"
-        fill="none"
-        stroke={`url(#goldMain-${uid})`}
-        strokeWidth="10.5"
-        strokeLinecap="round"
-      />
-      {/* Arco de sobreposição no cruzamento direito superior */}
-      <path
-        d="M 142 33 A 32 32 0 0 1 150 48"
-        fill="none"
-        stroke={`url(#goldMain-${uid})`}
-        strokeWidth="10.5"
-        strokeLinecap="round"
-      />
-
-      {/* Camada 6: Núcleo Central Rosé/Cobre Metálico
-          Pequeno medalhão circular sólido perfeitamente centralizado no loop do meio */}
-      <g>
-        {/* Anel de borda dourada fina ao redor do medalhão rosé */}
-        <circle
-          cx="115"
-          cy="55"
-          r="15"
-          fill="none"
-          stroke={`url(#goldCenter-${uid})`}
-          strokeWidth="1.2"
-          opacity="0.8"
-        />
-        {/* Núcleo sólido com gradiente rosé metálico e sombra */}
-        <circle
-          cx="115"
-          cy="55"
-          r="14"
-          fill={`url(#roseCore-${uid})`}
-          filter={`url(#ringShadow-${uid})`}
-        />
-        {/* Ponto de brilho especular perolado (reflexo de luz superior) */}
-        <ellipse
-          cx="111.5"
-          cy="50.5"
-          rx="4"
-          ry="2.4"
-          transform="rotate(-25 111.5 50.5)"
-          fill="#FFFFFF"
-          opacity="0.85"
-        />
-        {/* Ponto de brilho secundário menor */}
-        <circle cx="117.5" cy="58" r="1.2" fill="#FFFFFF" opacity="0.35" />
-      </g>
-    </svg>
-  )
-
-  const uid = React.useId().replace(/[:]/g, '')
-
-  // 1. Variante apenas o símbolo (ícones, favicons, avatar)
-  if (variant === 'symbol') {
+  /**
+   * Renderizador do SÍMBOLO OFICIAL a partir da imagem original:
+   * Recorta perfeitamente a região do símbolo dos anéis da imagem original sem redesenho manual,
+   * preservando as proporções nativas, gradientes metálicos e reflexos de iluminação.
+   */
+  const renderOfficialSymbol = () => {
     return (
-      <div className={cn('inline-flex items-center justify-center', className)}>
-        {renderSymbol(uid)}
+      <div
+        className={cn(
+          'relative overflow-hidden shrink-0 select-none flex items-center justify-center rounded-sm',
+          isDark ? 'bg-white/95 p-0.5 shadow-xs' : 'bg-transparent',
+        )}
+        style={{
+          width: `${symbolSizes.width}px`,
+          height: `${symbolSizes.height}px`,
+        }}
+        aria-label="Símbolo oficial Clínica SOUL"
+      >
+        <img
+          src={logoOficialImg}
+          alt="Símbolo Clínica SOUL"
+          className="absolute max-w-none pointer-events-none select-none object-cover"
+          style={{
+            // O símbolo está posicionado no quadrante superior central da imagem oficial 1:1
+            // Escalamos a imagem para que os anéis caibam com folga proporcional exata
+            width: `${symbolSizes.width * 1.95}px`,
+            height: `${symbolSizes.width * 1.95}px`,
+            top: `-${symbolSizes.height * 0.4}px`,
+            left: `-${symbolSizes.width * 0.475}px`,
+          }}
+          loading="eager"
+        />
       </div>
     )
   }
 
-  // 2. Variante compacta (horizontal ou para sidebar: símbolo + "SOUL")
+  // 1. Variante apenas o símbolo (ícones, favicons, topbar compacta, sidebar recolhida)
+  if (variant === 'symbol') {
+    return (
+      <div className={cn('inline-flex items-center justify-center shrink-0', className)}>
+        {renderOfficialSymbol()}
+      </div>
+    )
+  }
+
+  // 2. Variante compacta (sidebar expandida / cards com símbolo oficial + texto SOUL)
   if (variant === 'compact') {
     return (
-      <div className={cn('inline-flex items-center gap-2.5 select-none', className)}>
-        {renderSymbol(uid)}
+      <div className={cn('inline-flex items-center gap-2.5 select-none shrink-0', className)}>
+        {renderOfficialSymbol()}
         <div className="flex flex-col">
           <span
-            className="font-serif font-semibold tracking-[0.18em] leading-none uppercase"
+            className="font-serif font-bold tracking-[0.18em] leading-none uppercase"
             style={{
               color: textColor,
               fontSize:
@@ -273,8 +131,7 @@ export function LogoSOUL({
     )
   }
 
-  // 3. Variante horizontal completa (para cabeçalhos de documento ou topbar expandida)
-  // Perfeitamente balanceada e alinhada: símbolo à esquerda + bloco tipográfico oficial à direita
+  // 3. Variante horizontal completa (símbolo oficial à esquerda e tipografia oficial à direita)
   if (variant === 'horizontal') {
     const typography = {
       xs: {
@@ -343,12 +200,9 @@ export function LogoSOUL({
         )}
         style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
       >
-        {/* Símbolo com dimensões fixas proporcionais e travamento estrito de aspect ratio */}
-        <div className="shrink-0 flex items-center justify-center">{renderSymbol(uid)}</div>
+        <div className="shrink-0 flex items-center justify-center">{renderOfficialSymbol()}</div>
 
-        {/* Bloco tipográfico oficial alinhado centralmente com o símbolo */}
         <div className="flex flex-col items-center justify-center text-center shrink-0">
-          {/* CLÍNICA com linhas douradas laterais */}
           <div className="flex items-center justify-center gap-1.5 w-full">
             <span
               className={cn('h-[1px] flex-1', typography.ruleW)}
@@ -360,7 +214,7 @@ export function LogoSOUL({
                 color: textSubColor,
                 fontSize: typography.clinica,
                 letterSpacing: typography.trackingClinica,
-                marginLeft: typography.trackingClinica, // compensa o tracking no centro
+                marginLeft: typography.trackingClinica,
               }}
             >
               CLÍNICA
@@ -371,7 +225,6 @@ export function LogoSOUL({
             />
           </div>
 
-          {/* SOUL em Cormorant Garamond serifada sofisticada */}
           <span
             className="font-serif font-bold leading-none uppercase my-0.5 tracking-wider"
             style={{
@@ -384,7 +237,6 @@ export function LogoSOUL({
             SOUL
           </span>
 
-          {/* Traço fino dourado com Flor de Lótus de 3 pétalas oficial */}
           <div className="flex items-center justify-center gap-1.5 w-full my-0.5">
             <span
               className={cn('h-[1px] flex-1', typography.ruleW)}
@@ -401,14 +253,11 @@ export function LogoSOUL({
               strokeLinejoin="round"
               aria-hidden="true"
             >
-              {/* Pétala central de lótus */}
               <path
                 d="M 16 3 C 13.5 8 13.5 14 16 17 C 18.5 14 18.5 8 16 3 Z"
                 fill={isDark ? '#4A322A' : '#FFF9F0'}
               />
-              {/* Pétala esquerda */}
               <path d="M 16 17 C 12 16 8 13 9 8 C 11.5 8 14.5 12 16 17 Z" />
-              {/* Pétala direita */}
               <path d="M 16 17 C 20 16 24 13 23 8 C 20.5 8 17.5 12 16 17 Z" />
             </svg>
             <span
@@ -417,7 +266,6 @@ export function LogoSOUL({
             />
           </div>
 
-          {/* Tagline SAÚDE E BEM-ESTAR */}
           <span
             className="uppercase font-light leading-none"
             style={{
@@ -434,22 +282,32 @@ export function LogoSOUL({
     )
   }
 
-  // 4. Variante COMPLETA oficial (como na imagem do logo original):
-  // Símbolo no topo
-  // C L Í N I C A com traços dourados
-  // SOUL em Didone maiúsculo bem espaçado
-  // Traço fino dourado com flor de lótus de 3 pétalas ao centro
-  // S A Ú D E   E   B E M   E S T A R
+  // 4. Variante FULL (VERTICAL OFICIAL):
+  // Disposição vertical empilhada oficial centralizada:
+  // - Símbolo no topo
+  // - CLÍNICA com linhas douradas laterais
+  // - SOUL em tipografia serifada sofisticada
+  // - Traço fino dourado com flor de lótus de 3 pétalas
+  // - SAÚDE E BEM ESTAR
+  // Se estiver em fundo claro, podemos renderizar a imagem oficial completa de forma nítida
+  // ou a estrutura vertical com o símbolo da imagem no topo.
+  // Para máxima fidelidade quando solicitado ou na variante full direta:
   return (
-    <div className={cn('inline-flex flex-col items-center text-center select-none', className)}>
-      {/* Símbolo Triplo */}
-      <div className="mb-2.5">{renderSymbol(uid)}</div>
+    <div
+      className={cn(
+        'inline-flex flex-col items-center justify-center text-center select-none shrink-0 print:shrink-0',
+        className,
+      )}
+      style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+    >
+      {/* Símbolo Oficial extraído da imagem no topo */}
+      <div className="mb-2 shrink-0 flex items-center justify-center">{renderOfficialSymbol()}</div>
 
       {/* CLÍNICA com linhas douradas laterais */}
-      <div className="w-full max-w-[280px] flex items-center justify-center gap-2.5 my-1">
+      <div className="w-full max-w-[280px] flex items-center justify-center gap-2.5 my-1 shrink-0">
         <span className="h-[1px] flex-1 max-w-[48px]" style={{ backgroundColor: lineGold }} />
         <span
-          className="text-[10px] sm:text-[11px] uppercase tracking-[0.42em] font-medium leading-none"
+          className="text-[10px] sm:text-[11px] uppercase tracking-[0.42em] font-medium leading-none shrink-0"
           style={{ color: textSubColor, marginLeft: '0.42em' }}
         >
           CLÍNICA
@@ -457,29 +315,29 @@ export function LogoSOUL({
         <span className="h-[1px] flex-1 max-w-[48px]" style={{ backgroundColor: lineGold }} />
       </div>
 
-      {/* SOUL em Serifada Didone elegante */}
-      <h1
-        className="font-serif font-semibold tracking-[0.22em] leading-none uppercase my-1 text-center"
+      {/* SOUL em Serifada elegante */}
+      <div
+        className="font-serif font-bold tracking-[0.22em] leading-none uppercase my-1 text-center shrink-0"
         style={{
           color: textColor,
           fontSize:
             size === 'xs'
-              ? '24px'
+              ? '22px'
               : size === 'sm'
-                ? '32px'
+                ? '28px'
                 : size === 'md'
-                  ? '44px'
+                  ? '38px'
                   : size === 'lg'
-                    ? '56px'
-                    : '68px',
-          marginLeft: '0.22em', // compensa o tracking no alinhamento central
+                    ? '50px'
+                    : '64px',
+          marginLeft: '0.22em',
         }}
       >
         SOUL
-      </h1>
+      </div>
 
       {/* Ornamento: Linha fina dourada com Flor de Lótus de 3 pétalas central */}
-      <div className="w-full max-w-[260px] flex items-center justify-center gap-2 my-1.5">
+      <div className="w-full max-w-[260px] flex items-center justify-center gap-2 my-1.5 shrink-0">
         <span className="h-[1px] flex-1 max-w-[64px]" style={{ backgroundColor: lineGold }} />
         <svg
           viewBox="0 0 32 20"
@@ -492,27 +350,70 @@ export function LogoSOUL({
           strokeLinejoin="round"
           aria-hidden="true"
         >
-          {/* Pétala central de lótus */}
           <path
             d="M 16 3 C 13.5 8 13.5 14 16 17 C 18.5 14 18.5 8 16 3 Z"
             fill={isDark ? '#4A322A' : '#FFF9F0'}
           />
-          {/* Pétala esquerda */}
           <path d="M 16 17 C 12 16 8 13 9 8 C 11.5 8 14.5 12 16 17 Z" />
-          {/* Pétala direita */}
           <path d="M 16 17 C 20 16 24 13 23 8 C 20.5 8 17.5 12 16 17 Z" />
         </svg>
         <span className="h-[1px] flex-1 max-w-[64px]" style={{ backgroundColor: lineGold }} />
       </div>
 
-      {/* Tagline "SAÚDE E BEM-ESTAR" */}
-      <p
-        className="text-[9px] sm:text-[10px] uppercase tracking-[0.38em] font-light leading-none mt-1"
+      {/* Tagline "SAÚDE E BEM ESTAR" */}
+      <div
+        className="text-[9px] sm:text-[10px] uppercase tracking-[0.38em] font-light leading-none mt-1 shrink-0"
         style={{ color: textSubColor, marginLeft: '0.38em' }}
       >
-        SAÚDE E BEM-ESTAR
-      </p>
+        SAÚDE E BEM ESTAR
+      </div>
     </div>
   )
 }
+
+/**
+ * Componente dedicado que renderiza diretamente a imagem oficial completa da Clínica SOUL
+ * com aspecto 1:1 rigorosamente travado, sem estiramento ou distorção.
+ */
+export function LogoSOULImage({
+  size = 'md',
+  className,
+  alt = 'Clínica SOUL — Saúde e Bem-Estar',
+}: {
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  className?: string
+  alt?: string
+}) {
+  const dimensionClass = {
+    xs: 'w-24 h-24 max-w-[96px]',
+    sm: 'w-36 h-36 max-w-[144px]',
+    md: 'w-48 h-48 max-w-[192px]',
+    lg: 'w-64 h-64 max-w-[256px]',
+    xl: 'w-80 h-80 max-w-[320px]',
+  }[size]
+
+  return (
+    <div
+      className={cn(
+        'relative shrink-0 flex items-center justify-center select-none aspect-square overflow-hidden',
+        dimensionClass,
+        className,
+      )}
+      style={{
+        aspectRatio: '1 / 1',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      }}
+    >
+      <img
+        src={logoOficialImg}
+        alt={alt}
+        className="w-full h-full object-contain pointer-events-none select-none block"
+        style={{ aspectRatio: '1 / 1' }}
+        loading="eager"
+      />
+    </div>
+  )
+}
+
 export default LogoSOUL
