@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { ProtectedRoute, PublicOnlyRoute } from '@/components/ProtectedRoute'
+import { ProtectedRoute, AdminOnlyRoute, PublicOnlyRoute } from '@/components/ProtectedRoute'
 import Layout from '@/components/Layout'
 
 // Public Auth Pages
@@ -104,8 +104,10 @@ const App = () => (
               <Route path="/prontuarios" element={<Prontuarios />} />
               <Route path="/prontuarios/novo" element={<NovaAvaliacao />} />
               <Route path="/prontuarios/:id" element={<AvaliacaoDetalhe />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/acessos" element={<Acessos />} />
+              <Route element={<AdminOnlyRoute />}>
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/acessos" element={<Acessos />} />
+              </Route>
               <Route path="/guia" element={<GuiaUso />} />
             </Route>
           </Route>

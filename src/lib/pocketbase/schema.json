@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T22:18:30.443Z",
+  "generatedAt": "2026-10-05T22:43:53.155Z",
   "collections": [
     {
       "name": "users",
@@ -103,7 +103,7 @@
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' || @request.body.status = 'Pré-cadastro'",
         "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -204,6 +204,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "profissional_responsavel_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": [
@@ -215,11 +222,11 @@
       "name": "consultas",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -385,11 +392,11 @@
       "name": "avaliacoes_fisioterapia",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -642,6 +649,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": ["CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"]
@@ -650,11 +664,11 @@
       "name": "avaliacoes_personal",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -903,6 +917,13 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": ["CREATE INDEX idx_apersonal_paciente ON avaliacoes_personal (paciente_id)"]
@@ -911,11 +932,11 @@
       "name": "avaliacoes_nutricao",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -1092,6 +1113,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": ["CREATE INDEX idx_anutri_paciente ON avaliacoes_nutricao (paciente_id)"]
@@ -1100,11 +1128,11 @@
       "name": "avaliacoes_medico",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -1273,6 +1301,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": ["CREATE INDEX idx_amedico_paciente ON avaliacoes_medico (paciente_id)"]
@@ -1347,9 +1382,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.assinado_por_user_id = @request.auth.id || @request.body.assinado_por_user_id = '' || @request.body.assinado_por_user_id = null)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)"
       },
       "fields": [
         {

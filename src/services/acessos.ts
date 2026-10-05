@@ -11,6 +11,7 @@ export interface ManageAccessPayload {
   target_user_id: string
   action: 'approve' | 'reject' | 'suspend' | 'reactivate' | 'delete'
   reason?: string
+  especialidade?: string
 }
 
 export interface ManageAccessResponse {

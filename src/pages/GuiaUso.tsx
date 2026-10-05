@@ -983,6 +983,87 @@ export default function GuiaUso() {
                 <span>Gestão & Governança da Clínica</span>
               </div>
               <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Perfis de Acesso: Visão do Profissional vs. Administrativa
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                O Sistema SOUL separa com precisão os perfis de acesso para garantir sigilo ético,
+                foco clínico no paciente e proteção de dados estratégicos da clínica.
+              </p>
+            </div>
+
+            {/* Comparativo de Perfis: Profissional vs Admin */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl bg-white border border-[#C9A46A]/60 shadow-xs space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]">
+                    <Stethoscope className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#4A322A]">
+                      Perfil Profissional (Restrito)
+                    </h4>
+                    <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Foco no Cuidado Clínico
+                    </span>
+                  </div>
+                </div>
+                <ul className="text-xs text-gray-600 space-y-2 list-disc list-inside leading-relaxed">
+                  <li>
+                    <strong>Dashboard Clínico Exclusivo:</strong> exibe apenas as consultas do dia
+                    daquele profissional, seus pacientes em acompanhamento e suas evoluções no mês.
+                  </li>
+                  <li>
+                    <strong>Sem Números Globais:</strong> não tem acesso a faturamento, relatórios
+                    gerais, volume de outros colegas ou estatísticas amplas da clínica.
+                  </li>
+                  <li>
+                    <strong>Acesso a Clientes e Cadastro:</strong> pode cadastrar novos pacientes,
+                    buscar prontuários e gerenciar atendimentos.
+                  </li>
+                  <li>
+                    <strong>Avaliações e Evoluções:</strong> cria e edita laudos clínicos em seu
+                    nome com vinculação direta (<code>user_id</code>).
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border border-[#4A322A]/30 shadow-xs space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-[#FAF4EA] text-[#4A322A] border border-[#E3C89A]">
+                    <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#4A322A]">
+                      Perfil Administrador (Gestão)
+                    </h4>
+                    <span className="text-[10px] text-[#4A322A] font-semibold bg-[#FAF4EA] px-2 py-0.5 rounded-full border border-[#C9A46A]/50">
+                      Governança Total
+                    </span>
+                  </div>
+                </div>
+                <ul className="text-xs text-gray-600 space-y-2 list-disc list-inside leading-relaxed">
+                  <li>
+                    <strong>Dashboard Estratégico:</strong> métricas agregadas da clínica toda,
+                    distribuição de atendimentos por especialidade e satisfação.
+                  </li>
+                  <li>
+                    <strong>Aba Relatórios e Acessos:</strong> exclusiva para o administrador, com
+                    filtros avançados e exportações.
+                  </li>
+                  <li>
+                    <strong>Aprovação e Auditoria:</strong> aprova novos cadastros, define
+                    especialidade e consulta trilhas completas de auditoria.
+                  </li>
+                  <li>
+                    <strong>Segurança RLS ativa:</strong> permissões validadas diretamente no banco
+                    de dados em cada requisição.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <h3 className="text-lg font-serif font-bold text-[#4A322A]">
                 Como Autorizar e Monitorar Novos Acessos Profissionais
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
@@ -991,7 +1072,7 @@ export default function GuiaUso() {
                 <strong>
                   nenhum profissional consegue acessar o sistema sem a sua autorização expressa
                 </strong>
-                .
+                . Ao aprovar, o sistema atribui automaticamente o perfil profissional.
               </p>
             </div>
 

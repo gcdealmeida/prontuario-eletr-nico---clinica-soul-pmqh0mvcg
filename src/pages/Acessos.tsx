@@ -97,12 +97,14 @@ export default function Acessos() {
     user: UserRecord | null
     action: 'approve' | 'reject' | 'suspend' | 'reactivate' | 'delete' | null
     reason: string
+    especialidade: string
     submitting: boolean
   }>({
     open: false,
     user: null,
     action: null,
     reason: '',
+    especialidade: 'Fisioterapia',
     submitting: false,
   })
 
@@ -208,12 +210,13 @@ export default function Acessos() {
       user: u,
       action,
       reason: '',
+      especialidade: u.especialidade || 'Fisioterapia',
       submitting: false,
     })
   }
 
   const handleExecuteAction = async () => {
-    const { user: target, action, reason } = modalAction
+    const { user: target, action, reason, especialidade } = modalAction
     if (!target || !action) return
 
     try {
@@ -222,6 +225,7 @@ export default function Acessos() {
         target_user_id: target.id,
         action,
         reason: reason.trim() || undefined,
+        especialidade: action === 'approve' ? especialidade : undefined,
       })
 
       toast({
@@ -234,6 +238,7 @@ export default function Acessos() {
         user: null,
         action: null,
         reason: '',
+        especialidade: 'Fisioterapia',
         submitting: false,
       })
 
@@ -1152,6 +1157,7 @@ export default function Acessos() {
               user: null,
               action: null,
               reason: '',
+              especialidade: 'Fisioterapia',
               submitting: false,
             })
           }
@@ -1169,6 +1175,39 @@ export default function Acessos() {
               )}
             </DialogDescription>
           </DialogHeader>
+
+          {modalAction.action === 'approve' && (
+            <div className="space-y-3 py-2 border-y border-gray-100 my-2">
+              <div className="bg-[#FAF7F1] p-3 rounded-xl border border-[#E9E1D2] text-xs space-y-1">
+                <p className="font-semibold text-[#4A322A]">
+                  Papel atribuído: <span className="text-[#8C6527]">Profissional da Clínica</span>
+                </p>
+                <p className="text-gray-500">
+                  O profissional terá acesso restrito aos seus pacientes, consultas, avaliações e
+                  evoluções (sem acesso às métricas financeiras e relatórios gerais da clínica).
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="especialidade" className="text-xs font-semibold text-gray-700">
+                  Confirmar Especialidade do Profissional:
+                </label>
+                <select
+                  id="especialidade"
+                  value={modalAction.especialidade}
+                  onChange={(e) =>
+                    setModalAction((prev) => ({ ...prev, especialidade: e.target.value }))
+                  }
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#C9A46A]"
+                >
+                  <option value="Fisioterapia">Fisioterapia</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Nutrição">Nutrição</option>
+                  <option value="Médico">Médico</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {(modalAction.action === 'suspend' || modalAction.action === 'reject') && (
             <div className="space-y-1.5 py-2">
@@ -1197,6 +1236,7 @@ export default function Acessos() {
                   user: null,
                   action: null,
                   reason: '',
+                  especialidade: 'Fisioterapia',
                   submitting: false,
                 })
               }

@@ -107,9 +107,9 @@ export default function Layout() {
       icon: FileText,
       badge: consultasHojeCount > 0 ? consultasHojeCount : null,
     },
-    { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
     ...(isAdmin
       ? [
+          { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
           {
             name: 'Acessos',
             path: '/acessos',

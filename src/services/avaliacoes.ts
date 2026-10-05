@@ -107,7 +107,21 @@ export async function createAvaliacao(
   collectionName: string,
   data: Record<string, unknown> | FormData,
 ) {
-  return await pb.collection(collectionName).create(data)
+  // Garante que o user_id do autor autenticado seja salvo se ainda não definido
+  if (data instanceof FormData) {
+    if (!data.has('user_id') && pb.authStore.record?.id) {
+      data.append('user_id', pb.authStore.record.id)
+    }
+    return await pb.collection(collectionName).create(data)
+  }
+
+  const payload: Record<string, unknown> = {
+    ...data,
+  }
+  if (!payload.user_id && pb.authStore.record?.id) {
+    payload.user_id = pb.authStore.record.id
+  }
+  return await pb.collection(collectionName).create(payload)
 }
 
 export async function updateAvaliacao(

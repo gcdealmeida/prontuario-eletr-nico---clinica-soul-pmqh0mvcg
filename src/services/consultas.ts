@@ -36,7 +36,11 @@ export async function getConsultasHoje() {
 }
 
 export async function createConsulta(data: Partial<ConsultaRecord>) {
-  return await pb.collection('consultas').create<ConsultaRecord>(data)
+  const payload: Partial<ConsultaRecord> = { ...data }
+  if (!payload.user_id && pb.authStore.record?.id) {
+    payload.user_id = pb.authStore.record.id
+  }
+  return await pb.collection('consultas').create<ConsultaRecord>(payload)
 }
 
 export async function updateConsulta(id: string, data: Partial<ConsultaRecord>) {

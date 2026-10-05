@@ -43,6 +43,7 @@ routerAdd(
       const targetUserId = body.target_user_id
       const action = body.action // 'approve' | 'reject' | 'suspend' | 'reactivate' | 'delete'
       const reason = body.reason || ''
+      const especialidade = body.especialidade || ''
 
       if (!targetUserId || !action) {
         return e.json(400, { error: 'target_user_id e action são obrigatórios.' })
@@ -80,19 +81,30 @@ routerAdd(
         targetUser.set('access_status', 'approved')
         targetUser.set('approved_at', nowIso)
         targetUser.set('approved_by', authEmail)
+        // Garante que o papel atribuído ao aprovar seja sempre 'professional', a menos que seja master admin
+        if (targetEmail !== 'gcdealmeida@gmail.com' && targetEmail !== 'guivemax@hotmail.com') {
+          targetUser.set('role', 'professional')
+        }
+        if (especialidade) {
+          targetUser.set('especialidade', especialidade)
+        }
         $app.save(targetUser)
 
         logRec.set('action', 'access_approved')
         logRec.set(
           'details',
-          'Acesso profissional aprovado por ' + authEmail + (reason ? ': ' + reason : ''),
+          'Acesso profissional aprovado por ' +
+            authEmail +
+            (especialidade ? ' [Especialidade: ' + especialidade + ']' : '') +
+            (reason ? ': ' + reason : ''),
         )
         $app.save(logRec)
 
         return e.json(200, {
           success: true,
-          message: 'Acesso do usuário ' + targetEmail + ' aprovado com sucesso.',
+          message: 'Acesso profissional do usuário ' + targetEmail + ' aprovado com sucesso.',
           access_status: 'approved',
+          role: 'professional',
         })
       }
 

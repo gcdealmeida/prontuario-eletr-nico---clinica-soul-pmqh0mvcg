@@ -107,6 +107,7 @@ export interface PacienteRecord {
   tratamentos_anteriores?: string
   resultado_esperado?: string
   diagnostico_medico?: string
+  profissional_responsavel_id?: string
   created: string
   updated: string
 }
@@ -499,6 +500,7 @@ export interface PlanoSemanalItem {
 export interface AvaliacaoFisioterapiaRecord {
   id: string
   paciente_id: string
+  user_id?: string
   especialidade: 'Fisioterapia'
   status: StatusAvaliacao
   queixa_principal: string
@@ -548,6 +550,7 @@ export interface AvaliacaoFisioterapiaRecord {
 export interface AvaliacaoPersonalRecord {
   id: string
   paciente_id: string
+  user_id?: string
   especialidade: 'Personal'
   status: StatusAvaliacao
   objetivo_principal?:
@@ -709,6 +712,7 @@ export interface AvaliacaoPersonalRecord {
 export interface AvaliacaoNutricaoRecord {
   id: string
   paciente_id: string
+  user_id?: string
   especialidade: 'Nutrição'
   status: StatusAvaliacao
   peso?: number
@@ -744,6 +748,7 @@ export interface AvaliacaoNutricaoRecord {
 export interface AvaliacaoMedicoRecord {
   id: string
   paciente_id: string
+  user_id?: string
   especialidade: 'Médico'
   status: StatusAvaliacao
   queixa_principal: string
