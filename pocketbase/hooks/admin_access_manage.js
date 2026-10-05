@@ -31,7 +31,8 @@ routerAdd(
 
       const authEmail = (authUser.getString('email') || '').toLowerCase().trim()
       const authRole = authUser.getString('role')
-      const isMasterAdmin = authEmail === 'guivemax@hotmail.com'
+      const isMasterAdmin =
+        authEmail === 'gcdealmeida@gmail.com' || authEmail === 'guivemax@hotmail.com'
       const isAdmin = isMasterAdmin || authRole === 'admin'
 
       if (!isAdmin) {
@@ -58,7 +59,7 @@ routerAdd(
 
       // Impede modificar ou suspender o administrador mestre
       if (
-        targetEmail === 'guivemax@hotmail.com' &&
+        (targetEmail === 'gcdealmeida@gmail.com' || targetEmail === 'guivemax@hotmail.com') &&
         (action === 'suspend' || action === 'reject' || action === 'delete')
       ) {
         return e.json(400, {

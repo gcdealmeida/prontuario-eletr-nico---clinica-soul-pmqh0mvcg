@@ -128,7 +128,7 @@ export default function AguardandoAprovacao() {
         <div className="text-[11px] text-gray-500 flex items-center justify-center gap-1.5">
           <Mail className="h-3.5 w-3.5 text-gray-400" />
           <span>
-            Dúvidas ou urgências: <strong>guivemax@hotmail.com</strong>
+            Dúvidas ou urgências: <strong>gcdealmeida@gmail.com</strong>
           </span>
         </div>
       </div>

@@ -15,11 +15,11 @@ onRecordAuthRequest((e) => {
   }
 
   const email = (user.getString('email') || '').toLowerCase().trim()
-  const isMasterAdmin = email === 'guivemax@hotmail.com'
+  const isMasterAdmin = email === 'gcdealmeida@gmail.com' || email === 'guivemax@hotmail.com'
 
   // Master admin é sempre aprovado
   if (isMasterAdmin) {
-    if (user.getString('access_status') !== 'approved') {
+    if (user.getString('access_status') !== 'approved' || user.getString('role') !== 'admin') {
       user.set('access_status', 'approved')
       user.set('role', 'admin')
       $app.save(user)

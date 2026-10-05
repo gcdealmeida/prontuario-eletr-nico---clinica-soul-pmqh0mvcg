@@ -51,7 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Se o usuário não for admin e seu access_status for pending ou suspended,
     // garantimos logout local caso chegue até aqui
-    const isMaster = (rec.email || '').toLowerCase() === 'guivemax@hotmail.com'
+    const emailNorm = (rec.email || '').toLowerCase()
+    const isMaster =
+      emailNorm === 'gcdealmeida@gmail.com' ||
+      emailNorm === 'guivemax@hotmail.com' ||
+      rec.role === 'admin'
     const status = isMaster ? 'approved' : rec.access_status || 'pending'
     if (status !== 'approved') {
       pb.authStore.clear()
@@ -93,9 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!token && !!user,
         isAdmin:
-          (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' || user?.role === 'admin',
-        isApproved:
+          (user?.email || '').toLowerCase() === 'gcdealmeida@gmail.com' ||
           (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' ||
+          user?.role === 'admin',
+        isApproved:
+          (user?.email || '').toLowerCase() === 'gcdealmeida@gmail.com' ||
+          (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' ||
+          user?.role === 'admin' ||
           user?.access_status === 'approved',
         login,
         logout,

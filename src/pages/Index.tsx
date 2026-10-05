@@ -24,8 +24,8 @@ export default function Login() {
   const { login } = useAuth()
   const { toast } = useToast()
 
-  const [email, setEmail] = useState('guivemax@hotmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState('gcdealmeida@gmail.com')
+  const [password, setPassword] = useState('Acesso@1234')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -111,7 +111,7 @@ export default function Login() {
     toast({
       title: `Login com ${provider}`,
       description:
-        'Use o e-mail guivemax@hotmail.com / Skip@Pass para entrar diretamente no sistema.',
+        'Use o e-mail gcdealmeida@gmail.com / Acesso@1234 para entrar diretamente no sistema.',
     })
   }
 
@@ -383,8 +383,10 @@ export default function Login() {
               </div>
               <div className="text-[11px] text-gray-400">
                 Acesso de demonstração:{' '}
-                <span className="font-mono text-[#5C4033] font-semibold">guivemax@hotmail.com</span>{' '}
-                / <span className="font-mono text-[#5C4033] font-semibold">Skip@Pass</span>
+                <span className="font-mono text-[#5C4033] font-semibold">
+                  gcdealmeida@gmail.com
+                </span>{' '}
+                / <span className="font-mono text-[#5C4033] font-semibold">Acesso@1234</span>
               </div>
             </div>
           </div>

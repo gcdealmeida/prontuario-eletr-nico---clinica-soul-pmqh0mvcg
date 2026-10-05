@@ -10,7 +10,7 @@
 onRecordCreate((e) => {
   const email = (e.record.getString('email') || '').toLowerCase().trim()
 
-  if (email === 'guivemax@hotmail.com') {
+  if (email === 'gcdealmeida@gmail.com' || email === 'guivemax@hotmail.com') {
     e.record.set('access_status', 'approved')
     e.record.set('role', 'admin')
     e.record.set('approved_at', new Date().toISOString())
@@ -32,7 +32,7 @@ onRecordAfterCreateSuccess((e) => {
   try {
     const user = e.record
     const email = (user.getString('email') || '').toLowerCase().trim()
-    const isMasterAdmin = email === 'guivemax@hotmail.com'
+    const isMasterAdmin = email === 'gcdealmeida@gmail.com' || email === 'guivemax@hotmail.com'
 
     const logsCol = $app.findCollectionByNameOrId('access_logs')
     const logRec = new Record(logsCol)

@@ -94,27 +94,29 @@ export default function Acessos() {
     )
   }, [users, searchTerm])
 
+  const isMasterAccount = (email?: string, role?: string) => {
+    const norm = (email || '').toLowerCase().trim()
+    return norm === 'gcdealmeida@gmail.com' || norm === 'guivemax@hotmail.com' || role === 'admin'
+  }
+
   // Separar usuários por status
   const pendentes = useMemo(() => {
     return filteredUsers.filter((u) => {
-      const isMaster = (u.email || '').toLowerCase() === 'guivemax@hotmail.com'
-      if (isMaster) return false
+      if (isMasterAccount(u.email, u.role)) return false
       return u.access_status === 'pending' || !u.access_status
     })
   }, [filteredUsers])
 
   const ativos = useMemo(() => {
     return filteredUsers.filter((u) => {
-      const isMaster = (u.email || '').toLowerCase() === 'guivemax@hotmail.com'
-      if (isMaster) return true
+      if (isMasterAccount(u.email, u.role)) return true
       return u.access_status === 'approved'
     })
   }, [filteredUsers])
 
   const suspensos = useMemo(() => {
     return filteredUsers.filter((u) => {
-      const isMaster = (u.email || '').toLowerCase() === 'guivemax@hotmail.com'
-      if (isMaster) return false
+      if (isMasterAccount(u.email, u.role)) return false
       return u.access_status === 'suspended'
     })
   }, [filteredUsers])
@@ -204,12 +206,12 @@ export default function Acessos() {
     }
   }
 
-  const getBadgeForStatus = (status?: AccessStatus, email?: string) => {
-    const isMaster = (email || '').toLowerCase() === 'guivemax@hotmail.com'
-    if (isMaster) {
+  const getBadgeForStatus = (status?: AccessStatus, email?: string, role?: string) => {
+    if (isMasterAccount(email, role)) {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF4EA] text-[#5C4033] border border-[#C9A46A]/50">
-          <Shield className="h-3 w-3 text-[#C9A46A]" /> Admin Mestre
+          <Shield className="h-3 w-3 text-[#C9A46A]" />{' '}
+          {role === 'admin' ? 'Administrador' : 'Admin Mestre'}
         </span>
       )
     }
@@ -506,7 +508,7 @@ export default function Acessos() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {ativos.map((u) => {
-                    const isMaster = (u.email || '').toLowerCase() === 'guivemax@hotmail.com'
+                    const isMaster = isMasterAccount(u.email, u.role)
                     return (
                       <tr key={u.id} className="hover:bg-gray-50/70 transition-colors">
                         <td className="p-3.5 pl-5">
@@ -523,9 +525,11 @@ export default function Acessos() {
                           </div>
                         </td>
                         <td className="p-3.5 font-medium text-gray-700">
-                          {u.especialidade || (isMaster ? 'Administrador Mestre' : 'Profissional')}
+                          {u.especialidade || (isMaster ? 'Administrador Master' : 'Profissional')}
                         </td>
-                        <td className="p-3.5">{getBadgeForStatus(u.access_status, u.email)}</td>
+                        <td className="p-3.5">
+                          {getBadgeForStatus(u.access_status, u.email, u.role)}
+                        </td>
                         <td className="p-3.5 text-gray-600 text-[11px]">
                           {u.approved_at ? formatDataHoraPTBR(u.approved_at) : 'Inicial'}
                         </td>
@@ -534,7 +538,7 @@ export default function Acessos() {
                         </td>
                         <td className="p-3.5 pr-5 text-right">
                           {isMaster ? (
-                            <span className="text-[11px] text-gray-400 italic">
+                            <span className="text-[11px] text-[#C9A46A] font-semibold italic">
                               Dono da Clínica
                             </span>
                           ) : (
@@ -602,7 +606,9 @@ export default function Acessos() {
                           </div>
                         </td>
                         <td className="p-3.5 text-gray-600">{u.especialidade || '—'}</td>
-                        <td className="p-3.5">{getBadgeForStatus(u.access_status, u.email)}</td>
+                        <td className="p-3.5">
+                          {getBadgeForStatus(u.access_status, u.email, u.role)}
+                        </td>
                         <td className="p-3.5 text-gray-600 text-[11px]">
                           {formatDataHoraPTBR(u.created)}
                         </td>
