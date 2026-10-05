@@ -21,6 +21,11 @@ import {
   Eye,
   X,
   FileCheck,
+  ShieldCheck,
+  Lock,
+  RotateCcw,
+  Printer,
+  Info,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -101,6 +106,8 @@ export function SecaoEvolucoes({
   const [formData, setFormData] = useState(new Date().toISOString().substring(0, 16))
   const [formProfissional, setFormProfissional] = useState(profissionalPadrao || 'SOUL Clínica')
   const [formStatus, setFormStatus] = useState<StatusEvolucao>('Finalizada')
+  const [tipoEvolucao, setTipoEvolucao] = useState<'Rotina' | 'Corretiva'>('Rotina')
+  const [evolucaoReferenciaId, setEvolucaoReferenciaId] = useState<string | null>(null)
 
   // SOAP fields
   const [subjetivo, setSubjetivo] = useState('')
@@ -139,6 +146,8 @@ export function SecaoEvolucoes({
 
   const resetForm = () => {
     setEditingId(null)
+    setTipoEvolucao('Rotina')
+    setEvolucaoReferenciaId(null)
     setFormTipo('soap')
     setFormEspecialidade(especialidade)
     setFormData(new Date().toISOString().substring(0, 16))
@@ -158,7 +167,19 @@ export function SecaoEvolucoes({
   }
 
   const handleOpenEdit = (evo: EvolucaoRecord) => {
+    if (evo.documento_fechado || evo.status === 'Finalizada') {
+      toast({
+        title: 'Documento Clínico Fechado',
+        description:
+          'Esta evolução foi assinada digitalmente e não pode ser alterada. Utilize a opção "Nova Evolução Corretiva".',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setEditingId(evo.id)
+    setTipoEvolucao(evo.tipo_evolucao || 'Rotina')
+    setEvolucaoReferenciaId(evo.evolucao_referencia_id || null)
     setFormEspecialidade(evo.especialidade)
     setFormData(
       evo.data_evolucao
@@ -166,7 +187,7 @@ export function SecaoEvolucoes({
         : new Date().toISOString().substring(0, 16),
     )
     setFormProfissional(evo.profissional || profissionalPadrao || 'SOUL Clínica')
-    setFormStatus(evo.status || 'Finalizada')
+    setFormStatus(evo.status || 'Rascunho')
 
     setSubjetivo(evo.subjetivo || '')
     setObjetivo(evo.objetivo || '')
@@ -179,6 +200,41 @@ export function SecaoEvolucoes({
       setFormTipo('rapida')
     } else {
       setFormTipo('soap')
+    }
+
+    setModalOpen(true)
+  }
+
+  // Abre formulário para criar uma NOVA evolução corretiva vinculada à evolução assinada anterior
+  const handleOpenNovaCorretiva = (evoAnterior: EvolucaoRecord) => {
+    resetForm()
+    setTipoEvolucao('Corretiva')
+    setEvolucaoReferenciaId(evoAnterior.id)
+    setFormEspecialidade(evoAnterior.especialidade)
+    setFormProfissional(
+      profissionalPadrao ||
+        evoAnterior.assinado_por_nome ||
+        evoAnterior.profissional ||
+        'SOUL Clínica',
+    )
+    setFormStatus('Finalizada')
+
+    const refInfo = evoAnterior.numero_registro
+      ? `Registro ${evoAnterior.numero_registro}`
+      : `Sessão de ${formatDataHoraPTBR(evoAnterior.assinado_em || evoAnterior.data_evolucao)}`
+
+    const cabecalhoNota = `[NOTA CORRETIVA referente à evolução anterior ${refInfo}]\nMotivo da retificação: `
+
+    if (evoAnterior.texto_livre && !evoAnterior.subjetivo && !evoAnterior.objetivo) {
+      setFormTipo('rapida')
+      setTextoLivre(`${cabecalhoNota}\n\n--- Texto retificado ---\n${evoAnterior.texto_livre}`)
+    } else {
+      setFormTipo('soap')
+      setSubjetivo(evoAnterior.subjetivo ? `[Retificação] ${evoAnterior.subjetivo}` : '')
+      setObjetivo(evoAnterior.objetivo || '')
+      setAvaliacaoClinica(`${cabecalhoNota}\n${evoAnterior.avaliacao_clinica || ''}`)
+      setPlano(evoAnterior.plano || '')
+      setCondutaProcedimentos(evoAnterior.conduta_procedimentos || '')
     }
 
     setModalOpen(true)
@@ -230,19 +286,34 @@ export function SecaoEvolucoes({
         conduta_procedimentos: condutaProcedimentos.trim() || undefined,
         texto_livre: textoLivre.trim() || undefined,
         status: formStatus,
+        tipo_evolucao: tipoEvolucao,
+        evolucao_referencia_id: evolucaoReferenciaId || undefined,
       }
 
       if (editingId) {
         await updateEvolucao(editingId, payload)
         toast({
-          title: 'Evolução atualizada',
-          description: 'A sessão de evolução clínica foi atualizada.',
+          title:
+            formStatus === 'Finalizada' ? 'Evolução Assinada com Sucesso!' : 'Rascunho Atualizado',
+          description:
+            formStatus === 'Finalizada'
+              ? 'O documento clínico foi assinado digitalmente e tornou-se imutável.'
+              : 'O rascunho da sessão foi atualizado.',
         })
       } else {
-        await createEvolucao(payload, { addToTimeline: formStatus === 'Finalizada' })
+        await createEvolucao(payload, {
+          addToTimeline: formStatus === 'Finalizada',
+          assinarImediatamente: formStatus === 'Finalizada',
+        })
         toast({
-          title: 'Evolução registrada!',
-          description: 'A nova sessão foi adicionada ao prontuário.',
+          title:
+            formStatus === 'Finalizada'
+              ? 'Documento Clínico Assinado e Fechado!'
+              : 'Rascunho de Evolução Salvo',
+          description:
+            formStatus === 'Finalizada'
+              ? 'Assinatura digital aplicada com data, hora e registro oficial da Clínica SOUL.'
+              : 'A evolução foi salva como rascunho e permanece editável até a assinatura.',
         })
       }
 
@@ -252,7 +323,7 @@ export function SecaoEvolucoes({
     } catch (err: any) {
       console.error('Erro salvando evolução:', err)
       toast({
-        title: 'Erro ao salvar evolução',
+        title: 'Erro ao processar evolução',
         description: err?.message || 'Tente novamente.',
         variant: 'destructive',
       })
@@ -263,12 +334,23 @@ export function SecaoEvolucoes({
 
   const handleDeleteEvolucao = async () => {
     if (!deleteConfirmId) return
+    const alvo = evolucoes.find((e) => e.id === deleteConfirmId)
+    if (alvo?.documento_fechado || alvo?.status === 'Finalizada') {
+      toast({
+        title: 'Exclusão Bloqueada',
+        description: 'Documentos clínicos assinados e fechados não podem ser excluídos.',
+        variant: 'destructive',
+      })
+      setDeleteConfirmId(null)
+      return
+    }
+
     try {
       setDeleting(true)
       await deleteEvolucao(deleteConfirmId)
       toast({
-        title: 'Evolução excluída',
-        description: 'O registro foi removido com sucesso.',
+        title: 'Rascunho excluído',
+        description: 'O registro de rascunho foi removido com sucesso.',
       })
       setDeleteConfirmId(null)
       await carregarEvolucoes()
@@ -403,15 +485,30 @@ export function SecaoEvolucoes({
                             {evo.especialidade}
                           </span>
 
-                          <Badge
-                            className={
-                              evo.status === 'Finalizada'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px]'
-                                : 'bg-amber-50 text-amber-800 border-amber-200 text-[10px]'
-                            }
-                          >
-                            {evo.status || 'Finalizada'}
-                          </Badge>
+                          {evo.documento_fechado || evo.status === 'Finalizada' ? (
+                            <Badge className="bg-[#FAF5EE] text-[#8C6527] border-[#C9A46A]/50 text-[10px] font-bold flex items-center gap-1 shadow-2xs">
+                              <Lock className="h-3 w-3 text-[#8C6527]" />
+                              Documento Fechado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-50 text-amber-800 border-amber-200 text-[10px] font-semibold flex items-center gap-1">
+                              <Edit2 className="h-2.5 w-2.5 text-amber-600" />
+                              Rascunho Editável
+                            </Badge>
+                          )}
+
+                          {evo.tipo_evolucao === 'Corretiva' && (
+                            <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] font-semibold flex items-center gap-1">
+                              <RotateCcw className="h-2.5 w-2.5 text-purple-600" />
+                              Evolução Corretiva
+                            </Badge>
+                          )}
+
+                          {evo.numero_registro && (
+                            <span className="font-mono text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200/60">
+                              {evo.numero_registro}
+                            </span>
+                          )}
 
                           {isVinculadaEstaAvaliacao && (
                             <span className="text-[10px] font-semibold text-[#8C6527] bg-[#FAF5EE] border border-[#E9E1D2] px-2 py-0.5 rounded-full">
@@ -426,18 +523,26 @@ export function SecaoEvolucoes({
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-gray-500 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 pt-0.5">
                           <span>
                             Profissional:{' '}
-                            <strong className="text-gray-800">{evo.profissional}</strong>
+                            <strong className="text-gray-800">
+                              {evo.assinado_por_nome || evo.profissional}
+                            </strong>
                           </span>
+                          {evo.assinado_em && (
+                            <span className="text-[11px] text-emerald-700 font-medium inline-flex items-center gap-1">
+                              <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                              Assinado em {formatDataHoraPTBR(evo.assinado_em)}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       {/* Botões de Ação do Header */}
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 self-end sm:self-auto"
+                        className="flex flex-wrap items-center gap-1.5 self-end sm:self-auto"
                       >
                         {onOpenAlerta && (
                           <Button
@@ -459,27 +564,55 @@ export function SecaoEvolucoes({
                           </Button>
                         )}
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenEdit(evo)}
-                          className="h-8 px-2 text-[11px] text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg flex items-center gap-1"
-                        >
-                          <Edit2 className="h-3.5 w-3.5 text-gray-500" />
-                          <span className="hidden sm:inline">Editar</span>
-                        </Button>
+                        {/* Se estiver fechado: opção de Nova Evolução Corretiva */}
+                        {evo.documento_fechado || evo.status === 'Finalizada' ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenNovaCorretiva(evo)}
+                              className="h-8 px-2.5 text-[11px] font-semibold text-[#8C6527] border-[#C9A46A]/50 bg-[#FAF5EE] hover:bg-[#F3E7D3] rounded-lg flex items-center gap-1 shadow-2xs"
+                              title="Registrar nova evolução retificando ou complementando esta sessão"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 text-[#8C6527]" />
+                              <span>Evolução Corretiva</span>
+                            </Button>
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirmId(evo.id)}
-                          className="h-8 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg flex items-center gap-1"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Excluir</span>
-                        </Button>
+                            {/* Botão de status bloqueado explicativo */}
+                            <div
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-400 text-[11px] cursor-not-allowed select-none"
+                              title="Documento assinado e fechado — não pode ser alterado ou excluído (exigência de conformidade clínica)."
+                            >
+                              <Lock className="h-3 w-3 text-gray-400" />
+                              <span className="hidden md:inline">Imutável</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenEdit(evo)}
+                              className="h-8 px-2 text-[11px] text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+                            >
+                              <Edit2 className="h-3.5 w-3.5 text-gray-500" />
+                              <span className="hidden sm:inline">Editar</span>
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirmId(evo.id)}
+                              className="h-8 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg flex items-center gap-1"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Excluir</span>
+                            </Button>
+                          </>
+                        )}
 
                         <button
                           type="button"
@@ -606,6 +739,73 @@ export function SecaoEvolucoes({
                             <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
                               {evo.texto_livre}
                             </p>
+                          </div>
+                        )}
+
+                        {/* Bloco de Assinatura Digital e Selo de Documento Fechado (Padrão Visual SOUL Dourado/Marrom) */}
+                        {evo.documento_fechado || evo.status === 'Finalizada' ? (
+                          <div className="mt-4 pt-4 border-t-2 border-[#E9E1D2] bg-gradient-to-r from-[#FAF5EE] via-[#FDFBF7] to-[#FAF5EE] p-4 rounded-xl border border-[#E9E1D2] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="h-6 w-6 rounded-full bg-[#EFE3CF] text-[#8C6527] flex items-center justify-center shrink-0">
+                                  <ShieldCheck className="h-4 w-4 text-[#8C6527]" />
+                                </span>
+                                <div>
+                                  <span className="text-xs font-serif font-bold text-[#4A322A] block leading-tight">
+                                    Documento Clínico Assinado Digitalmente — Clínica SOUL
+                                  </span>
+                                  <span className="text-[10px] text-[#8C6527] font-semibold uppercase tracking-wider">
+                                    Documento Fechado • Imutável • Válido para Prontuário
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-[11px] text-[#73574A] pl-8 space-y-0.5">
+                                <p>
+                                  <strong>Responsável Técnico:</strong>{' '}
+                                  {evo.assinado_por_nome || evo.profissional} —{' '}
+                                  <span className="text-[#8C6527]">
+                                    {evo.assinado_por_especialidade || evo.especialidade}
+                                  </span>
+                                </p>
+                                <p>
+                                  <strong>Carimbo Temporal da Assinatura:</strong>{' '}
+                                  {formatDataHoraPTBR(evo.assinado_em || evo.data_evolucao)}
+                                </p>
+                                {evo.numero_registro && (
+                                  <p className="font-mono text-[10px] text-gray-500">
+                                    Identificador Único: <strong>{evo.numero_registro}</strong>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end sm:items-end w-full sm:w-auto text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-[#E9E1D2]">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE3CF]/80 border border-[#D4B278] text-[10px] font-bold text-[#4A322A] shadow-2xs">
+                                <Lock className="h-3 w-3 text-[#8C6527]" />
+                                <span>Autenticidade SOUL</span>
+                              </div>
+                              <span className="text-[9px] text-gray-400 mt-1 max-w-[200px] text-right">
+                                Registro eletrônico inalterável com rastro de auditoria.
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <Info className="h-4 w-4 text-amber-700 shrink-0" />
+                              <span>
+                                Esta sessão está salva como <strong>Rascunho</strong> e ainda não
+                                possui assinatura digital válida.
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenEdit(evo)}
+                              className="h-7 px-3 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shrink-0"
+                            >
+                              Assinar Agora
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -853,31 +1053,69 @@ export function SecaoEvolucoes({
               </div>
             )}
 
-            <DialogFooter className="pt-3 border-t border-gray-100 gap-2 sm:gap-0">
+            {/* Aviso explicativo sobre documento fechado */}
+            <div className="p-3.5 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] text-xs text-[#73574A] space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-[#4A322A]">
+                <ShieldCheck className="h-4 w-4 text-[#8C6527]" />
+                <span>Política de Documento Clínico Fechado (Clínica SOUL)</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Ao optar por <strong>"Salvar e Assinar"</strong>, a evolução recebe imediatamente o
+                selo de assinatura digital com o nome do profissional, especialidade, carimbo
+                temporal oficial do servidor e código de registro único. O documento torna-se
+                imutável no banco de dados. Se precisar de ajustes futuros, utilize a emissão de uma{' '}
+                <em>Nova Evolução Corretiva</em>.
+              </p>
+            </div>
+
+            <DialogFooter className="pt-3 border-t border-gray-100 flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between items-center">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setModalOpen(false)}
-                className="rounded-xl h-10 text-xs border-gray-200"
+                className="rounded-xl h-10 text-xs text-gray-500 hover:text-gray-800"
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-5 text-xs shadow-md border border-[#DFBF8E]/40"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                    {editingId ? 'Salvar Alterações' : 'Concluir Evolução'}
-                  </>
-                )}
-              </Button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                {/* Opção 1: Salvar apenas como Rascunho */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={(e) => {
+                    setFormStatus('Rascunho')
+                    // Força o submit
+                    setTimeout(() => {
+                      const form = (e.target as HTMLElement).closest('form')
+                      if (form) form.requestSubmit()
+                    }, 50)
+                  }}
+                  className="rounded-xl h-10 text-xs border-amber-300 text-amber-800 bg-amber-50/60 hover:bg-amber-100/70"
+                >
+                  Salvar como Rascunho
+                </Button>
+
+                {/* Opção 2: Padrão Principal "Salvar e Assinar" */}
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  onClick={() => setFormStatus('Finalizada')}
+                  className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-5 text-xs shadow-md border border-[#DFBF8E]/40 flex items-center gap-1.5"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4 text-[#33221C]" />
+                      <span>Salvar e Assinar (Documento Fechado)</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>

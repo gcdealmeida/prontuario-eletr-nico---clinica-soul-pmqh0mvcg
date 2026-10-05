@@ -9,6 +9,7 @@ export type TipoTimeline = 'Consulta' | 'Avaliação' | 'Nota'
 export type StatusAvaliacao = 'Rascunho' | 'Concluída'
 
 export type StatusEvolucao = 'Finalizada' | 'Rascunho'
+export type TipoEvolucao = 'Rotina' | 'Corretiva'
 
 export interface EvolucaoRecord {
   id: string
@@ -27,6 +28,17 @@ export interface EvolucaoRecord {
   // Texto livre de evolução rápida
   texto_livre?: string
   status: StatusEvolucao
+
+  // Documento Fechado e Assinatura Digital SOUL
+  numero_registro?: string
+  assinado_em?: string
+  assinado_por_nome?: string
+  assinado_por_especialidade?: string
+  assinado_por_user_id?: string
+  documento_fechado?: boolean
+  tipo_evolucao?: TipoEvolucao
+  evolucao_referencia_id?: string
+
   created: string
   updated: string
   expand?: {

@@ -842,6 +842,43 @@ export default function GuiaUso() {
                 </div>
                 <div className="space-y-1">
                   <h5 className="font-bold text-sm text-[#33221C]">
+                    Salvar e Assinar: Conceito de Documento Clínico Fechado e Imutável
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Em conformidade com as normas do Conselho Federal de Fisioterapia e Terapia
+                    Ocupacional (COFFITO), Conselho Federal de Medicina (CFM), CREF e CFN:
+                    <br />• <strong>Fluxo Padrão:</strong> Ao clicar no botão dourado{' '}
+                    <strong>"Salvar e Assinar (Documento Fechado)"</strong>, a evolução recebe
+                    imediatamente o selo de assinatura digital da Clínica SOUL com nome completo do
+                    profissional responsável, especialidade, número de registro exclusivo (ex:{' '}
+                    <code>EVO-2026-XXXXXX</code>) e{' '}
+                    <strong>carimbo temporal exato gerado no servidor</strong> (não adulterável no
+                    cliente).
+                    <br />• <strong>Imutabilidade Absoluta:</strong> A partir do momento em que é
+                    assinada, a evolução passa a ser um <em>documento fechado</em>. Ela{' '}
+                    <strong>NÃO pode ser editada nem excluída</strong>, nem pela interface nem
+                    diretamente na API. Os botões de editar e excluir são bloqueados.
+                    <br />• <strong>Rascunhos Editáveis:</strong> Se você ainda não concluiu a
+                    sessão e deseja continuar depois, utilize o botão{' '}
+                    <em>"Salvar como Rascunho"</em>. Evoluções em rascunho permanecem editáveis e
+                    podem ser removidas até serem assinadas.
+                    <br />• <strong>Como fazer correções?</strong> Conforme as boas práticas legais
+                    de prontuário eletrônico, documentos assinados nunca são sobrescritos. Para
+                    retificar ou acrescentar informações a uma sessão já fechada, clique no botão{' '}
+                    <strong>"Evolução Corretiva"</strong> no card da evolução assinada: o sistema
+                    abre uma nova evolução pré-preenchida com referência formal ao registro
+                    anterior, preservando o histórico e a rastreabilidade completa.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 4 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  4
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
                     Botão ALERTA: Lembrete Automático na Agenda
                   </h5>
                   <p className="text-xs text-gray-600 leading-relaxed">
@@ -861,21 +898,23 @@ export default function GuiaUso() {
                 </div>
               </div>
 
-              {/* Passo 4 */}
+              {/* Passo 5 */}
               <div className="flex gap-4">
                 <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
-                  4
+                  5
                 </div>
                 <div className="space-y-1">
                   <h5 className="font-bold text-sm text-[#33221C]">
-                    Sincronização com o Perfil do Paciente e Impressão
+                    Sincronização com o Perfil do Paciente e Impressão / PDF
                   </h5>
                   <p className="text-xs text-gray-600 leading-relaxed">
                     • <strong>Perfil do Paciente:</strong> Todas as evoluções aparecem organizadas
-                    na aba "Evoluções" do paciente e na Timeline com as cores de cada especialidade.
+                    na aba "Evoluções" do paciente e na Timeline com as cores de cada especialidade,
+                    com o selo de documento fechado e assinatura digital.
                     <br />• <strong>Impressão / PDF:</strong> O prontuário oficial preserva o
-                    cabeçalho oficial SOUL com o logotipo em alta definição, layout A4 e linha de
-                    assinatura intactos.
+                    cabeçalho oficial SOUL com o logotipo em alta definição, layout A4, linha de
+                    assinatura e anexo completo de todas as evoluções clínicas assinadas com seus
+                    respectivos identificadores e carimbos de auditoria.
                   </p>
                 </div>
               </div>
@@ -923,11 +962,31 @@ export default function GuiaUso() {
                   Posso editar uma avaliação depois de marcá-la como "Concluída"?
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-gray-600 leading-relaxed">
-                  <strong>Sim.</strong> Ao abrir o prontuário concluído, clique no botão{' '}
-                  <strong>"Editar"</strong> no topo da página. O formulário será reaberto para que
-                  você faça ajustes em condutas, adicione observações ou anexe novos exames. Ao
-                  terminar, basta clicar em "Concluir Avaliação" novamente para salvar as
-                  alterações.
+                  <strong>Sim para a Avaliação Base, mas NÃO para as Evoluções de Sessão.</strong>{' '}
+                  Ao abrir o prontuário concluído, clique no botão <strong>"Editar"</strong> no topo
+                  da página para ajustar condutas da avaliação geral. Já as{' '}
+                  <strong>Evoluções de Sessão</strong> (aba "Evoluções do Paciente") que foram
+                  salvas e assinadas tornam-se <em>documentos fechados e imutáveis</em> com
+                  assinatura digital permanente. Para qualquer correção em uma sessão assinada, o
+                  fluxo oficial é clicar no botão <strong>"Evolução Corretiva"</strong>, criando um
+                  novo registro formal com referência ao anterior.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem
+                value="faq-2-evolucoes"
+                className="border border-[#E9E1D2] rounded-2xl px-4 py-1"
+              >
+                <AccordionTrigger className="text-sm font-bold text-[#4A322A] hover:no-underline hover:text-[#8C6527]">
+                  Por que a evolução assinada não pode ser editada nem excluída?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-gray-600 leading-relaxed">
+                  Trata-se de uma exigência legal e regulatória para Prontuários Eletrônicos de
+                  Saúde (COFFITO, CFM e LGPD). Após a assinatura digital, o documento passa a ter
+                  validade jurídica como documento fechado com carimbo de tempo gerado no servidor.
+                  Permitir alteração posterior violaria a autenticidade e a auditoria do prontuário.
+                  O sistema oferece a ferramenta <strong>"Evolução Corretiva"</strong> para que você
+                  retifique ou complemente qualquer dado mantendo o rastro documental 100% íntegro.
                 </AccordionContent>
               </AccordionItem>
 

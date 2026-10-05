@@ -17,6 +17,7 @@ import {
   Activity,
   CheckCircle2,
   Info,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -488,17 +489,38 @@ export default function PacienteDetalhe() {
                       className="p-4 rounded-2xl border border-gray-100 hover:border-[#C9A46A]/50 bg-gray-50/40 hover:bg-white transition-all shadow-2xs"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${espStyle.badge}`}
                           >
                             {evo.especialidade}
                           </span>
+
+                          {evo.documento_fechado || evo.status === 'Finalizada' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAF5EE] text-[#8C6527] border border-[#C9A46A]/40">
+                              <ShieldCheck className="h-3 w-3 text-[#8C6527]" />
+                              Assinado / Fechado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                              Rascunho
+                            </span>
+                          )}
+
+                          {evo.numero_registro && (
+                            <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {evo.numero_registro}
+                            </span>
+                          )}
+
                           <span className="text-xs font-semibold text-gray-700">
-                            {formatDataHoraPTBR(evo.data_evolucao || evo.created)}
+                            {formatDataHoraPTBR(
+                              evo.assinado_em || evo.data_evolucao || evo.created,
+                            )}
                           </span>
                           <span className="text-xs text-gray-400">
-                            • Profissional: <strong>{evo.profissional}</strong>
+                            • Profissional:{' '}
+                            <strong>{evo.assinado_por_nome || evo.profissional}</strong>
                           </span>
                         </div>
 
@@ -515,7 +537,7 @@ export default function PacienteDetalhe() {
                             }
                             className="text-xs text-[#8C6527] hover:text-[#4A322A] h-7 px-2"
                           >
-                            Abrir Prontuário →
+                            Abrir no Prontuário →
                           </Button>
                         )}
                       </div>
@@ -537,6 +559,21 @@ export default function PacienteDetalhe() {
                       {evo.texto_livre && !evo.conduta_procedimentos && (
                         <div className="text-xs text-gray-700 whitespace-pre-wrap">
                           {evo.texto_livre}
+                        </div>
+                      )}
+
+                      {/* Selo compacto de documento fechado se assinado */}
+                      {evo.documento_fechado && (
+                        <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-[#73574A]">
+                          <span className="flex items-center gap-1 font-medium">
+                            <ShieldCheck className="h-3 w-3 text-[#8C6527]" />
+                            Assinado digitalmente por {evo.assinado_por_nome ||
+                              evo.profissional} (
+                            {evo.assinado_por_especialidade || evo.especialidade})
+                          </span>
+                          <span className="text-gray-400 font-mono">
+                            {evo.assinado_em ? formatDataHoraPTBR(evo.assinado_em) : ''}
+                          </span>
                         </div>
                       )}
                     </div>

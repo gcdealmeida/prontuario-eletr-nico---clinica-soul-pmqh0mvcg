@@ -19,13 +19,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getAvaliacaoById, getCollectionNameByEspecialidade } from '@/services/avaliacoes'
 import { getEvolucoesByPaciente } from '@/services/evolucoes'
-import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
+import { ESPECIALIDADE_COLORS, formatDataPTBR, formatDataHoraPTBR } from '@/lib/constants'
 import type { Especialidade, AvaliacaoFisioterapiaRecord, EvolucaoRecord } from '@/types/database'
 import { LogoSOUL } from '@/components/LogoSOUL'
 import { VisualizacaoFisioterapia } from '@/components/fisioterapia/VisualizacaoFisioterapia'
 import { VisualizacaoPersonal } from '@/components/personal/VisualizacaoPersonal'
 import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
 import { ModalAlertaReavaliacao } from '@/components/ModalAlertaReavaliacao'
+import { ShieldCheck, Lock } from 'lucide-react'
 
 export default function AvaliacaoDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -36,6 +37,7 @@ export default function AvaliacaoDetalhe() {
 
   const [avaliacao, setAvaliacao] = useState<any>(null)
   const [evolucoesCount, setEvolucoesCount] = useState(0)
+  const [listaEvolucoesImpressao, setListaEvolucoesImpressao] = useState<EvolucaoRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [abaAtiva, setAbaAtiva] = useState<'avaliacao' | 'evolucoes'>(tabParam)
 
@@ -58,7 +60,10 @@ export default function AvaliacaoDetalhe() {
         setAvaliacao(res)
         if (res?.paciente_id) {
           getEvolucoesByPaciente(res.paciente_id)
-            .then((evos) => setEvolucoesCount(evos.length))
+            .then((evos) => {
+              setEvolucoesCount(evos.length)
+              setListaEvolucoesImpressao(evos)
+            })
             .catch(() => {})
         }
       })
@@ -497,6 +502,109 @@ export default function AvaliacaoDetalhe() {
             <span className="text-[10px] text-gray-400">Assinatura Digital SOUL Clínica</span>
           </div>
         </div>
+
+        {/* ANEXO DE EVOLUÇÕES CLÍNICAS ASSINADAS NA IMPRESSÃO / PDF */}
+        {listaEvolucoesImpressao.length > 0 && (
+          <div className="hidden print:block pt-10 mt-10 border-t-2 border-[#E9E1D2] space-y-6 page-break-before">
+            <div className="pb-3 border-b border-gray-200">
+              <h3 className="text-base font-serif font-bold text-[#4A322A]">
+                Histórico de Evoluções Clínicas do Prontuário (Sessões Registradas)
+              </h3>
+              <p className="text-[11px] text-gray-500">
+                Documentos clínicos fechados e assinados digitalmente pelos profissionais da Clínica
+                SOUL.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {listaEvolucoesImpressao.map((evo) => (
+                <div
+                  key={evo.id}
+                  className="p-4 rounded-xl border border-gray-200 bg-white space-y-2 text-xs"
+                >
+                  <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">{evo.especialidade}</span>
+                      {evo.numero_registro && (
+                        <span className="font-mono text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {evo.numero_registro}
+                        </span>
+                      )}
+                      {evo.tipo_evolucao === 'Corretiva' && (
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+                          [Evolução Corretiva]
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="text-gray-500 text-[11px]">
+                      Sessão realizada em:{' '}
+                      <strong>{formatDataHoraPTBR(evo.data_evolucao || evo.created)}</strong>
+                    </span>
+                  </div>
+
+                  {evo.subjetivo && (
+                    <div>
+                      <strong className="text-gray-700">Subjetivo (S): </strong>
+                      <span className="text-gray-800">{evo.subjetivo}</span>
+                    </div>
+                  )}
+
+                  {evo.objetivo && (
+                    <div>
+                      <strong className="text-gray-700">Objetivo (O): </strong>
+                      <span className="text-gray-800">{evo.objetivo}</span>
+                    </div>
+                  )}
+
+                  {evo.avaliacao_clinica && (
+                    <div>
+                      <strong className="text-gray-700">Avaliação Clínica (A): </strong>
+                      <span className="text-gray-800">{evo.avaliacao_clinica}</span>
+                    </div>
+                  )}
+
+                  {evo.plano && (
+                    <div>
+                      <strong className="text-gray-700">Plano Terapêutico (P): </strong>
+                      <span className="text-gray-800">{evo.plano}</span>
+                    </div>
+                  )}
+
+                  {evo.conduta_procedimentos && (
+                    <div className="pt-1">
+                      <strong className="text-[#8C6527]">Conduta Realizada: </strong>
+                      <span className="text-gray-900 font-medium">{evo.conduta_procedimentos}</span>
+                    </div>
+                  )}
+
+                  {evo.texto_livre && !evo.conduta_procedimentos && (
+                    <div>
+                      <strong className="text-gray-700">Evolução: </strong>
+                      <span className="text-gray-800">{evo.texto_livre}</span>
+                    </div>
+                  )}
+
+                  {/* Bloco de assinatura da evolução na impressão */}
+                  <div className="mt-3 pt-2 border-t border-dashed border-[#E9E1D2] flex items-center justify-between text-[10px] text-[#73574A] bg-[#FAF5EE] p-2 rounded">
+                    <div>
+                      <strong>Documento Assinado Digitalmente:</strong>{' '}
+                      {evo.assinado_por_nome || evo.profissional} —{' '}
+                      {evo.assinado_por_especialidade || evo.especialidade}
+                    </div>
+                    <div>
+                      {evo.assinado_em ? (
+                        <span>Assinado em: {formatDataHoraPTBR(evo.assinado_em)}</span>
+                      ) : (
+                        <span>Status: {evo.status}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL ALERTA DE REAVALIAÇÃO */}
