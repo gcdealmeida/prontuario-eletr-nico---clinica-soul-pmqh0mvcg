@@ -105,6 +105,46 @@ export function getCalendarFeedUrl(token: string): string {
   return `${baseUrl}/calendar/${token}/agenda.ics`
 }
 
+/**
+ * Serviços de Importação Google Calendar (Endereço Secreto iCal)
+ */
+import type { GoogleCalendarSyncStatus, GoogleCalendarSyncResult } from '@/types/database'
+
+export async function getGoogleCalendarSyncStatus(): Promise<GoogleCalendarSyncStatus> {
+  return await pb.send<GoogleCalendarSyncStatus>('/backend/v1/google-calendar/status', {
+    method: 'GET',
+  })
+}
+
+export async function saveAndSyncGoogleCalendar(
+  icsUrl: string,
+  calendarName?: string,
+): Promise<GoogleCalendarSyncResult> {
+  return await pb.send<GoogleCalendarSyncResult>('/backend/v1/google-calendar/save-and-sync', {
+    method: 'POST',
+    body: {
+      ics_url: icsUrl,
+      calendar_name: calendarName || '',
+      auto_sync: true,
+    },
+  })
+}
+
+export async function syncNowGoogleCalendar(): Promise<GoogleCalendarSyncResult> {
+  return await pb.send<GoogleCalendarSyncResult>('/backend/v1/google-calendar/sync-now', {
+    method: 'POST',
+  })
+}
+
+export async function disconnectGoogleCalendar(): Promise<{ success: boolean; message: string }> {
+  return await pb.send<{ success: boolean; message: string }>(
+    '/backend/v1/google-calendar/disconnect',
+    {
+      method: 'POST',
+    },
+  )
+}
+
 function generateRandomToken(length = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''

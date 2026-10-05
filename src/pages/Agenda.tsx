@@ -177,7 +177,7 @@ export default function Agenda() {
             className="h-10 px-3.5 rounded-xl border-[#E3C89A] bg-[#FAF5EE] text-[#4A322A] hover:bg-[#F3EAD9] hover:text-[#33221C] font-semibold text-xs flex items-center gap-2 shadow-2xs transition-all"
           >
             <CalendarIcon className="h-3.5 w-3.5 text-[#8C6527]" />
-            <span>Sincronizar com Google Agenda (via .ics)</span>
+            <span>Sincronizar com Google Agenda</span>
           </Button>
 
           <Button
@@ -283,29 +283,38 @@ export default function Agenda() {
           ) : (
             <div className="space-y-3">
               {consultasDoDia.map((c) => {
+                const isGoogle = c.origem === 'google'
                 const espStyle =
                   ESPECIALIDADE_COLORS[c.especialidade] || ESPECIALIDADE_COLORS.Fisioterapia
-                const pacNome = c.expand?.paciente_id?.nome || 'Paciente'
-                const isAlerta = (c.notas || '').toUpperCase().includes('[ALERTA')
+                const pacNome = isGoogle
+                  ? c.titulo_externo || 'Compromisso Google Agenda'
+                  : c.expand?.paciente_id?.nome || 'Paciente'
+                const isAlerta = !isGoogle && (c.notas || '').toUpperCase().includes('[ALERTA')
 
                 return (
                   <div
                     key={c.id}
                     className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                      isAlerta
-                        ? 'border-amber-300 bg-amber-50/50 hover:bg-amber-50/80 shadow-2xs'
-                        : 'border-gray-100 hover:border-gray-200 hover:shadow-sm bg-white'
+                      isGoogle
+                        ? 'border-[#E3C89A] bg-[#FAF5EE]/70 hover:bg-[#FAF5EE] shadow-xs'
+                        : isAlerta
+                          ? 'border-amber-300 bg-amber-50/50 hover:bg-amber-50/80 shadow-2xs'
+                          : 'border-gray-100 hover:border-gray-200 hover:shadow-sm bg-white'
                     }`}
                   >
                     <div className="flex items-start sm:items-center gap-4">
                       <div
                         className={`flex flex-col items-center justify-center px-3.5 py-2 rounded-xl border font-bold text-sm min-w-[75px] ${
-                          isAlerta
-                            ? 'bg-amber-100/70 border-amber-300 text-amber-900'
-                            : 'bg-gray-50 border-gray-100 text-gray-900'
+                          isGoogle
+                            ? 'bg-[#FAF4EA] border-[#E3C89A] text-[#8C6527]'
+                            : isAlerta
+                              ? 'bg-amber-100/70 border-amber-300 text-amber-900'
+                              : 'bg-gray-50 border-gray-100 text-gray-900'
                         }`}
                       >
-                        {isAlerta ? (
+                        {isGoogle ? (
+                          <CalendarIcon className="h-3.5 w-3.5 text-[#8C6527] mb-1" />
+                        ) : isAlerta ? (
                           <Bell className="h-3.5 w-3.5 text-amber-600 mb-1 animate-pulse" />
                         ) : (
                           <Clock className="h-3.5 w-3.5 text-gray-400 mb-1" />
@@ -314,18 +323,31 @@ export default function Agenda() {
                       </div>
 
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4
-                            onClick={() => navigate(`/pacientes/${c.paciente_id}`)}
-                            className="font-bold text-base text-gray-900 hover:text-[#8C6527] cursor-pointer transition-colors"
-                          >
-                            {pacNome}
-                          </h4>
-                          <span
-                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${espStyle.badge}`}
-                          >
-                            {c.especialidade}
-                          </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {isGoogle ? (
+                            <h4 className="font-bold text-base text-[#4A322A]">{pacNome}</h4>
+                          ) : (
+                            <h4
+                              onClick={() => navigate(`/pacientes/${c.paciente_id}`)}
+                              className="font-bold text-base text-gray-900 hover:text-[#8C6527] cursor-pointer transition-colors"
+                            >
+                              {pacNome}
+                            </h4>
+                          )}
+
+                          {isGoogle ? (
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#FAF4EA] to-[#F3EAD9] text-[#8C6527] border border-[#E3C89A] flex items-center gap-1 shadow-2xs">
+                              <CalendarIcon className="h-3 w-3 text-[#8C6527]" />
+                              Google Agenda
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${espStyle.badge}`}
+                            >
+                              {c.especialidade}
+                            </span>
+                          )}
+
                           {isAlerta && (
                             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 border border-amber-300 flex items-center gap-1">
                               <Bell className="h-3 w-3" />
@@ -338,7 +360,13 @@ export default function Agenda() {
                           <span>Duração: {c.duracao_min || 45} min</span>
                           {c.notas && (
                             <span
-                              className={isAlerta ? 'font-medium text-amber-950' : 'text-gray-500'}
+                              className={
+                                isGoogle
+                                  ? 'text-[#73574A] italic line-clamp-1 max-w-md'
+                                  : isAlerta
+                                    ? 'font-medium text-amber-950'
+                                    : 'text-gray-500'
+                              }
                             >
                               • {c.notas}
                             </span>
@@ -348,36 +376,44 @@ export default function Agenda() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
-                      {/* Status select rápido */}
-                      <Select
-                        value={c.status}
-                        onValueChange={(val) => handleUpdateStatus(c.id, val as StatusConsulta)}
-                      >
-                        <SelectTrigger className="h-8 w-32 rounded-lg text-xs font-semibold">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Agendada">Agendada</SelectItem>
-                          <SelectItem value="Confirmada">Confirmada</SelectItem>
-                          <SelectItem value="Concluída">Concluída</SelectItem>
-                          <SelectItem value="Cancelada">Cancelada</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {/* Iniciar Avaliação */}
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          navigate(
-                            `/prontuarios/novo?paciente=${c.paciente_id}&especialidade=${encodeURIComponent(
-                              c.especialidade,
-                            )}`,
-                          )
-                        }
-                        className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] text-xs font-semibold flex items-center gap-1.5 shadow-xs border border-[#DFBF8E]/40"
-                      >
-                        <Play className="h-3.5 w-3.5 fill-current text-[#33221C]" />
-                        Atender
-                      </Button>{' '}
+                      {isGoogle ? (
+                        <span className="text-[11px] font-medium text-[#8C6527] bg-white px-3 py-1.5 rounded-xl border border-[#E3C89A]/60 shadow-2xs">
+                          Evento Externo (Somente Leitura)
+                        </span>
+                      ) : (
+                        <>
+                          {/* Status select rápido */}
+                          <Select
+                            value={c.status}
+                            onValueChange={(val) => handleUpdateStatus(c.id, val as StatusConsulta)}
+                          >
+                            <SelectTrigger className="h-8 w-32 rounded-lg text-xs font-semibold">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Agendada">Agendada</SelectItem>
+                              <SelectItem value="Confirmada">Confirmada</SelectItem>
+                              <SelectItem value="Concluída">Concluída</SelectItem>
+                              <SelectItem value="Cancelada">Cancelada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {/* Iniciar Avaliação */}
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              navigate(
+                                `/prontuarios/novo?paciente=${c.paciente_id}&especialidade=${encodeURIComponent(
+                                  c.especialidade,
+                                )}`,
+                              )
+                            }
+                            className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] text-xs font-semibold flex items-center gap-1.5 shadow-xs border border-[#DFBF8E]/40"
+                          >
+                            <Play className="h-3.5 w-3.5 fill-current text-[#33221C]" />
+                            Atender
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )
@@ -430,30 +466,49 @@ export default function Agenda() {
                       </span>
                     ) : (
                       dayConsultas.map((c) => {
+                        const isGoogle = c.origem === 'google'
                         const espStyle =
                           ESPECIALIDADE_COLORS[c.especialidade] || ESPECIALIDADE_COLORS.Fisioterapia
-                        const pacNome = c.expand?.paciente_id?.nome || 'Paciente'
-                        const isAlerta = (c.notas || '').toUpperCase().includes('[ALERTA')
+                        const pacNome = isGoogle
+                          ? c.titulo_externo || 'Google Agenda'
+                          : c.expand?.paciente_id?.nome || 'Paciente'
+                        const isAlerta =
+                          !isGoogle && (c.notas || '').toUpperCase().includes('[ALERTA')
 
                         return (
                           <div
                             key={c.id}
                             className={`p-2 rounded-xl text-left border shadow-2xs transition-all hover:scale-[1.02] ${
-                              isAlerta
-                                ? 'bg-amber-100/90 text-amber-950 border-amber-300 ring-1 ring-amber-400/40'
-                                : espStyle.badge
+                              isGoogle
+                                ? 'bg-[#FAF5EE] text-[#4A322A] border-[#E3C89A] ring-1 ring-[#C9A46A]/30'
+                                : isAlerta
+                                  ? 'bg-amber-100/90 text-amber-950 border-amber-300 ring-1 ring-amber-400/40'
+                                  : espStyle.badge
                             }`}
                           >
                             <div className="font-bold text-[11px] truncate flex items-center gap-1">
-                              {isAlerta && <Bell className="h-2.5 w-2.5 text-amber-700 shrink-0" />}
-                              <span>{pacNome}</span>
+                              {isGoogle ? (
+                                <CalendarIcon className="h-2.5 w-2.5 text-[#8C6527] shrink-0" />
+                              ) : isAlerta ? (
+                                <Bell className="h-2.5 w-2.5 text-amber-700 shrink-0" />
+                              ) : null}
+                              <span className="truncate">{pacNome}</span>
                             </div>
                             <div className="text-[10px] opacity-80 flex items-center justify-between mt-0.5">
                               <span>{formatHoraPTBR(c.data_hora)}</span>
                               <span className="font-semibold">
-                                {isAlerta ? 'ALERTA' : c.especialidade.slice(0, 3)}
+                                {isGoogle
+                                  ? 'GOOGLE'
+                                  : isAlerta
+                                    ? 'ALERTA'
+                                    : c.especialidade.slice(0, 3)}
                               </span>
                             </div>
+                            {isGoogle && c.notas && (
+                              <div className="text-[9px] text-[#73574A] truncate mt-0.5 font-normal">
+                                {c.notas}
+                              </div>
+                            )}
                             {isAlerta && c.notas && (
                               <div className="text-[9px] text-amber-800 truncate mt-0.5 font-medium">
                                 {c.notas.replace(/\[ALERTA[^\]]*\]/i, '').trim()}
@@ -478,8 +533,12 @@ export default function Agenda() {
         onSuccess={() => fetchConsultasData()}
       />
 
-      {/* Modal Sincronização Google Agenda (Feed .ics) */}
-      <ModalSincronizacaoIcs open={sincronizacaoOpen} onOpenChange={setSincronizacaoOpen} />
+      {/* Modal Sincronização Google Agenda (Feed .ics e Importação Secreta) */}
+      <ModalSincronizacaoIcs
+        open={sincronizacaoOpen}
+        onOpenChange={setSincronizacaoOpen}
+        onSyncComplete={() => fetchConsultasData()}
+      />
     </div>
   )
 }

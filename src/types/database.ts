@@ -77,6 +77,45 @@ export interface PacienteRecord {
   updated: string
 }
 
+export type OrigemConsulta = 'app' | 'google'
+
+export interface GoogleCalendarSyncRecord {
+  id: string
+  user_id: string
+  ics_url: string
+  calendar_name?: string
+  last_sync?: string
+  last_status?: 'pending' | 'success' | 'error' | string
+  last_error?: string
+  events_count?: number
+  auto_sync?: boolean
+  created: string
+  updated: string
+}
+
+export interface GoogleCalendarSyncStatus {
+  configured: boolean
+  masked_url?: string
+  calendar_name?: string
+  last_sync?: string
+  last_status?: string
+  last_error?: string
+  events_count?: number
+  auto_sync?: boolean
+}
+
+export interface GoogleCalendarSyncResult {
+  success: boolean
+  message: string
+  calendar_name?: string
+  total_in_feed?: number
+  imported?: number
+  updated?: number
+  removed?: number
+  last_sync?: string
+  error?: string
+}
+
 export interface ConsultaRecord {
   id: string
   paciente_id: string
@@ -85,6 +124,11 @@ export interface ConsultaRecord {
   duracao_min?: number
   status: StatusConsulta
   notas?: string
+  origem?: OrigemConsulta | string
+  google_event_uid?: string
+  google_sync_id?: string
+  titulo_externo?: string
+  user_id?: string
   created: string
   updated: string
   expand?: {

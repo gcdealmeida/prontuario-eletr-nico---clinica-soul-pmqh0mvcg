@@ -898,35 +898,44 @@ export default function GuiaUso() {
                 </div>
               </div>
 
-              {/* Passo 5: Sincronização Google Agenda (.ics) */}
+              {/* Passo 5: Sincronização Google Agenda Bidirecional (Entrada e Saída) */}
               <div className="flex gap-4">
                 <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
                   5
                 </div>
                 <div className="space-y-1">
                   <h5 className="font-bold text-sm text-[#33221C]">
-                    Sincronização com Google Agenda (Feed .ics Automático)
+                    Sincronização com Google Agenda (Importação Secreta e Feed de Saída)
                   </h5>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Você pode sincronizar todas as consultas da clínica e os alertas de reavaliação
-                    no seu Google Agenda (ou Apple Calendar / Outlook) de forma simples e segura:
-                    <br />• <strong>Como ativar:</strong> Na tela da <strong>Agenda</strong>, clique
-                    no botão <strong>"Sincronizar com Google Agenda (via .ics)"</strong> e copie seu
-                    link de feed pessoal.
-                    <br />• <strong>Configurar no Google Agenda (apenas 1 vez):</strong> Acesse{' '}
-                    <code>calendar.google.com</code> pelo computador → na barra lateral esquerda, em{' '}
-                    <em>"Outros calendários"</em>, clique em <strong>+</strong> → selecione{' '}
-                    <strong>"Do URL"</strong> → cole o link copiado e confirme em{' '}
-                    <em>"Adicionar calendário"</em>.
-                    <br />• <strong>Somente Leitura:</strong> A sincronização é unidirecional (as
-                    consultas e alertas da clínica são lidos pelo Google Agenda; edições feitas no
-                    Google não alteram o prontuário no sistema SOUL).
-                    <br />• <strong>Atualização automática:</strong> O Google Agenda atualiza o feed
-                    periodicamente em segundo plano (o tempo de sincronização depende do ciclo do
-                    Google, podendo levar de algumas horas até 24h).
-                    <br />• <strong>Segurança e Regeneração:</strong> Caso precise cancelar o acesso
-                    de algum dispositivo antigo, clique em <em>"Regenerar link"</em> no modal da
-                    Agenda para invalidar o token anterior e criar um novo endereço.
+                    A Agenda do Sistema SOUL oferece duas formas complementares de integração com o
+                    Google Calendar, sem exigir senhas ou OAuth:
+                    <br />• <strong>
+                      A. Importar Google para o SOUL (Entrada Automática):
+                    </strong> Na
+                    tela <strong>Agenda</strong>, clique em{' '}
+                    <strong>"Sincronizar com Google Agenda"</strong> → aba{' '}
+                    <em>"Importar Google para SOUL"</em>. Cole o seu{' '}
+                    <em>Endereço secreto em formato iCal</em> do Google Agenda. O sistema baixa seus
+                    compromissos externos imediatamente e os sincroniza automaticamente a cada 15
+                    minutos em segundo plano (via rotina cron do servidor). Eles aparecem destacados
+                    com o selo dourado <strong>Google</strong> em modo <em>somente leitura</em>,
+                    permitindo que você visualize todos os seus compromissos pessoais e
+                    profissionais em um só lugar sem alterar as consultas da clínica.
+                    <br />• <strong>Como obter o Endereço Secreto no Google Calendar:</strong>{' '}
+                    Acesse <code>calendar.google.com</code> pelo computador → Configurações (ícone
+                    de engrenagem) → selecione seu calendário principal na barra lateral → role até{' '}
+                    <strong>"Integrar calendário"</strong> → copie o{' '}
+                    <strong>"Endereço secreto em formato iCal"</strong> (não o público).
+                    <br />• <strong>B. Exportar SOUL para seu Celular (Saída):</strong> Na aba{' '}
+                    <em>"Exportar SOUL para Celular"</em>, copie o seu link de feed .ics pessoal
+                    gerado pelo servidor SOUL e adicione-o no Google Agenda em{' '}
+                    <em>"Outros calendários → Do URL"</em> para acompanhar consultas e alertas de
+                    reavaliação no celular.
+                    <br />• <strong>Diferença prática:</strong> A importação traz seus compromissos
+                    do Google Agenda para dentro da tela de Agenda do SOUL a cada 15 min; a
+                    exportação leva as consultas criadas na SOUL para o app do Google Agenda no seu
+                    celular.
                   </p>
                 </div>
               </div>
@@ -1091,17 +1100,30 @@ export default function GuiaUso() {
                 className="border border-[#E9E1D2] rounded-2xl px-4 py-1"
               >
                 <AccordionTrigger className="text-sm font-bold text-[#4A322A] hover:no-underline hover:text-[#8C6527]">
-                  Como funciona a exportação .ics para o Google Agenda?
+                  Como funciona a sincronização entre o Google Agenda e o Sistema SOUL?
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-gray-600 leading-relaxed">
-                  O sistema SOUL gera um{' '}
-                  <strong>feed de calendário em formato padrão .ics (iCalendar)</strong> com
-                  autenticação por token pessoal exclusivo. Você adiciona esse endereço uma única
-                  vez no Google Agenda (opção <em>"Outros calendários → Do URL"</em>). A partir daí,
-                  suas consultas e lembretes de alerta de reavaliação passam a ser visíveis no
-                  Google Agenda do seu celular e computador. Por ser um feed de leitura gerado pelo
-                  servidor, ele é 100% seguro e não permite que alterações no Google Agenda
-                  sobrescrevam consultas oficiais da clínica.
+                  Você conta com duas funções distintas e independentes no modal da Agenda:
+                  <br />
+                  <strong>1. Como lançar minha Google Agenda automaticamente aqui dentro?</strong>
+                  <br />
+                  Basta obter o seu <em>"Endereço secreto em formato iCal"</em> no Google Calendar
+                  (Configurações → Integrar calendário) e colar na aba{' '}
+                  <strong>"Importar Google para SOUL"</strong>. O servidor do app fará a importação
+                  imediata de todos os eventos e continuará buscando alterações a cada 15 minutos
+                  automaticamente. Na grade de horários, esses eventos ganham identificação visual
+                  própria (badge Google e cor dourada suave) e não interferem no prontuário nem nos
+                  pacientes clínicos.
+                  <br />
+                  <br />
+                  <strong>
+                    2. Como ver os pacientes da SOUL no meu aplicativo de calendário do celular?
+                  </strong>
+                  <br />
+                  Basta copiar o <em>Link Pessoal de Feed de Saída (.ics)</em> na aba{' '}
+                  <strong>"Exportar SOUL para Celular"</strong> e colá-lo no Google Agenda (opção{' '}
+                  <em>"Outros calendários → Do URL"</em>). O Google Agenda cuidará de exibir suas
+                  consultas e alertas de reavaliação da clínica diretamente no seu smartphone.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

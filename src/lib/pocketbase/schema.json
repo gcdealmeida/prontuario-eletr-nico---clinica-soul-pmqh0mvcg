@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T19:24:46.353Z",
+  "generatedAt": "2026-10-05T21:35:05.198Z",
   "collections": [
     {
       "name": "users",
@@ -229,11 +229,44 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "origem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "google_event_uid",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "google_sync_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "titulo_externo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": [
         "CREATE INDEX idx_consultas_paciente ON consultas (paciente_id)",
-        "CREATE INDEX idx_consultas_data_hora ON consultas (data_hora)"
+        "CREATE INDEX idx_consultas_data_hora ON consultas (data_hora)",
+        "CREATE INDEX `idx_consultas_google_uid` ON `consultas` (google_event_uid)",
+        "CREATE INDEX `idx_consultas_origem` ON `consultas` (origem)"
       ]
     },
     {
@@ -1417,6 +1450,83 @@
         "CREATE INDEX idx_evolucoes_paciente ON evolucoes (paciente_id, data_evolucao DESC)",
         "CREATE INDEX idx_evolucoes_avaliacao ON evolucoes (avaliacao_id)"
       ]
+    },
+    {
+      "name": "google_calendar_syncs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != '' && user_id = @request.auth.id",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "ics_url",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "calendar_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_sync",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "events_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "auto_sync",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_google_sync_user ON google_calendar_syncs (user_id)"]
     }
   ]
 }
