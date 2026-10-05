@@ -235,15 +235,26 @@ export default function Layout() {
               className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="fixed inset-y-0 left-0 w-[280px] bg-[#4A322A] text-white shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-250 border-r border-[#64473B]/40">
-              <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
-                <LogoSOUL variant="compact" size="sm" theme="dark" />
+            <div className="fixed inset-y-0 left-0 w-[290px] max-w-[85vw] bg-[#4A322A] text-white shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-250 border-r border-[#64473B]/40">
+              <div className="relative pt-6 pb-5 px-5 border-b border-white/10 flex flex-col items-center text-center">
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-[#E3C89A]/70 hover:text-white p-1 rounded-lg"
+                  className="absolute top-4 right-4 text-[#E3C89A]/80 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                  title="Fechar menu"
+                  aria-label="Fechar menu"
                 >
                   <X className="h-5 w-5" />
                 </button>
+                <div
+                  onClick={() => {
+                    navigate('/painel')
+                    setMobileMenuOpen(false)
+                  }}
+                  className="cursor-pointer select-none transition-transform hover:scale-[1.02] active:scale-95 flex flex-col items-center"
+                  title="Ir para o Painel"
+                >
+                  <LogoSOUL variant="full" size="sm" theme="dark" className="overflow-visible" />
+                </div>
               </div>
 
               <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
@@ -313,6 +324,7 @@ export default function Layout() {
                 onClick={() => setMobileMenuOpen(true)}
                 className="lg:hidden p-2 rounded-xl text-[#5C4033] hover:bg-[#F0E3CC]/40 transition-colors"
                 title="Abrir menu"
+                aria-label="Abrir menu"
               >
                 <Menu className="h-5 w-5" />
               </button>
