@@ -473,6 +473,19 @@ export default function NovaAvaliacao() {
         if (basePayload.composicao_corporal?.perimetros?.quadril) {
           basePayload.circ_quadril = basePayload.composicao_corporal.perimetros.quadril
         }
+        // Se houver plano_semanal_detalhado e ainda não estiver no ia_plano_treino, sincronizar
+        if (
+          basePayload.plano_semanal_detalhado &&
+          !basePayload.ia_plano_treino?.plano_tratamento_semanal
+        ) {
+          basePayload.ia_plano_treino = {
+            ...(basePayload.ia_plano_treino || {}),
+            hipotese_diagnostica: basePayload.hipotese_diagnostica_ia,
+            diagnostico_funcional: basePayload.diagnostico_funcional,
+            objetivos_treinamento: basePayload.objetivos_treinamento,
+            plano_tratamento_semanal: basePayload.plano_semanal_detalhado,
+          }
+        }
       }
 
       // Se houver uploads pendentes, empacotar em FormData para PocketBase

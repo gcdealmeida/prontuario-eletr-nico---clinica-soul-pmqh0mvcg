@@ -149,7 +149,9 @@ export const FormPersonal: React.FC<FormPersonalProps> = ({
         )}
         {etapaAtual === 6 && <Etapa6PersonalCore formData={formData} onChange={onChange} />}
         {etapaAtual === 7 && <Etapa7PersonalFms formData={formData} onChange={onChange} />}
-        {etapaAtual === 8 && <Etapa8PersonalMetas formData={formData} onChange={onChange} />}
+        {etapaAtual === 8 && (
+          <Etapa8PersonalMetas formData={formData} onChange={onChange} paciente={paciente} />
+        )}
 
         {/* Rodapé de Navegação e Salvamento (Rascunho / Concluir) */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-8 mt-8 border-t border-gray-100">

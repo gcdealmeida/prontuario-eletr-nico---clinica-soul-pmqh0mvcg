@@ -45,6 +45,10 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
   const fms = avaliacao.fms_dados || {}
   const metas = avaliacao.metas_treino || {}
 
+  const iaPlano = avaliacao.ia_plano_treino || {}
+  const planoSemanal =
+    iaPlano.plano_tratamento_semanal || (avaliacao as any).plano_semanal_detalhado || []
+
   const sexo: Sexo = anamnese.sexo || 'M'
   const idade = anamnese.idade || 30
   const peso = avaliacao.peso || anamnese.peso || 0
@@ -718,22 +722,59 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
         )}
       </div>
 
-      {/* 8. METAS E PRESCRIÇÃO */}
-      <div className="space-y-3">
+      {/* 8. METAS, ANÁLISE INTEGRADA & PRESCRIÇÃO */}
+      <div className="space-y-4">
         <div className="flex items-center gap-2 pb-1.5 border-b-2 border-[#E9E1D2]">
           <div className="h-6 w-6 rounded-xl bg-[#FAF5EE] border border-[#E9E1D2] flex items-center justify-center text-[#8C6527]">
             <Target className="h-3.5 w-3.5" />
           </div>
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">
-            8. Prescrição de Treinamento & Metas
+            8. Prescrição de Treinamento, Metas & Análise Integrada
           </h3>
         </div>
 
-        {/* Metas 3 Fases */}
+        {/* Hipótese Diagnóstica / Avaliação Funcional da IA */}
+        {(avaliacao.hipotese_diagnostica_ia || iaPlano.hipotese_diagnostica) && (
+          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-1">
+            <div className="flex items-center gap-1.5 text-amber-950 font-bold uppercase tracking-wider text-[11px]">
+              <Sparkles className="h-3.5 w-3.5 text-[#8C6527]" />
+              <span>Hipótese Diagnóstica / Avaliação Funcional (Physical Test Integrado):</span>
+            </div>
+            <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
+              {avaliacao.hipotese_diagnostica_ia || iaPlano.hipotese_diagnostica}
+            </p>
+          </div>
+        )}
+
+        {/* Diagnóstico Funcional (Pontos Fortes & Limitações) */}
+        {(avaliacao.diagnostico_funcional || iaPlano.diagnostico_funcional) && (
+          <div className="p-3.5 rounded-2xl bg-gray-50/80 border border-gray-200 space-y-1">
+            <span className="font-bold text-gray-800 uppercase tracking-wider text-[10px] block">
+              Diagnóstico Funcional (Pontos Fortes & Limitações Prioritárias):
+            </span>
+            <p className="text-gray-900 leading-relaxed font-medium whitespace-pre-wrap">
+              {avaliacao.diagnostico_funcional || iaPlano.diagnostico_funcional}
+            </p>
+          </div>
+        )}
+
+        {/* Objetivos do Treinamento Priorizados */}
+        {(avaliacao.objetivos_treinamento || iaPlano.objetivos_treinamento) && (
+          <div className="p-3.5 rounded-2xl bg-gray-50/80 border border-gray-200 space-y-1">
+            <span className="font-bold text-gray-800 uppercase tracking-wider text-[10px] block">
+              Objetivos do Treinamento Priorizados:
+            </span>
+            <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
+              {avaliacao.objetivos_treinamento || iaPlano.objetivos_treinamento}
+            </p>
+          </div>
+        )}
+
+        {/* Metas 3 Fases (Curto, Médio, Longo Prazo) */}
         {(metas.meta_curto_prazo || metas.meta_medio_prazo || metas.meta_longo_prazo) && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {metas.meta_curto_prazo && (
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="p-3 bg-white rounded-xl border border-[#E9E1D2]">
                 <span className="text-[10px] font-bold text-[#8C6527] uppercase block">
                   Curto Prazo (30-60 dias):
                 </span>
@@ -741,7 +782,7 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
               </div>
             )}
             {metas.meta_medio_prazo && (
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="p-3 bg-white rounded-xl border border-[#E9E1D2]">
                 <span className="text-[10px] font-bold text-[#8C6527] uppercase block">
                   Médio Prazo (3-6 meses):
                 </span>
@@ -749,7 +790,7 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
               </div>
             )}
             {metas.meta_longo_prazo && (
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="p-3 bg-white rounded-xl border border-[#E9E1D2]">
                 <span className="text-[10px] font-bold text-[#8C6527] uppercase block">
                   Longo Prazo (12 meses):
                 </span>
@@ -770,7 +811,41 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
           </div>
         )}
 
-        {avaliacao.plano_treino && (
+        {/* Plano de Treinamento Semana a Semana (12 Semanas Periodizadas) */}
+        {planoSemanal.length > 0 ? (
+          <div className="space-y-2.5 pt-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-gray-800 uppercase tracking-wider text-xs block">
+                Plano de Treinamento Periodizado (12 Semanas)
+              </span>
+              <span className="text-[11px] text-[#8C6527] font-semibold">
+                {planoSemanal.length} fases registradas
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {planoSemanal.map((s: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-1.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-lg bg-orange-600 text-white font-bold text-[10px]">
+                      {s.semana}
+                    </span>
+                    <span className="font-bold text-gray-900 text-xs">{s.foco}</span>
+                  </div>
+                  <p className="text-gray-700 text-xs leading-relaxed">{s.condutas}</p>
+                  {s.criterios_evolucao && (
+                    <span className="text-[11px] text-gray-500 block pt-1 border-t border-gray-200">
+                      Critérios: {s.criterios_evolucao}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : avaliacao.plano_treino ? (
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
             <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block">
               Plano de Treino Detalhado:
@@ -779,7 +854,7 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
               {avaliacao.plano_treino}
             </p>
           </div>
-        )}
+        ) : null}
 
         {avaliacao.observacoes && (
           <p className="text-xs text-gray-600 bg-gray-50 p-3 rounded-2xl border border-gray-100">

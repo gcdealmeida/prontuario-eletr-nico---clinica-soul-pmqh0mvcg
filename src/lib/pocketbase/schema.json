@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T08:03:26.902Z",
+  "generatedAt": "2026-10-05T09:19:05.811Z",
   "collections": [
     {
       "name": "users",
@@ -756,6 +756,30 @@
         },
         {
           "name": "metas_treino",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hipotese_diagnostica_ia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "diagnostico_funcional",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objetivos_treinamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ia_plano_treino",
           "type": "json",
           "required": false,
           "system": false

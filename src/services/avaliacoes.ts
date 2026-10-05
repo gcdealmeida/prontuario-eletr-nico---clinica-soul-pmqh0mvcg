@@ -137,6 +137,40 @@ export async function gerarIaFisioterapia(avaliacaoPayload: Record<string, unkno
   return data
 }
 
+export async function gerarIaPersonal(avaliacaoPayload: Record<string, unknown>) {
+  const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/personal/gerar-ia`
+  const token = pb.authStore.token
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+    body: JSON.stringify({ avaliacao: avaliacaoPayload }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data?.error || 'Falha ao processar análise da IA de Personal')
+  }
+  return data as {
+    raw_content?: string
+    structured?: {
+      hipotese_diagnostica?: string
+      diagnostico_funcional?: string
+      objetivos_treinamento?: string
+      plano_tratamento_semanal?: Array<{
+        semana: string
+        foco: string
+        condutas: string
+        criterios_evolucao?: string
+      }>
+      sintese_geral?: string
+    }
+    citations?: any[]
+  }
+}
+
 export async function extrairDinamometroArquivo(file: File, textoContexto?: string) {
   const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/fisioterapia/extrair-dinamometro`
   const token = pb.authStore.token

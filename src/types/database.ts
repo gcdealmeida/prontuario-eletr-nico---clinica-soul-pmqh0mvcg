@@ -558,6 +558,21 @@ export interface AvaliacaoPersonalRecord {
     meta_longo_prazo?: string
     divisao_rotina?: string
   }
+  hipotese_diagnostica_ia?: string
+  diagnostico_funcional?: string
+  objetivos_treinamento?: string
+  ia_plano_treino?: {
+    hipotese_diagnostica?: string
+    diagnostico_funcional?: string
+    objetivos_treinamento?: string
+    plano_tratamento_semanal?: Array<{
+      semana: string
+      foco: string
+      condutas: string
+      criterios_evolucao?: string
+    }>
+    sintese_geral?: string
+  }
   created: string
   updated: string
   expand?: {
