@@ -29,6 +29,9 @@ import {
   Search,
   UploadCloud,
   Check,
+  ShieldCheck,
+  UserCheck,
+  Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -252,6 +255,13 @@ export default function GuiaUso() {
           >
             <Activity className="h-4 w-4 text-amber-300" />
             4. Evoluções & Botão ALERTA
+          </TabsTrigger>
+          <TabsTrigger
+            value="acessos-admin"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
+            5. Aprovando Novos Acessos (Admin)
           </TabsTrigger>
           <TabsTrigger
             value="faq"
@@ -964,7 +974,153 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 5: PERGUNTAS FREQUENTES (FAQ) */}
+        {/* TAB 5: APROVANDO NOVOS ACESSOS (ADMIN) */}
+        <TabsContent value="acessos-admin" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-2">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#C9A46A]" />
+                <span>Gestão & Governança da Clínica</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Como Autorizar e Monitorar Novos Acessos Profissionais
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Para garantir a segurança, sigilo ético e proteção de dados clínicos da Clínica
+                SOUL,{' '}
+                <strong>
+                  nenhum profissional consegue acessar o sistema sem a sua autorização expressa
+                </strong>
+                .
+              </p>
+            </div>
+
+            {/* Como funciona o fluxo */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  Etapa 1 · O Profissional
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">Cadastro em /signup</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  O fisioterapeuta, educador físico ou médico cria sua conta na tela de cadastro
+                  informando nome, e-mail e especialidade. O cadastro entra automaticamente em
+                  estado <strong>Pendente de Aprovação</strong>.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#B87355] px-2 py-0.5 rounded-md bg-[#FDF2EE] border border-[#E7BFB0]">
+                  Etapa 2 · Tentativa de Login
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">Bloqueio Seguro</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Se o profissional tentar entrar antes da sua liberação, ele recebe uma mensagem
+                  clara: <em>"Sua conta aguarda aprovação da administração da clínica"</em> e o
+                  backend bloqueia qualquer acesso a prontuários.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#477A53] px-2 py-0.5 rounded-md bg-[#F2F6F1] border border-[#C1D7C4]">
+                  Etapa 3 · Você (Admin)
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">Aprovação em 1 Clique</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  No menu lateral, clique em <strong>"Acessos"</strong>. Na aba{' '}
+                  <strong>"Pendentes"</strong>, você vê nome, e-mail, especialidade e data do
+                  pedido. Basta clicar em <strong>"Aprovar Acesso"</strong> para liberar o
+                  profissional imediatamente.
+                </p>
+              </div>
+            </div>
+
+            {/* Passo a Passo do Administrador */}
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Passo a passo no painel "Acessos":
+              </h4>
+
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    1
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="font-bold text-sm text-[#33221C]">
+                      Acessar a página de Acessos
+                    </h5>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Clique no item <strong>"Acessos"</strong> do menu lateral (visível
+                      exclusivamente para a conta admin <code>guivemax@hotmail.com</code>).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    2
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="font-bold text-sm text-[#33221C]">
+                      Aprovar ou Recusar solicitações pendentes
+                    </h5>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Na aba <strong>"Pendentes"</strong>, revise quem solicitou o acesso. Clique em{' '}
+                      <strong>"Aprovar Acesso"</strong> para liberar o usuário ou em{' '}
+                      <strong>"Recusar"</strong> para vetar a entrada.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    3
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="font-bold text-sm text-[#33221C]">
+                      Suspender acessos e derrubar sessões ativas imediatamente
+                    </h5>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Na aba <strong>"Ativos"</strong>, caso precise revogar o acesso de um
+                      profissional que não atua mais na clínica, basta clicar no botão{' '}
+                      <strong>"Suspender"</strong>. O servidor invalida os tokens de autenticação
+                      instantaneamente, desconectando qualquer sessão aberta naquele momento.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    4
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="font-bold text-sm text-[#33221C]">
+                      Consultar a Trilha de Auditoria
+                    </h5>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Na aba <strong>"Histórico & Auditoria"</strong>, veja todos os eventos
+                      registrados: quem aprovou ou suspendeu quem, data e hora exatas, tentativas de
+                      login bloqueadas e logins realizados com sucesso.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                onClick={() => navigate('/acessos')}
+                className="bg-[#4A322A] hover:bg-[#3D2922] text-[#FAF4EA] rounded-xl text-xs font-semibold h-10 px-5 flex items-center gap-2"
+              >
+                <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
+                Abrir Painel de Acessos Agora
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 6: PERGUNTAS FREQUENTES (FAQ) */}
         <TabsContent value="faq" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>

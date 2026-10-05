@@ -15,6 +15,7 @@ import ResetPassword from '@/pages/ResetPassword'
 import VerifyEmail from '@/pages/VerifyEmail'
 import ConfirmEmailChange from '@/pages/ConfirmEmailChange'
 import PreCadastroPublico from '@/pages/PreCadastroPublico'
+import AguardandoAprovacao from '@/pages/AguardandoAprovacao'
 
 // Protected Clinic Pages
 import Dashboard from '@/pages/Dashboard'
@@ -26,6 +27,7 @@ import NovaAvaliacao from '@/pages/NovaAvaliacao'
 import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
 import Relatorios from '@/pages/Relatorios'
 import GuiaUso from '@/pages/GuiaUso'
+import Acessos from '@/pages/Acessos'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -89,6 +91,9 @@ const App = () => (
           <Route path="/pre-cadastro" element={<PreCadastroPublico />} />
           <Route path="/pre-cadastro/:token" element={<PreCadastroPublico />} />
 
+          {/* Página de espera de aprovação de acesso */}
+          <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
+
           {/* Protected Routes inside Global Layout */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
@@ -100,6 +105,7 @@ const App = () => (
               <Route path="/prontuarios/novo" element={<NovaAvaliacao />} />
               <Route path="/prontuarios/:id" element={<AvaliacaoDetalhe />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/acessos" element={<Acessos />} />
               <Route path="/guia" element={<GuiaUso />} />
             </Route>
           </Route>

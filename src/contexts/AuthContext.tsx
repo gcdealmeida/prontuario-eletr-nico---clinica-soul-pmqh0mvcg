@@ -7,6 +7,8 @@ interface AuthContextType {
   token: string | null
   isLoading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
+  isApproved: boolean
   login: (email: string, pass: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -45,7 +47,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string) => {
     const authData = await pb.collection('users').authWithPassword(email, pass)
-    setUser(authData.record as unknown as UserRecord)
+    const rec = authData.record as unknown as UserRecord
+
+    // Se o usuário não for admin e seu access_status for pending ou suspended,
+    // garantimos logout local caso chegue até aqui
+    const isMaster = (rec.email || '').toLowerCase() === 'guivemax@hotmail.com'
+    const status = isMaster ? 'approved' : rec.access_status || 'pending'
+    if (status !== 'approved') {
+      pb.authStore.clear()
+      setUser(null)
+      setToken(null)
+      if (status === 'suspended') {
+        throw new Error('Seu acesso está suspenso pela administração da Clínica SOUL.')
+      }
+      throw new Error('Sua conta aguarda aprovação da administração da clínica.')
+    }
+
+    setUser(rec)
     setToken(authData.token)
   }
 
@@ -74,6 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isLoading,
         isAuthenticated: !!token && !!user,
+        isAdmin:
+          (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' || user?.role === 'admin',
+        isApproved:
+          (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' ||
+          user?.access_status === 'approved',
         login,
         logout,
         refreshUser,

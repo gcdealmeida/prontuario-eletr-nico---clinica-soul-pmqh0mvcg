@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,7 +30,7 @@ import { cn } from '@/lib/utils'
 import { LogoSOUL } from '@/components/LogoSOUL'
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -74,6 +75,15 @@ export default function Layout() {
       badge: consultasHojeCount > 0 ? consultasHojeCount : null,
     },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
+    ...(isAdmin
+      ? [
+          {
+            name: 'Acessos',
+            path: '/acessos',
+            icon: ShieldCheck,
+          },
+        ]
+      : []),
     { name: 'Guia de Uso', path: '/guia', icon: BookOpen },
   ]
 
@@ -95,6 +105,7 @@ export default function Layout() {
       return 'Visualização de Prontuário'
     if (path.startsWith('/prontuarios')) return 'Prontuários & Avaliações'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
+    if (path.startsWith('/acessos')) return 'Acessos & Governança'
     if (path.startsWith('/guia')) return 'Guia de Uso & Ajuda'
     return 'Soul Clínica'
   }

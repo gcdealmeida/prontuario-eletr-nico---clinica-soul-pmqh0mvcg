@@ -64,6 +64,30 @@ export default function Login() {
       navigate('/painel')
     } catch (err: any) {
       console.error('Login error:', err)
+      const msg = err?.message || err?.data?.message || ''
+      const isPending =
+        msg.toLowerCase().includes('aguarda aprovação') ||
+        msg.toLowerCase().includes('pendente') ||
+        msg.toLowerCase().includes('aprovação da administração')
+      const isSuspended =
+        msg.toLowerCase().includes('suspenso') || msg.toLowerCase().includes('acesso está suspenso')
+
+      if (isPending) {
+        setErrors({
+          general:
+            'Sua conta aguarda aprovação da administração da clínica. Você receberá a liberação assim que o administrador autorizar seu acesso.',
+        })
+        return
+      }
+
+      if (isSuspended) {
+        setErrors({
+          general:
+            'Seu acesso está suspenso pela administração da Clínica SOUL. Entre em contato com a gestão para mais informações.',
+        })
+        return
+      }
+
       const dataErrors = err?.data?.data
       if (dataErrors?.identity) {
         setErrors((prev) => ({ ...prev, email: dataErrors.identity.message }))
@@ -72,7 +96,10 @@ export default function Login() {
       } else {
         setErrors((prev) => ({
           ...prev,
-          general: 'E-mail ou senha incorretos. Tente novamente ou use os dados de teste.',
+          general:
+            msg && !msg.toLowerCase().includes('failed to authenticate')
+              ? msg
+              : 'E-mail ou senha incorretos. Tente novamente ou use os dados de teste.',
         }))
       }
     } finally {

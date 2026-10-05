@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-10-05T21:35:05.198Z",
+  "generatedAt": "2026-10-05T22:03:48.301Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
+        "list": "id = @request.auth.id || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "view": "id = @request.auth.id || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
         "create": "",
-        "update": "id = @request.auth.id",
-        "delete": "id = @request.auth.id"
+        "update": "id = @request.auth.id || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "delete": "@request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -43,6 +43,51 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "access_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pending", "approved", "suspended"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "professional"]
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico", "Geral"]
+        },
+        {
+          "name": "requested_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "approved_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "approved_by",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_login_at",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -54,11 +99,11 @@
       "name": "pacientes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' || @request.body.status = 'Pré-cadastro'",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' || @request.body.status = 'Pré-cadastro'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -170,11 +215,11 @@
       "name": "consultas",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -273,11 +318,11 @@
       "name": "timeline",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -340,11 +385,11 @@
       "name": "avaliacoes_fisioterapia",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -605,11 +650,11 @@
       "name": "avaliacoes_personal",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -866,11 +911,11 @@
       "name": "avaliacoes_nutricao",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -1055,11 +1100,11 @@
       "name": "avaliacoes_medico",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -1236,11 +1281,11 @@
       "name": "conhecimento_clinico",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -1300,11 +1345,11 @@
       "name": "evolucoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -1455,11 +1500,11 @@
       "name": "google_calendar_syncs",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && user_id = @request.auth.id",
-        "view": "@request.auth.id != '' && user_id = @request.auth.id",
-        "create": "@request.auth.id != '' && user_id = @request.auth.id",
-        "update": "@request.auth.id != '' && user_id = @request.auth.id",
-        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
       },
       "fields": [
         {
@@ -1527,6 +1572,96 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_google_sync_user ON google_calendar_syncs (user_id)"]
+    },
+    {
+      "name": "access_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "view": "@request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "user_email",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "user_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "action",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "signup_requested",
+            "login_success",
+            "login_blocked_pending",
+            "login_blocked_suspended",
+            "access_approved",
+            "access_rejected",
+            "access_suspended",
+            "access_reactivated"
+          ]
+        },
+        {
+          "name": "actor_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "actor_email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "details",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_address",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_access_logs_user ON access_logs (user_id)",
+        "CREATE INDEX idx_access_logs_action ON access_logs (action)",
+        "CREATE INDEX idx_access_logs_created ON access_logs (created DESC)"
+      ]
     }
   ]
 }

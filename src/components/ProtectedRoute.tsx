@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Loader2 } from 'lucide-react'
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isApproved, isLoading } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -20,6 +20,33 @@ export function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/" state={{ from: location }} replace />
+  }
+
+  if (!isApproved) {
+    return <Navigate to="/aguardando-aprovacao" replace />
+  }
+
+  return <Outlet />
+}
+
+export function AdminOnlyRoute() {
+  const { isAuthenticated, isAdmin, isLoading } = useAuth()
+  const location = useLocation()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#FAF7F1]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/painel" replace />
   }
 
   return <Outlet />

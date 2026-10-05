@@ -46,12 +46,46 @@ export interface EvolucaoRecord {
   }
 }
 
+export type AccessStatus = 'pending' | 'approved' | 'suspended'
+export type UserRole = 'admin' | 'professional'
+
 export interface UserRecord {
   id: string
   email: string
   name?: string
   avatar?: string
   calendar_token?: string
+  access_status?: AccessStatus
+  role?: UserRole
+  especialidade?: Especialidade | 'Geral' | string
+  requested_at?: string
+  approved_at?: string
+  approved_by?: string
+  last_login_at?: string
+  created: string
+  updated: string
+}
+
+export type AccessLogAction =
+  | 'signup_requested'
+  | 'login_success'
+  | 'login_blocked_pending'
+  | 'login_blocked_suspended'
+  | 'access_approved'
+  | 'access_rejected'
+  | 'access_suspended'
+  | 'access_reactivated'
+
+export interface AccessLogRecord {
+  id: string
+  user_id: string
+  user_email: string
+  user_name?: string
+  action: AccessLogAction
+  actor_id?: string
+  actor_email?: string
+  details?: string
+  ip_address?: string
   created: string
   updated: string
 }
