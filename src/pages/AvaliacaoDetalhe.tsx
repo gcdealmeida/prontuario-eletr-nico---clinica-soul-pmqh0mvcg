@@ -19,6 +19,7 @@ import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
 import type { Especialidade, AvaliacaoFisioterapiaRecord } from '@/types/database'
 import { LogoSOUL } from '@/components/LogoSOUL'
 import { VisualizacaoFisioterapia } from '@/components/fisioterapia/VisualizacaoFisioterapia'
+import { VisualizacaoPersonal } from '@/components/personal/VisualizacaoPersonal'
 
 export default function AvaliacaoDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -190,104 +191,7 @@ export default function AvaliacaoDetalhe() {
           <VisualizacaoFisioterapia avaliacao={avaliacao as AvaliacaoFisioterapiaRecord} />
         )}
 
-        {espParam === 'Personal' && (
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-orange-700 bg-orange-50/70 p-2 rounded-lg">
-                1. Objetivos & Restrições
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Objetivo</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {avaliacao.objetivo_principal || '—'}
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Nível</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {avaliacao.nivel_experiencia || '—'}
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Freq. Semanal</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {avaliacao.frequencia_semanal || '—'} dias
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Restrições</span>
-                  <span className="text-sm font-bold text-gray-900 truncate">
-                    {avaliacao.restricoes_treino || 'Nenhuma'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-orange-700 bg-orange-50/70 p-2 rounded-lg">
-                2. Avaliação Antropométrica
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Peso</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.peso || '—'} kg
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Altura</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.altura || '—'} m
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">IMC</span>
-                  <span className="text-base font-bold text-[#8C6527]">{avaliacao.imc || '—'}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">% Gordura</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {avaliacao.percentual_gordura || '—'}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-xs pt-1">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Cintura</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {avaliacao.circ_cintura || '—'} cm
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Abdômen</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {avaliacao.circ_abdomen || '—'} cm
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-gray-500 block">Quadril</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {avaliacao.circ_quadril || '—'} cm
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-orange-700 bg-orange-50/70 p-2 rounded-lg">
-                3. Prescrição de Treino
-              </h3>
-              <div className="space-y-2 text-xs">
-                <span className="font-bold text-gray-700 block">Plano de Treino:</span>
-                <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">
-                  {avaliacao.plano_treino || '—'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {espParam === 'Personal' && <VisualizacaoPersonal avaliacao={avaliacao} />}
 
         {espParam === 'Nutrição' && (
           <div className="space-y-6">

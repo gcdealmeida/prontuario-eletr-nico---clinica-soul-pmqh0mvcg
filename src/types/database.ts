@@ -448,6 +448,116 @@ export interface AvaliacaoPersonalRecord {
   observacoes?: string
   profissional_responsavel?: string
   data_avaliacao?: string
+  // Campos expandidos do modelo PHYSICAL TEST
+  anamnese_personal?: {
+    sexo?: 'M' | 'F'
+    idade?: number
+    peso?: number
+    altura?: number
+    imc?: number
+    classificacao_imc?: string
+    circ_cintura?: number
+    circ_quadril?: number
+    circ_abdomen?: number
+    rcq?: number
+    classificacao_rcq?: string
+    fc_repouso?: number
+    pressao_arterial?: string
+    objetivo_detalhado?: string
+    historico_lesoes?: string
+    pratica_atividade?: string
+    medicamentos?: string
+  }
+  composicao_corporal?: {
+    protocolo?: string
+    formula_conversao?: 'Siri' | 'Brozek'
+    dobras?: Record<string, number>
+    densidade_corporal?: number
+    percentual_gordura?: number
+    massa_gorda_kg?: number
+    massa_magra_kg?: number
+    peso_ideal_kg?: number
+    perimetros?: {
+      torax?: number
+      abdomen?: number
+      cintura?: number
+      quadril?: number
+      braco_d_relaxado?: number
+      braco_e_relaxado?: number
+      braco_d_contraido?: number
+      braco_e_contraido?: number
+      antebraco_d?: number
+      antebraco_e?: number
+      coxa_d?: number
+      coxa_e?: number
+      panturrilha_d?: number
+      panturrilha_e?: number
+    }
+    classificacao_gordura?: {
+      categoria: string
+      faixaIdealTexto: string
+    }
+  }
+  forca_dinamometro?: {
+    movimentos?: Array<{
+      nome: string
+      direito_kgf?: number | string
+      esquerdo_kgf?: number | string
+      assimetria_pct?: number | string
+      forca_relativa_d?: number | string
+      forca_relativa_e?: number | string
+      referencia?: string
+    }>
+  }
+  forca_muscular_descricao?: string
+  anexos_dinamometro?: string[]
+  flexibilidade_dados?: {
+    banco_wells?: {
+      medida1_cm?: number
+      medida2_cm?: number
+      medida3_cm?: number
+      melhor_medida_cm?: number
+      classificacao?: string
+    }
+    flexitest_ativo?: boolean
+    flexitest_notas?: Record<number, number>
+    flexitest_total?: number
+    flexitest_classificacao?: string
+    observacoes?: string
+  }
+  postural_dados?: {
+    vista_anterior?: Record<string, { status: 'NORMAL' | 'ALTERADO'; obs?: string }>
+    vista_posterior?: Record<string, { status: 'NORMAL' | 'ALTERADO'; obs?: string }>
+    vista_lateral?: Record<string, { status: 'NORMAL' | 'ALTERADO'; obs?: string }>
+    conclusao_postural?: string
+  }
+  anexos_postura?: string[]
+  core_mcgill?: {
+    prancha_ventral_seg?: number
+    prancha_lat_d_seg?: number
+    prancha_lat_e_seg?: number
+    extensao_biering_seg?: number
+    flexao_tronco_seg?: number
+    razao_flexao_extensao?: number
+    razao_lat_extensao?: number
+    razao_lat_d_e?: number
+    alertas?: string[]
+    observacoes?: string
+  }
+  fms_dados?: {
+    itens?: Record<string, any>
+    score_total?: number
+    assimetrias_total?: number
+    classificacao_risco?: string
+    estrategia_treino?: string
+  }
+  metas_treino?: {
+    resumo_geral?: string
+    meta_curto_prazo?: string
+    meta_medio_prazo?: string
+    meta_longo_prazo?: string
+    divisao_rotina?: string
+  }
   created: string
   updated: string
   expand?: {

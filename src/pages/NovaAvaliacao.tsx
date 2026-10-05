@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { PacienteRecord, Especialidade, StatusAvaliacao } from '@/types/database'
 import { ESPECIALIDADE_COLORS } from '@/lib/constants'
 import { FormFisioterapia } from '@/components/fisioterapia/FormFisioterapia'
+import { FormPersonal } from '@/components/personal/FormPersonal'
 
 export default function NovaAvaliacao() {
   const navigate = useNavigate()
@@ -417,13 +418,16 @@ export default function NovaAvaliacao() {
 
       const pendingExames: File[] = formData._pending_exames_files || []
       const pendingDinamometro: File[] = formData._pending_dinamometro_files || []
+      const pendingPostura: File[] = formData._pending_postura_files || []
 
       // Garantir compatibilidade de queixa_principal para Fisioterapia
       const queixaPrincipal =
         formData.queixa_principal ||
         formData.queixas_multiplas?.[0]?.queixa ||
         formData.anamnese_detalhada?.motivo_principal ||
-        'Avaliação Fisioterapêutica'
+        (selectedEspecialidade === 'Personal'
+          ? `Avaliação Física Physical Test - ${formData.objetivo_principal || 'Condicionamento'}`
+          : 'Avaliação Fisioterapêutica')
 
       const basePayload: Record<string, any> = {
         ...formData,
@@ -439,9 +443,10 @@ export default function NovaAvaliacao() {
       // Limpar campos de estado temporário do form
       delete basePayload._pending_exames_files
       delete basePayload._pending_dinamometro_files
+      delete basePayload._pending_postura_files
 
-      // Convert numbers para especialidades clássicas
-      if (selectedEspecialidade !== 'Fisioterapia') {
+      // Convert numbers para especialidades clássicas (exceto Fisioterapia e Personal, que têm formulários dedicados com tipagem fina)
+      if (selectedEspecialidade !== 'Fisioterapia' && selectedEspecialidade !== 'Personal') {
         for (const sec of sections) {
           for (const f of sec.fields) {
             if (f.type === 'number' && basePayload[f.name] !== undefined) {
@@ -454,9 +459,25 @@ export default function NovaAvaliacao() {
         }
       }
 
+      // Sincronizar campos legados de Personal se preenchidos no Physical Test
+      if (selectedEspecialidade === 'Personal') {
+        if (basePayload.composicao_corporal?.percentual_gordura !== undefined) {
+          basePayload.percentual_gordura = basePayload.composicao_corporal.percentual_gordura
+        }
+        if (basePayload.composicao_corporal?.perimetros?.cintura) {
+          basePayload.circ_cintura = basePayload.composicao_corporal.perimetros.cintura
+        }
+        if (basePayload.composicao_corporal?.perimetros?.abdomen) {
+          basePayload.circ_abdomen = basePayload.composicao_corporal.perimetros.abdomen
+        }
+        if (basePayload.composicao_corporal?.perimetros?.quadril) {
+          basePayload.circ_quadril = basePayload.composicao_corporal.perimetros.quadril
+        }
+      }
+
       // Se houver uploads pendentes, empacotar em FormData para PocketBase
       let requestData: Record<string, any> | FormData = basePayload
-      if (pendingExames.length > 0 || pendingDinamometro.length > 0) {
+      if (pendingExames.length > 0 || pendingDinamometro.length > 0 || pendingPostura.length > 0) {
         const fd = new FormData()
         for (const [k, v] of Object.entries(basePayload)) {
           if (v === undefined || v === null) continue
@@ -471,6 +492,9 @@ export default function NovaAvaliacao() {
         }
         for (const f of pendingDinamometro) {
           fd.append('anexos_dinamometro', f)
+        }
+        for (const f of pendingPostura) {
+          fd.append('anexos_postura', f)
         }
         requestData = fd
       }
@@ -705,7 +729,7 @@ export default function NovaAvaliacao() {
             </Button>
           </div>
 
-          {/* Se for Fisioterapia: Renderizar a nova estrutura completa em 7 etapas baseada no modelo clínico */}
+          {/* Se for Fisioterapia: Renderizar estrutura completa clínica */}
           {selectedEspecialidade === 'Fisioterapia' ? (
             <FormFisioterapia
               formData={formData}
@@ -715,8 +739,18 @@ export default function NovaAvaliacao() {
               paciente={selectedPaciente}
               existingRecordId={editId}
             />
+          ) : selectedEspecialidade === 'Personal' ? (
+            /* Formulário da Avaliação Física do PHYSICAL TEST para Personal */
+            <FormPersonal
+              formData={formData}
+              onChange={handleFieldChange}
+              onSave={handleSaveEvaluation}
+              submitting={submitting}
+              paciente={selectedPaciente}
+              existingRecordId={editId}
+            />
           ) : (
-            /* Formulário padrão para outras especialidades (Personal, Nutrição, Médico) */
+            /* Formulário padrão para outras especialidades (Nutrição, Médico) */
             <div className="space-y-6">
               {/* Stepper Progress Bar */}
               <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-3">

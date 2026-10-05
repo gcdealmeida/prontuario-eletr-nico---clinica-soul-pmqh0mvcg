@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T00:58:11.167Z",
+  "generatedAt": "2026-10-05T08:03:26.902Z",
   "collections": [
     {
       "name": "users",
@@ -693,6 +693,72 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "anamnese_personal",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "composicao_corporal",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_dinamometro",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_muscular_descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anexos_dinamometro",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "flexibilidade_dados",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "postural_dados",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anexos_postura",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "core_mcgill",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fms_dados",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metas_treino",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_apersonal_paciente ON avaliacoes_personal (paciente_id)"]
