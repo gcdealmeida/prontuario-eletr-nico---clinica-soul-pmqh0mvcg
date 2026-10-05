@@ -1,6 +1,6 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import logoOficialImg from '@/assets/logogradiente-6d4ec.jpg'
+import logoOficialImg from '@/assets/logogradiente-7e85a.jpg'
 
 export interface LogoSOULProps {
   /**
@@ -69,10 +69,10 @@ export function LogoSOUL({
           alt="Símbolo Clínica SOUL"
           className="absolute max-w-none pointer-events-none select-none"
           style={{
-            width: `${symbolSizes.width * 2.0}px`,
-            height: `${symbolSizes.width * 2.0}px`,
-            top: `-${symbolSizes.height * 0.35}px`,
-            left: `-${symbolSizes.width * 0.5}px`,
+            width: `${symbolSizes.width * 1.9}px`,
+            height: `${symbolSizes.width * 1.9}px`,
+            top: `-${symbolSizes.height * 0.5}px`,
+            left: `-${symbolSizes.width * 0.45}px`,
             objectFit: 'contain',
           }}
           loading="eager"
