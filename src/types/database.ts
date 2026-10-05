@@ -309,6 +309,7 @@ export interface AvaliacaoFisioterapiaRecord {
   testes_especiais_segmentos?: TestesEspeciaisSegmento[]
   secoes_complementares?: SecoesComplementaresFisio
   diagnostico_disfuncional?: string
+  forca_muscular_descricao?: string
   hipotese_diagnostica_ia?: string
   plano_semanal_detalhado?: PlanoSemanalItem[]
   anexos_exames?: string[]

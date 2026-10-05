@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T00:38:07.441Z",
+  "generatedAt": "2026-10-05T00:51:08.389Z",
   "collections": [
     {
       "name": "users",
@@ -514,6 +514,12 @@
         {
           "name": "anexos_dinamometro",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forca_muscular_descricao",
+          "type": "text",
           "required": false,
           "system": false
         }

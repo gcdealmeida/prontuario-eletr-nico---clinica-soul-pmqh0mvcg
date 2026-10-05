@@ -22,12 +22,10 @@ DADOS DO PACIENTE E AVALIAÇÃO:
 - Queixas (EVA e histórico): ${JSON.stringify(avaliacaoData.queixas_multiplas || avaliacaoData.queixa_principal || '')}
 - Histórico Clínico & Sistêmico: Vísceras: ${JSON.stringify(avaliacaoData.visceras_sistemicas || {})}, Hábitos: ${JSON.stringify(avaliacaoData.habitos_saude || {})}
 - Exame Físico - Amplitude de Movimento (ADM por segmentos optativos): ${JSON.stringify(avaliacaoData.adm_segmentos || {})}
-- Teste de Força Muscular e Dinamômetro Manual: ${JSON.stringify(avaliacaoData.forca_muscular_grupos || {})}
-- Força Core (Prancha e Ponte comparadas ao padrão Oliveira et al. 2018): ${JSON.stringify(avaliacaoData.forca_core_tabela || {})}
+- Teste de Força Muscular & Dinamometria: ${avaliacaoData.forca_muscular_descricao || JSON.stringify(avaliacaoData.forca_muscular_grupos || {})}
 - Testes Especiais por Segmento: ${JSON.stringify(avaliacaoData.testes_especiais_segmentos || {})}
 - Testes Complementares (Berg, TUG, Cirtometria, Podologia): ${JSON.stringify(avaliacaoData.secoes_complementares || {})}
 - Exames Complementares Anexados / Descrição: ${avaliacaoData.descricao_exames || 'Exames de imagem/laboratoriais anexados em prontuário'}
-
 Por favor, responda com uma estrutura JSON válida contendo:
 {
   "hipotese_diagnostica": "string detalhada cruzando os dados",

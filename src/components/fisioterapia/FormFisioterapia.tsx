@@ -40,7 +40,7 @@ export const ETAPAS_FISIO = [
     icon: Activity,
     desc: 'Inspeção e Amplitude Articular Optativa',
   },
-  { id: 3, title: 'Força & Core', icon: Zap, desc: 'Dinamômetro Manual e Tabela de Core' },
+  { id: 3, title: 'Força Muscular', icon: Zap, desc: 'Descrição Aberta & Dinamômetro' },
   { id: 4, title: 'Testes Especiais', icon: Target, desc: 'Testes Ortopédicos por Segmento' },
   {
     id: 5,

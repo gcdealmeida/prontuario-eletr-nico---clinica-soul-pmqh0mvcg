@@ -137,6 +137,36 @@ export async function gerarIaFisioterapia(avaliacaoPayload: Record<string, unkno
   return data
 }
 
+export async function extrairDinamometroArquivo(file: File, textoContexto?: string) {
+  const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/fisioterapia/extrair-dinamometro`
+  const token = pb.authStore.token
+
+  const formData = new FormData()
+  formData.append('arquivo', file)
+  if (textoContexto) {
+    formData.append('texto', textoContexto)
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  })
+
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data?.error || 'Falha ao extrair dados do dinamômetro')
+  }
+  return data as {
+    success: boolean
+    nome_arquivo?: string
+    resumo: string
+    aviso?: string
+  }
+}
+
 export function getFileUrl(collectionName: string, recordId: string, filename: string): string {
   return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${collectionName}/${recordId}/${filename}`
 }

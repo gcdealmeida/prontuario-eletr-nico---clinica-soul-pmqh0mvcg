@@ -9,7 +9,7 @@ import type {
   PlanoSemanalItem,
   QueixaItem,
 } from '@/types/database'
-import { VALORES_REFERENCIA_CORE, BERG_ITENS, ELEMENTOS_PALMILHA } from '@/lib/fisioterapiaModel'
+import { BERG_ITENS, ELEMENTOS_PALMILHA } from '@/lib/fisioterapiaModel'
 import { getFileUrl } from '@/services/avaliacoes'
 import {
   FileText,
@@ -35,6 +35,7 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
   const visceras = avaliacao.visceras_sistemicas
   const habitos = avaliacao.habitos_saude
   const admSegmentos: AdmSegmento[] = (avaliacao.adm_segmentos || []).filter((s) => s.ativo)
+  const descricaoForca = avaliacao.forca_muscular_descricao
   const gruposForca: ForcaGrupoItem[] = avaliacao.forca_muscular_grupos || []
   const core: ForcaCoreTabela | undefined = avaliacao.forca_core_tabela
   const testesEsp: TestesEspeciaisSegmento[] = (avaliacao.testes_especiais_segmentos || []).filter(
@@ -42,12 +43,6 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
   )
   const comp: SecoesComplementaresFisio | undefined = avaliacao.secoes_complementares
   const planoSemanal: PlanoSemanalItem[] = avaliacao.plano_semanal_detalhado || []
-
-  // Core references
-  const refsAtivas =
-    core && VALORES_REFERENCIA_CORE[core.sexo]?.[core.faixa_etaria]
-      ? VALORES_REFERENCIA_CORE[core.sexo][core.faixa_etaria]
-      : VALORES_REFERENCIA_CORE.M['18-40']
 
   return (
     <div className="space-y-8 print:space-y-6">
@@ -295,146 +290,69 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
         )}
       </div>
 
-      {/* 3. TESTES DE FORÇA & TABELA DE FORÇA CORE */}
+      {/* 3. TESTE DE FORÇA MUSCULAR & DINAMOMETRIA (CAIXA DE DESCRIÇÃO ABERTA) */}
       <div className="space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2.5 rounded-xl flex items-center gap-2">
-          <Zap className="h-4 w-4" /> 3. Teste de Força Muscular, Dinamometria e Força Core
+          <Zap className="h-4 w-4" /> 3. Teste de Força Muscular & Dinamometria
         </h3>
 
-        {/* Força Dinamômetro */}
-        {gruposForca.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
-              Graduação Muscular & Dinamômetro Manual
+        {/* Caixa de Descrição Aberta */}
+        {descricaoForca ? (
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-2xs space-y-2">
+            <span className="text-[11px] font-bold text-[#8C6527] uppercase tracking-wider block">
+              Avaliação de Força Muscular e Leituras do Dinamômetro:
             </span>
-            <div className="overflow-x-auto rounded-2xl border border-gray-200">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200">
-                  <tr>
-                    <th className="py-2 px-3 text-left">Grupo Muscular</th>
-                    <th className="py-2 px-2 text-center">Grau D</th>
-                    <th className="py-2 px-2 text-center">Grau E</th>
-                    <th className="py-2 px-2 text-center">Dinamômetro D</th>
-                    <th className="py-2 px-2 text-center">Dinamômetro E</th>
-                    <th className="py-2 px-3 text-left">Observações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {gruposForca.map((grp) => (
-                    <tr key={grp.grupo} className="hover:bg-gray-50/50">
-                      <td className="py-1.5 px-3 font-semibold text-gray-800">{grp.grupo}</td>
-                      <td className="py-1.5 px-2 text-center font-bold text-gray-900">
-                        {grp.grau_direito || '5'}/5
-                      </td>
-                      <td className="py-1.5 px-2 text-center font-bold text-gray-900">
-                        {grp.grau_esquerdo || '5'}/5
-                      </td>
-                      <td className="py-1.5 px-2 text-center font-mono text-gray-800">
-                        {grp.dinamometro_direito_kgf ? `${grp.dinamometro_direito_kgf} kgf` : '—'}
-                      </td>
-                      <td className="py-1.5 px-2 text-center font-mono text-gray-800">
-                        {grp.dinamometro_esquerdo_kgf ? `${grp.dinamometro_esquerdo_kgf} kgf` : '—'}
-                      </td>
-                      <td className="py-1.5 px-3 text-gray-500">{grp.descricao_livre || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <p className="text-xs sm:text-sm text-gray-900 whitespace-pre-wrap leading-relaxed font-mono sm:font-sans bg-gray-50/50 p-3.5 rounded-xl border border-gray-100">
+              {descricaoForca}
+            </p>
+          </div>
+        ) : gruposForca.length > 0 ? (
+          /* Fallback legível para prontuários legados preenchidos antes da alteração */
+          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs space-y-2">
+            <span className="font-bold text-gray-700 block">
+              Registro de Força Muscular (Prontuário Anterior):
+            </span>
+            <div className="space-y-1 text-gray-800">
+              {gruposForca.map((grp) => (
+                <div key={grp.grupo} className="flex justify-between border-b border-gray-100 py-1">
+                  <span className="font-medium">{grp.grupo}</span>
+                  <span>
+                    D: {grp.grau_direito || '5'}/5{' '}
+                    {grp.dinamometro_direito_kgf ? `(${grp.dinamometro_direito_kgf} kgf)` : ''} | E:{' '}
+                    {grp.grau_esquerdo || '5'}/5{' '}
+                    {grp.dinamometro_esquerdo_kgf ? `(${grp.dinamometro_esquerdo_kgf} kgf)` : ''}
+                  </span>
+                </div>
+              ))}
             </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs text-gray-500">
+            Nenhuma observação de força muscular registrada para esta avaliação.
           </div>
         )}
 
-        {/* Tabela de Força Core Fixa */}
-        {core && (
-          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E9E1D2] space-y-3">
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="font-bold text-xs uppercase tracking-wider text-[#8C6527] block">
-                  Força Core — Valores de Referência Normativos (Oliveira et al., 2018)
-                </span>
-                <span className="text-[11px] text-gray-600">
-                  Perfil aplicado: Sexo {core.sexo === 'M' ? 'Masculino' : 'Feminino'} | Faixa{' '}
-                  {core.faixa_etaria} anos
-                </span>
-              </div>
+        {/* Anexos de Dinamômetro na seção de força */}
+        {avaliacao.anexos_dinamometro && avaliacao.anexos_dinamometro.length > 0 && (
+          <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-100 text-xs space-y-2">
+            <span className="font-bold text-blue-900 flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-blue-700" />
+              Arquivos / Prints de Dinamômetro Vinculados:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {avaliacao.anexos_dinamometro.map((f) => (
+                <a
+                  key={f}
+                  href={getFileUrl('avaliacoes_fisioterapia', avaliacao.id, f)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:bg-blue-50 text-blue-800 font-medium flex items-center gap-1.5 transition-colors"
+                >
+                  <Paperclip className="h-3.5 w-3.5 text-blue-600" />
+                  <span className="truncate max-w-xs">{f}</span>
+                </a>
+              ))}
             </div>
-
-            <div className="overflow-x-auto rounded-xl bg-white border border-[#E9E1D2]">
-              <table className="w-full text-xs">
-                <thead className="bg-[#FAF4EA] text-[10px] uppercase text-gray-600 border-b border-[#E9E1D2]">
-                  <tr>
-                    <th className="py-2 px-3 text-left">Teste</th>
-                    <th className="py-2 px-2 text-center">Realizado</th>
-                    <th className="py-2 px-2 text-center">Padrão da Literatura</th>
-                    <th className="py-2 px-2 text-center">% Atingido</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {[
-                    {
-                      nome: 'Prancha Ventral',
-                      val: core.prancha_ventral,
-                      padrao: refsAtivas.prancha_ventral,
-                    },
-                    {
-                      nome: 'Prancha Lateral D',
-                      val: core.prancha_lateral_d,
-                      padrao: refsAtivas.prancha_lateral_d,
-                    },
-                    {
-                      nome: 'Prancha Lateral E',
-                      val: core.prancha_lateral_e,
-                      padrao: refsAtivas.prancha_lateral_e,
-                    },
-                    {
-                      nome: 'Ponte Unilateral D',
-                      val: core.ponte_uni_d,
-                      padrao: refsAtivas.ponte_uni_d,
-                    },
-                    {
-                      nome: 'Ponte Unilateral E',
-                      val: core.ponte_uni_e,
-                      padrao: refsAtivas.ponte_uni_e,
-                    },
-                  ].map((row) => {
-                    const r = parseFloat(String(row.val || ''))
-                    const pct = r > 0 ? ((r / row.padrao) * 100).toFixed(0) : null
-                    return (
-                      <tr key={row.nome}>
-                        <td className="py-1.5 px-3 font-semibold text-gray-800">{row.nome}</td>
-                        <td className="py-1.5 px-2 text-center font-mono font-bold text-gray-900">
-                          {row.val ? `${row.val} s` : '—'}
-                        </td>
-                        <td className="py-1.5 px-2 text-center font-mono text-gray-600">
-                          {row.padrao} s
-                        </td>
-                        <td className="py-1.5 px-2 text-center">
-                          {pct ? (
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                Number(pct) >= 90
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : Number(pct) >= 70
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {pct}%
-                            </span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {core.observacoes && (
-              <p className="text-xs text-gray-600 italic">Obs: {core.observacoes}</p>
-            )}
           </div>
         )}
       </div>
