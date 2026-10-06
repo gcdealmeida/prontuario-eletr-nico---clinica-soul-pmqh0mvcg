@@ -195,9 +195,19 @@ export function ModalSincronizacaoIcs({
     try {
       setSavingSync(true)
       const result = await saveAndSyncGoogleCalendar(urlToUse)
+      const inWindow = result.in_window ?? (result.imported || 0) + (result.updated || 0)
+      const totalFeed = result.total_in_feed ?? inWindow
+
+      let msg = `${inWindow} eventos no período relevante da agenda (${result.imported || 0} novos, ${result.updated || 0} atualizados).`
+      if (inWindow === 0 && totalFeed > 0) {
+        msg = `O arquivo possui ${totalFeed} eventos no total, porém nenhum cai nos próximos meses ou últimos 90 dias.`
+      } else if (totalFeed === 0) {
+        msg = 'O calendário informado está vazio (0 eventos encontrados no Google).'
+      }
+
       toast({
         title: 'Google Agenda Vinculado!',
-        description: `${result.imported || 0} novos eventos importados, ${result.updated || 0} atualizados (${result.total_in_feed || 0} no feed). Sincronização automática a cada 15 min ativada.`,
+        description: msg,
       })
       setGoogleIcsUrl('')
       // Recarregar status
@@ -225,9 +235,17 @@ export function ModalSincronizacaoIcs({
     try {
       setSyncingNow(true)
       const result = await syncNowGoogleCalendar()
+      const inWindow = result.in_window ?? (result.imported || 0) + (result.updated || 0)
+      const totalFeed = result.total_in_feed ?? inWindow
+
+      let msg = `${inWindow} eventos sincronizados na grade (${result.imported || 0} novos, ${result.updated || 0} atualizados).`
+      if (inWindow === 0 && totalFeed > 0) {
+        msg = `O arquivo tem ${totalFeed} eventos no histórico, mas nenhum está dentro do período operacional da agenda.`
+      }
+
       toast({
         title: 'Sincronização concluída!',
-        description: `Eventos atualizados: ${result.total_in_feed || 0} no calendário (${result.imported || 0} novos, ${result.updated || 0} atualizados).`,
+        description: msg,
       })
       const updatedStatus = await getGoogleCalendarSyncStatus()
       setImportStatus(updatedStatus)

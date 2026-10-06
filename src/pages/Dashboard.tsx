@@ -62,9 +62,24 @@ export default function Dashboard() {
     const hoje = await getConsultasHoje()
     setMinhasConsultasHoje(hoje)
 
-    // 3. Consultas gerais para cálculo de especialidades e semana
-    const todasConsultas = await getConsultas()
-    setConsultasSemanaCount(todasConsultas.length)
+    // 3. Consultas da semana atual para cálculo de fluxo semanal e distribuição de especialidades
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const diffMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const monday = new Date(today)
+    monday.setDate(diffMonday)
+    monday.setHours(0, 0, 0, 0)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    sunday.setHours(23, 59, 59, 999)
+
+    const startIso = monday.toISOString().replace('T', ' ')
+    const endIso = sunday.toISOString().replace('T', ' ')
+
+    const weekFilter = `data_hora >= "${startIso}" && data_hora <= "${endIso}"`
+    const consultasSemana = await getConsultas(weekFilter, 'data_hora')
+    setConsultasSemanaCount(consultasSemana.length)
+    const todasConsultas = consultasSemana
 
     // Distribution
     const counts: Record<string, number> = {

@@ -153,6 +153,7 @@ export interface GoogleCalendarSyncResult {
   message: string
   calendar_name?: string
   total_in_feed?: number
+  in_window?: number
   imported?: number
   updated?: number
   removed?: number

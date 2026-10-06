@@ -45,10 +45,23 @@ export default function Agenda() {
   const [sincronizacaoOpen, setSincronizacaoOpen] = useState(false)
   const [selectedConsulta, setSelectedConsulta] = useState<ConsultaRecord | null>(null)
 
-  const fetchConsultasData = async () => {
+  const fetchConsultasData = async (dateForRange: Date = currentDate) => {
     try {
       setLoading(true)
-      const res = await getConsultas('', 'data_hora')
+      // Carregar uma janela temporal ampla ao redor da data selecionada (+-60 dias)
+      const startRange = new Date(dateForRange)
+      startRange.setDate(startRange.getDate() - 60)
+      startRange.setHours(0, 0, 0, 0)
+
+      const endRange = new Date(dateForRange)
+      endRange.setDate(endRange.getDate() + 60)
+      endRange.setHours(23, 59, 59, 999)
+
+      const startIso = startRange.toISOString().replace('T', ' ')
+      const endIso = endRange.toISOString().replace('T', ' ')
+
+      const filter = `data_hora >= "${startIso}" && data_hora <= "${endIso}"`
+      const res = await getConsultas(filter, 'data_hora')
       setConsultas(res)
     } catch (err) {
       console.error('Erro buscando consultas:', err)
@@ -58,12 +71,12 @@ export default function Agenda() {
   }
 
   useEffect(() => {
-    fetchConsultasData()
-  }, [])
+    fetchConsultasData(currentDate)
+  }, [currentDate.getFullYear(), currentDate.getMonth()])
 
   // Realtime
   useRealtime('consultas', () => {
-    fetchConsultasData()
+    fetchConsultasData(currentDate)
   })
 
   // Navegação de data
@@ -530,14 +543,14 @@ export default function Agenda() {
       <NovaConsultaModal
         open={novaConsultaOpen}
         onOpenChange={setNovaConsultaOpen}
-        onSuccess={() => fetchConsultasData()}
+        onSuccess={() => fetchConsultasData(currentDate)}
       />
 
       {/* Modal Sincronização Google Agenda (Feed .ics e Importação Secreta) */}
       <ModalSincronizacaoIcs
         open={sincronizacaoOpen}
         onOpenChange={setSincronizacaoOpen}
-        onSyncComplete={() => fetchConsultasData()}
+        onSyncComplete={() => fetchConsultasData(currentDate)}
       />
     </div>
   )

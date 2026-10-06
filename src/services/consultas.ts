@@ -3,6 +3,7 @@ import type { ConsultaRecord } from '@/types/database'
 
 export async function getConsultas(filter = '', sort = 'data_hora', expand = 'paciente_id') {
   return await pb.collection('consultas').getFullList<ConsultaRecord>({
+    batch: 1000,
     filter,
     sort,
     expand,

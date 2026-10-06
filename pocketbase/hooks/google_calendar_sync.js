@@ -300,12 +300,21 @@ routerAdd(
         return null
       }
 
-      // Buscar eventos já sincronizados deste usuário para merge sem duplicidade
+      // Janela temporal operacional relevante para consultas:
+      // Importa compromissos de 90 dias atrás até 365 dias no futuro
+      const nowMs = Date.now()
+      const minDateMs = nowMs - 90 * 24 * 60 * 60 * 1000 // 90 dias atrás
+      const maxDateMs = nowMs + 365 * 24 * 60 * 60 * 1000 // 1 ano à frente
+
+      const minDateIso = new Date(minDateMs).toISOString().replace('T', ' ')
+      const maxDateIso = new Date(maxDateMs).toISOString().replace('T', ' ')
+
+      // Buscar eventos já salvos do usuário nesta janela para atualização sem duplicatas
       const existingConsultas = $app.findRecordsByFilter(
         'consultas',
-        `origem = 'google' && user_id = '${userId}'`,
+        `origem = 'google' && user_id = '${userId}' && data_hora >= '${minDateIso}' && data_hora <= '${maxDateIso}'`,
         '-data_hora',
-        3000,
+        5000,
         0,
       )
 
@@ -313,7 +322,7 @@ routerAdd(
       for (let i = 0; i < existingConsultas.length; i++) {
         const c = existingConsultas[i]
         const uid = c.getString('google_event_uid')
-        if (uid) {
+        if (uid && !existingMapByUid[uid]) {
           existingMapByUid[uid] = c
         }
       }
@@ -322,11 +331,25 @@ routerAdd(
       let importedCount = 0
       let updatedCount = 0
       let cancelledCount = 0
+      let inWindowCount = 0
 
       const consultasCol = $app.findCollectionByNameOrId('consultas')
 
       for (let i = 0; i < events.length; i++) {
         const ev = events[i]
+
+        const parsedStart = parseIcsDate(ev.dtstart, ev.allDay)
+        if (!parsedStart || isNaN(parsedStart.date.getTime())) {
+          continue
+        }
+
+        const evMs = parsedStart.date.getTime()
+        // Filtrar apenas eventos dentro da janela relevante da clínica
+        if (evMs < minDateMs || evMs > maxDateMs) {
+          continue
+        }
+
+        inWindowCount++
         currentUidsInFeed[ev.uid] = true
 
         if (ev.status === 'CANCELLED') {
@@ -337,11 +360,6 @@ routerAdd(
               cancelledCount++
             } catch (_) {}
           }
-          continue
-        }
-
-        const parsedStart = parseIcsDate(ev.dtstart, ev.allDay)
-        if (!parsedStart || isNaN(parsedStart.date.getTime())) {
           continue
         }
 
@@ -386,10 +404,11 @@ routerAdd(
           newRecord.set('user_id', userId)
           $app.save(newRecord)
           importedCount++
+          existingMapByUid[ev.uid] = newRecord
         }
       }
 
-      // Remover eventos do Google que foram excluídos na fonte
+      // Remover eventos do Google da janela que foram excluídos na fonte
       let removedCount = 0
       for (let i = 0; i < existingConsultas.length; i++) {
         const c = existingConsultas[i]
@@ -406,7 +425,7 @@ routerAdd(
       syncRecord.set('last_sync', nowIso)
       syncRecord.set('last_status', 'success')
       syncRecord.set('last_error', '')
-      syncRecord.set('events_count', events.length)
+      syncRecord.set('events_count', inWindowCount)
       $app.save(syncRecord)
 
       return e.json(200, {
@@ -414,6 +433,7 @@ routerAdd(
         message: 'Google Agenda vinculado e sincronizado com sucesso!',
         calendar_name: syncRecord.getString('calendar_name') || 'Google Agenda',
         total_in_feed: events.length,
+        in_window: inWindowCount,
         imported: importedCount,
         updated: updatedCount,
         removed: removedCount + cancelledCount,
@@ -645,11 +665,18 @@ routerAdd(
         return null
       }
 
+      const nowMs = Date.now()
+      const minDateMs = nowMs - 90 * 24 * 60 * 60 * 1000 // 90 dias atrás
+      const maxDateMs = nowMs + 365 * 24 * 60 * 60 * 1000 // 1 ano à frente
+
+      const minDateIso = new Date(minDateMs).toISOString().replace('T', ' ')
+      const maxDateIso = new Date(maxDateMs).toISOString().replace('T', ' ')
+
       const existingConsultas = $app.findRecordsByFilter(
         'consultas',
-        `origem = 'google' && user_id = '${userId}'`,
+        `origem = 'google' && user_id = '${userId}' && data_hora >= '${minDateIso}' && data_hora <= '${maxDateIso}'`,
         '-data_hora',
-        3000,
+        5000,
         0,
       )
 
@@ -657,7 +684,7 @@ routerAdd(
       for (let i = 0; i < existingConsultas.length; i++) {
         const c = existingConsultas[i]
         const uid = c.getString('google_event_uid')
-        if (uid) {
+        if (uid && !existingMapByUid[uid]) {
           existingMapByUid[uid] = c
         }
       }
@@ -666,11 +693,24 @@ routerAdd(
       let importedCount = 0
       let updatedCount = 0
       let cancelledCount = 0
+      let inWindowCount = 0
 
       const consultasCol = $app.findCollectionByNameOrId('consultas')
 
       for (let i = 0; i < events.length; i++) {
         const ev = events[i]
+
+        const parsedStart = parseIcsDate(ev.dtstart, ev.allDay)
+        if (!parsedStart || isNaN(parsedStart.date.getTime())) {
+          continue
+        }
+
+        const evMs = parsedStart.date.getTime()
+        if (evMs < minDateMs || evMs > maxDateMs) {
+          continue
+        }
+
+        inWindowCount++
         currentUidsInFeed[ev.uid] = true
 
         if (ev.status === 'CANCELLED') {
@@ -681,11 +721,6 @@ routerAdd(
               cancelledCount++
             } catch (_) {}
           }
-          continue
-        }
-
-        const parsedStart = parseIcsDate(ev.dtstart, ev.allDay)
-        if (!parsedStart || isNaN(parsedStart.date.getTime())) {
           continue
         }
 
@@ -730,6 +765,7 @@ routerAdd(
           newRecord.set('user_id', userId)
           $app.save(newRecord)
           importedCount++
+          existingMapByUid[ev.uid] = newRecord
         }
       }
 
@@ -749,7 +785,7 @@ routerAdd(
       syncRecord.set('last_sync', nowIso)
       syncRecord.set('last_status', 'success')
       syncRecord.set('last_error', '')
-      syncRecord.set('events_count', events.length)
+      syncRecord.set('events_count', inWindowCount)
       $app.save(syncRecord)
 
       return e.json(200, {
@@ -757,6 +793,7 @@ routerAdd(
         message: 'Sincronização concluída com sucesso!',
         calendar_name: syncRecord.getString('calendar_name') || 'Google Agenda',
         total_in_feed: events.length,
+        in_window: inWindowCount,
         imported: importedCount,
         updated: updatedCount,
         removed: removedCount + cancelledCount,
@@ -843,19 +880,17 @@ routerAdd(
       } catch (_) {}
     }
 
-    // Remover eventos importados do Google deste usuário
-    const existingConsultas = $app.findRecordsByFilter(
-      'consultas',
-      `origem = 'google' && user_id = '${userId}'`,
-      '-created',
-      3000,
-      0,
-    )
-    for (let i = 0; i < existingConsultas.length; i++) {
-      try {
-        $app.delete(existingConsultas[i])
-      } catch (_) {}
-    }
+    // Remover todos os eventos importados do Google deste usuário
+    try {
+      $app
+        .db()
+        .newQuery(`
+        DELETE FROM consultas 
+        WHERE origem = 'google' AND user_id = {:userId}
+      `)
+        .bind({ userId })
+        .execute()
+    } catch (_) {}
 
     return e.json(200, {
       success: true,
@@ -1050,11 +1085,18 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
           return null
         }
 
+        const nowMs = Date.now()
+        const minDateMs = nowMs - 90 * 24 * 60 * 60 * 1000
+        const maxDateMs = nowMs + 365 * 24 * 60 * 60 * 1000
+
+        const minDateIso = new Date(minDateMs).toISOString().replace('T', ' ')
+        const maxDateIso = new Date(maxDateMs).toISOString().replace('T', ' ')
+
         const existingConsultas = $app.findRecordsByFilter(
           'consultas',
-          `origem = 'google' && user_id = '${userId}'`,
+          `origem = 'google' && user_id = '${userId}' && data_hora >= '${minDateIso}' && data_hora <= '${maxDateIso}'`,
           '-data_hora',
-          3000,
+          5000,
           0,
         )
 
@@ -1062,15 +1104,28 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
         for (let i = 0; i < existingConsultas.length; i++) {
           const c = existingConsultas[i]
           const uid = c.getString('google_event_uid')
-          if (uid) {
+          if (uid && !existingMapByUid[uid]) {
             existingMapByUid[uid] = c
           }
         }
 
         const currentUidsInFeed = {}
+        let inWindowCount = 0
 
         for (let i = 0; i < events.length; i++) {
           const ev = events[i]
+
+          const parsedStart = parseIcsDate(ev.dtstart, ev.allDay)
+          if (!parsedStart || isNaN(parsedStart.date.getTime())) {
+            continue
+          }
+
+          const evMs = parsedStart.date.getTime()
+          if (evMs < minDateMs || evMs > maxDateMs) {
+            continue
+          }
+
+          inWindowCount++
           currentUidsInFeed[ev.uid] = true
 
           if (ev.status === 'CANCELLED') {
@@ -1080,11 +1135,6 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
                 $app.delete(exist)
               } catch (_) {}
             }
-            continue
-          }
-
-          const parsedStart = parseIcsDate(ev.dtstart, ev.allDay)
-          if (!parsedStart || isNaN(parsedStart.date.getTime())) {
             continue
           }
 
@@ -1127,10 +1177,11 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
             newRecord.set('titulo_externo', summaryText)
             newRecord.set('user_id', userId)
             $app.save(newRecord)
+            existingMapByUid[ev.uid] = newRecord
           }
         }
 
-        // Remover deletados do feed
+        // Remover deletados da janela no Google
         for (let i = 0; i < existingConsultas.length; i++) {
           const c = existingConsultas[i]
           const uid = c.getString('google_event_uid')
@@ -1145,7 +1196,7 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
         syncRecord.set('last_sync', nowIso)
         syncRecord.set('last_status', 'success')
         syncRecord.set('last_error', '')
-        syncRecord.set('events_count', events.length)
+        syncRecord.set('events_count', inWindowCount)
         $app.save(syncRecord)
       } catch (itemErr) {
         console.log('[CRON Google Sync] Erro no usuário ' + userId + ':', itemErr)

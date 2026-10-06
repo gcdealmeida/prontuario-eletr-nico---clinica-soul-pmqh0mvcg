@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T13:42:48.052Z",
+  "generatedAt": "2026-10-06T14:19:20.380Z",
   "collections": [
     {
       "name": "users",
@@ -372,7 +372,9 @@
         "CREATE INDEX idx_consultas_paciente ON consultas (paciente_id)",
         "CREATE INDEX idx_consultas_data_hora ON consultas (data_hora)",
         "CREATE INDEX `idx_consultas_google_uid` ON `consultas` (google_event_uid)",
-        "CREATE INDEX `idx_consultas_origem` ON `consultas` (origem)"
+        "CREATE INDEX `idx_consultas_origem` ON `consultas` (origem)",
+        "CREATE INDEX `idx_consultas_user_data` ON `consultas` (user_id, data_hora)",
+        "CREATE INDEX `idx_consultas_user_origem_uid` ON `consultas` (user_id, origem, google_event_uid)"
       ]
     },
     {
