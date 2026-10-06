@@ -15,8 +15,13 @@ onRecordCreate((e) => {
     e.record.set('role', 'admin')
     e.record.set('approved_at', new Date().toISOString())
     e.record.set('approved_by', 'system_admin_rule')
+  } else if (e.record.getString('access_status') === 'approved') {
+    // Se o registro já foi definido como aprovado (ex.: seed de migração pelo sistema)
+    if (!e.record.getString('role')) {
+      e.record.set('role', 'professional')
+    }
   } else {
-    // Novos cadastros sempre entram como pendentes
+    // Novos cadastros comuns (signup público) entram como pendentes
     e.record.set('access_status', 'pending')
     if (!e.record.getString('role')) {
       e.record.set('role', 'professional')
