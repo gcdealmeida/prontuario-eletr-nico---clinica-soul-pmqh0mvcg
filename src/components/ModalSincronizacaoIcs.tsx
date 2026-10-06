@@ -197,7 +197,7 @@ export function ModalSincronizacaoIcs({
       const result = await saveAndSyncGoogleCalendar(urlToUse)
       toast({
         title: 'Google Agenda Vinculado!',
-        description: `${result.imported || 0} novos eventos importados, ${result.updated || 0} atualizados. Sincronização automática a cada 15 min ativada.`,
+        description: `${result.imported || 0} novos eventos importados, ${result.updated || 0} atualizados (${result.total_in_feed || 0} no feed). Sincronização automática a cada 15 min ativada.`,
       })
       setGoogleIcsUrl('')
       // Recarregar status
@@ -205,12 +205,15 @@ export function ModalSincronizacaoIcs({
       setImportStatus(updatedStatus)
       if (onSyncComplete) onSyncComplete()
     } catch (err: any) {
+      const backendMessage =
+        err?.response?.error ||
+        err?.data?.error ||
+        err?.data?.message ||
+        err?.message ||
+        'Não foi possível conectar ao Google Agenda. Verifique se o endereço secreto iCal está completo.'
       toast({
         title: 'Erro ao sincronizar Google Agenda',
-        description:
-          err?.data?.error ||
-          err?.message ||
-          'Verifique se copiou a URL correta do endereço secreto iCal.',
+        description: backendMessage,
         variant: 'destructive',
       })
     } finally {
@@ -230,10 +233,15 @@ export function ModalSincronizacaoIcs({
       setImportStatus(updatedStatus)
       if (onSyncComplete) onSyncComplete()
     } catch (err: any) {
+      const backendMessage =
+        err?.response?.error ||
+        err?.data?.error ||
+        err?.data?.message ||
+        err?.message ||
+        'Não foi possível sincronizar no momento. Tente novamente em instantes.'
       toast({
         title: 'Falha na sincronização',
-        description:
-          err?.data?.error || err?.message || 'Não foi possível buscar os eventos agora.',
+        description: backendMessage,
         variant: 'destructive',
       })
     } finally {

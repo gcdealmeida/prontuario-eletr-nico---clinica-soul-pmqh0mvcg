@@ -3,12 +3,15 @@
 /**
  * Hook de importação e sincronização com Google Calendar via endereço secreto .ics (iCal)
  * Oferece:
- * 1. POST /api/google-calendar/sync (requer auth do usuário logado)
- * 2. POST /api/google-calendar/save-and-sync (salva ou atualiza a ics_url e executa sync imediato)
- * 3. cronAdd("google_calendar_sync_all", "@every 15m") para sincronizar automaticamente todos os usuários com URL configurada
+ * 1. POST /backend/v1/google-calendar/save-and-sync (salva ou atualiza a ics_url e executa sync imediato com retry e diagnóstico detalhado)
+ * 2. POST /backend/v1/google-calendar/sync-now (executa sincronização usando a URL já salva no banco)
+ * 3. GET  /backend/v1/google-calendar/status (retorna o estado da sincronização do usuário autenticado)
+ * 4. POST /backend/v1/google-calendar/disconnect (desconecta e remove eventos externos)
+ * 5. cronAdd("google_calendar_sync_cron", "* /15 * * * *") para sincronizar automaticamente a cada 15 min
  *
- * NOTA IMPORTANTE VM POCKETBASE:
- * Toda a lógica de parse e persistência está inline dentro de cada callback ou replicada conforme regras do runtime goja.
+ * NOTA ARQUITETURA VM POCKETBASE (goja):
+ * Top-level functions e variáveis NÃO são compartilhadas entre callbacks.
+ * Toda a lógica de cada rota ou cron handler é mantida self-contained dentro do callback.
  */
 
 // 1. Rota de Salvar e Sincronizar
@@ -18,7 +21,7 @@ routerAdd(
   (e) => {
     const auth = e.auth
     if (!auth || !auth.id) {
-      return e.json(401, { error: 'Não autorizado' })
+      return e.json(401, { error: 'Não autorizado. Faça login novamente.' })
     }
 
     const userId = auth.id
@@ -29,26 +32,51 @@ routerAdd(
       body = {}
     }
 
-    const rawUrl = (body.ics_url || '').trim()
+    let rawUrl = (body.ics_url || '').trim()
     if (!rawUrl) {
-      return e.json(400, { error: 'Endereço iCal (.ics) é obrigatório' })
-    }
-
-    // Validação básica da URL do Google Calendar
-    if (
-      !rawUrl.startsWith('http://') &&
-      !rawUrl.startsWith('https://') &&
-      !rawUrl.startsWith('webcal://')
-    ) {
       return e.json(400, {
-        error: 'URL inválida. O link deve começar com https:// ou webcal://',
+        error: 'Endereço iCal (.ics) é obrigatório. Cole o link copiado do Google Agenda.',
       })
     }
 
-    // Converter webcal:// para https://
+    // Limpar aspas acidentais, quebras de linha e espaços extras
+    rawUrl = rawUrl.replace(/[\r\n\t]/g, '').trim()
+    if (
+      (rawUrl.startsWith('"') && rawUrl.endsWith('"')) ||
+      (rawUrl.startsWith("'") && rawUrl.endsWith("'"))
+    ) {
+      rawUrl = rawUrl.substring(1, rawUrl.length - 1).trim()
+    }
+
+    // Normalizar protocolo webcal:// para https://
     let normalizedUrl = rawUrl
-    if (normalizedUrl.startsWith('webcal://')) {
-      normalizedUrl = 'https://' + normalizedUrl.slice(9)
+    if (normalizedUrl.toLowerCase().startsWith('webcal://')) {
+      normalizedUrl = 'https://' + normalizedUrl.substring(9)
+    }
+
+    // Validar formato mínimo de URL
+    if (
+      !normalizedUrl.toLowerCase().startsWith('https://') &&
+      !normalizedUrl.toLowerCase().startsWith('http://')
+    ) {
+      return e.json(400, {
+        error:
+          'URL inválida. O link do Google Agenda deve começar com https:// (ou webcal://). Verifique se copiou o link completo.',
+      })
+    }
+
+    // Alerta caso o usuário tente colar link html de visualização web em vez de .ics
+    if (
+      normalizedUrl.indexOf('calendar.google.com') !== -1 &&
+      normalizedUrl.indexOf('.ics') === -1 &&
+      (normalizedUrl.indexOf('/embed') !== -1 ||
+        normalizedUrl.indexOf('/render') !== -1 ||
+        normalizedUrl.indexOf('/event') !== -1)
+    ) {
+      return e.json(400, {
+        error:
+          'Este link parece ser da página web do Google Agenda, não o arquivo iCal. No Google Agenda, vá em Configurações > Integrar agenda e copie o "Endereço secreto em formato iCal" que termina com .ics.',
+      })
     }
 
     // Salvar ou atualizar na coleção google_calendar_syncs
@@ -90,36 +118,65 @@ routerAdd(
         pacienteId = newP.id
       }
 
-      // 2. Download do arquivo .ics
-      const res = $http.send({
-        url: normalizedUrl,
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; SistemaSOUL/1.0; +https://clinicasoul.com.br)',
-          Accept: 'text/calendar, text/plain, */*',
-        },
-        timeout: 25,
-      })
+      // 2. Download do arquivo .ics com retry em caso de lentidão de rede
+      let res = null
+      let downloadError = null
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          res = $http.send({
+            url: normalizedUrl,
+            method: 'GET',
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SistemaSOUL/1.0',
+              Accept: 'text/calendar, text/plain, */*',
+              'Cache-Control': 'no-cache',
+            },
+            timeout: 30,
+          })
+          if (res && res.statusCode >= 200 && res.statusCode < 300) {
+            downloadError = null
+            break
+          } else {
+            downloadError = 'Código HTTP ' + (res ? res.statusCode : 'sem resposta')
+          }
+        } catch (fetchErr) {
+          downloadError = fetchErr ? fetchErr.message || String(fetchErr) : 'Falha na conexão'
+        }
+      }
 
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        const errMsg = 'Falha ao baixar calendário do Google. Código HTTP: ' + res.statusCode
+      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
+        let msg =
+          'Não foi possível acessar seu calendário do Google (' +
+          (downloadError || 'Erro desconhecido') +
+          '). '
+        if (res && res.statusCode === 404) {
+          msg +=
+            'O endereço iCal não foi encontrado no Google. Verifique se o endereço secreto foi redefinido ou copiado incorretamente.'
+        } else if ((res && res.statusCode === 401) || (res && res.statusCode === 403)) {
+          msg +=
+            'Acesso negado pelo Google. Certifique-se de copiar o "Endereço secreto em formato iCal", e não um link público restrito.'
+        } else {
+          msg += 'Verifique sua conexão e se a URL completa copiada do Google Agenda está correta.'
+        }
+
         syncRecord.set('last_status', 'error')
-        syncRecord.set('last_error', errMsg)
+        syncRecord.set('last_error', msg)
         $app.save(syncRecord)
-        return e.json(400, { error: errMsg })
+        return e.json(400, { error: msg })
       }
 
       const icsText = res.raw || ''
       if (!icsText || icsText.indexOf('BEGIN:VCALENDAR') === -1) {
-        const errMsg = 'A URL fornecida não retornou um arquivo iCalendar (.ics) válido.'
+        const errMsg =
+          'O link informado não retornou um calendário iCal (.ics) válido. Copie novamente o "Endereço secreto em formato iCal" nas configurações do seu Google Agenda.'
         syncRecord.set('last_status', 'error')
         syncRecord.set('last_error', errMsg)
         $app.save(syncRecord)
         return e.json(400, { error: errMsg })
       }
 
-      // 3. Parser de VEVENTs (desdobramento de linhas RFC 5545)
-      // Linhas continuadas começam com espaço ou tab
+      // 3. Parser RFC 5545 com desdobramento de linhas (folding)
       const rawLines = icsText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
       const unfoldedLines = []
       for (let i = 0; i < rawLines.length; i++) {
@@ -135,8 +192,8 @@ routerAdd(
       let calNameFromIcs = ''
       for (let i = 0; i < unfoldedLines.length; i++) {
         const line = unfoldedLines[i]
-        if (line.startsWith('X-WR-CALNAME:')) {
-          calNameFromIcs = line.substring(13).trim()
+        if (line.toUpperCase().startsWith('X-WR-CALNAME:')) {
+          calNameFromIcs = line.substring(line.indexOf(':') + 1).trim()
           break
         }
       }
@@ -144,7 +201,7 @@ routerAdd(
         syncRecord.set('calendar_name', calNameFromIcs)
       }
 
-      // Extrair blocos VEVENT
+      // Parser de eventos VEVENT
       const events = []
       let inEvent = false
       let currentEvent = null
@@ -178,9 +235,9 @@ routerAdd(
             if (propName === 'UID') {
               currentEvent.uid = val.trim()
             } else if (propName === 'SUMMARY') {
-              // Desescapar caracteres iCal
               currentEvent.summary = val
                 .replace(/\\n/g, ' ')
+                .replace(/\\N/g, ' ')
                 .replace(/\\,/g, ',')
                 .replace(/\\;/g, ';')
                 .replace(/\\\\/g, '\\')
@@ -188,6 +245,7 @@ routerAdd(
             } else if (propName === 'DESCRIPTION') {
               currentEvent.description = val
                 .replace(/\\n/g, '\n')
+                .replace(/\\N/g, '\n')
                 .replace(/\\,/g, ',')
                 .replace(/\\;/g, ';')
                 .replace(/\\\\/g, '\\')
@@ -206,53 +264,48 @@ routerAdd(
         }
       }
 
-      // Helper inline para converter timestamp iCal para Date UTC
-      // Formatos: 20261005T140000Z, 20261005T110000, 20261005
+      // Parser robusto de datas iCal (UTC 'Z', local 'YYYYMMDDTHHMMSS' assumindo SP UTC-3, e All-Day)
       const parseIcsDate = (valStr, isAllDay) => {
         if (!valStr) return null
         const clean = valStr.trim()
         if (clean.length === 8) {
-          // YYYYMMDD (All Day) -> interpretar como início do dia em SP (America/Sao_Paulo UTC-3)
-          // 08:00 horário comercial da clínica = 11:00 UTC
           const y = parseInt(clean.substring(0, 4), 10)
           const m = parseInt(clean.substring(4, 6), 10) - 1
           const d = parseInt(clean.substring(6, 8), 10)
-          // Criar data às 08:00 locais de SP (11:00 UTC)
-          const dt = new Date(Date.UTC(y, m, d, 11, 0, 0))
-          return { date: dt, duration: 480, isAllDay: true } // 8h
+          const dt = new Date(Date.UTC(y, m, d, 11, 0, 0)) // 08:00 horário de Brasília = 11:00 UTC
+          return { date: dt, duration: 480, isAllDay: true }
         }
 
-        // YYYYMMDDTHHMMSS ou YYYYMMDDTHHMMSSZ
         if (clean.length >= 15 && clean.indexOf('T') !== -1) {
-          const y = parseInt(clean.substring(0, 4), 10)
-          const m = parseInt(clean.substring(4, 6), 10) - 1
-          const d = parseInt(clean.substring(6, 8), 10)
-          const h = parseInt(clean.substring(9, 11), 10)
-          const min = parseInt(clean.substring(11, 13), 10)
-          const s = parseInt(clean.substring(13, 15), 10) || 0
+          const tIdx = clean.indexOf('T')
+          const datePart = clean.substring(0, tIdx)
+          const timePart = clean.substring(tIdx + 1)
+
+          const y = parseInt(datePart.substring(0, 4), 10)
+          const m = parseInt(datePart.substring(4, 6), 10) - 1
+          const d = parseInt(datePart.substring(6, 8), 10)
+          const h = parseInt(timePart.substring(0, 2), 10)
+          const min = parseInt(timePart.substring(2, 4), 10)
+          const s = parseInt(timePart.substring(4, 6), 10) || 0
 
           let dt = null
           if (clean.endsWith('Z')) {
-            // Já em UTC
             dt = new Date(Date.UTC(y, m, d, h, min, s))
           } else {
-            // Sem indicador 'Z', normalmente gerado no timezone local da conta Google (SP: UTC-3)
-            // Adicionamos +3h para converter horário SP para UTC
+            // Sem 'Z': horário local do Brasil (UTC-3)
             dt = new Date(Date.UTC(y, m, d, h + 3, min, s))
           }
           return { date: dt, duration: 45, isAllDay: false }
         }
-
         return null
       }
 
-      // Buscar consultas já importadas deste usuário/sync
-      // Para atualizar existentes e excluir eventos removidos do Google
+      // Buscar eventos já sincronizados deste usuário para merge sem duplicidade
       const existingConsultas = $app.findRecordsByFilter(
         'consultas',
         `origem = 'google' && user_id = '${userId}'`,
         '-data_hora',
-        2000,
+        3000,
         0,
       )
 
@@ -276,7 +329,6 @@ routerAdd(
         const ev = events[i]
         currentUidsInFeed[ev.uid] = true
 
-        // Se cancelado no Google
         if (ev.status === 'CANCELLED') {
           const exist = existingMapByUid[ev.uid]
           if (exist) {
@@ -306,15 +358,12 @@ routerAdd(
           }
         }
 
-        // Format ISO string para o PocketBase: "YYYY-MM-DD HH:MM:SS.000Z"
         const isoStr = parsedStart.date.toISOString().replace('T', ' ')
-
         const summaryText = ev.summary || 'Compromisso Google Agenda'
         const descText = ev.description || ''
 
         const exist = existingMapByUid[ev.uid]
         if (exist) {
-          // Atualizar
           exist.set('data_hora', isoStr)
           exist.set('duracao_min', duracao)
           exist.set('titulo_externo', summaryText)
@@ -323,7 +372,6 @@ routerAdd(
           $app.save(exist)
           updatedCount++
         } else {
-          // Inserir novo
           const newRecord = new Record(consultasCol)
           newRecord.set('paciente_id', pacienteId)
           newRecord.set('especialidade', 'Fisioterapia')
@@ -341,7 +389,7 @@ routerAdd(
         }
       }
 
-      // Limpar eventos que estavam gravados como 'google' mas não constam mais no feed .ics
+      // Remover eventos do Google que foram excluídos na fonte
       let removedCount = 0
       for (let i = 0; i < existingConsultas.length; i++) {
         const c = existingConsultas[i]
@@ -354,7 +402,6 @@ routerAdd(
         }
       }
 
-      // Atualizar metadados do syncRecord
       const nowIso = new Date().toISOString().replace('T', ' ')
       syncRecord.set('last_sync', nowIso)
       syncRecord.set('last_status', 'success')
@@ -364,8 +411,8 @@ routerAdd(
 
       return e.json(200, {
         success: true,
-        message: 'Sincronização concluída com sucesso!',
-        calendar_name: syncRecord.getString('calendar_name') || 'Google Calendar',
+        message: 'Google Agenda vinculado e sincronizado com sucesso!',
+        calendar_name: syncRecord.getString('calendar_name') || 'Google Agenda',
         total_in_feed: events.length,
         imported: importedCount,
         updated: updatedCount,
@@ -374,7 +421,8 @@ routerAdd(
       })
     } catch (syncErr) {
       const errMsg =
-        'Erro na sincronização: ' + (syncErr ? syncErr.message || syncErr : 'Desconhecido')
+        'Erro ao processar agenda: ' +
+        (syncErr ? syncErr.message || String(syncErr) : 'Erro desconhecido')
       try {
         syncRecord.set('last_status', 'error')
         syncRecord.set('last_error', errMsg)
@@ -393,7 +441,7 @@ routerAdd(
   (e) => {
     const auth = e.auth
     if (!auth || !auth.id) {
-      return e.json(401, { error: 'Não autorizado' })
+      return e.json(401, { error: 'Não autorizado. Faça login novamente.' })
     }
 
     const userId = auth.id
@@ -404,7 +452,8 @@ routerAdd(
 
     if (!syncRecord || !syncRecord.getString('ics_url')) {
       return e.json(400, {
-        error: 'Nenhum endereço iCal configurado. Cole a URL do Google Calendar primeiro.',
+        error:
+          'Nenhum endereço iCal configurado. Cole o endereço secreto do Google Agenda primeiro.',
       })
     }
 
@@ -428,19 +477,38 @@ routerAdd(
         pacienteId = newP.id
       }
 
-      // 2. Download do arquivo .ics
-      const res = $http.send({
-        url: icsUrl,
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; SistemaSOUL/1.0; +https://clinicasoul.com.br)',
-          Accept: 'text/calendar, text/plain, */*',
-        },
-        timeout: 25,
-      })
+      // 2. Download do arquivo .ics com retry
+      let res = null
+      let downloadError = null
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          res = $http.send({
+            url: icsUrl,
+            method: 'GET',
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SistemaSOUL/1.0',
+              Accept: 'text/calendar, text/plain, */*',
+              'Cache-Control': 'no-cache',
+            },
+            timeout: 30,
+          })
+          if (res && res.statusCode >= 200 && res.statusCode < 300) {
+            downloadError = null
+            break
+          } else {
+            downloadError = 'Código HTTP ' + (res ? res.statusCode : 'sem resposta')
+          }
+        } catch (fetchErr) {
+          downloadError = fetchErr ? fetchErr.message || String(fetchErr) : 'Falha na conexão'
+        }
+      }
 
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        const errMsg = 'Falha ao baixar calendário do Google. Código HTTP: ' + res.statusCode
+      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
+        const errMsg =
+          'Falha ao baixar calendário do Google (' +
+          (downloadError || 'Erro desconhecido') +
+          '). Verifique se a URL secreta ainda é válida nas configurações do Google Agenda.'
         syncRecord.set('last_status', 'error')
         syncRecord.set('last_error', errMsg)
         $app.save(syncRecord)
@@ -449,14 +517,15 @@ routerAdd(
 
       const icsText = res.raw || ''
       if (!icsText || icsText.indexOf('BEGIN:VCALENDAR') === -1) {
-        const errMsg = 'A URL fornecida não retornou um arquivo iCalendar (.ics) válido.'
+        const errMsg =
+          'O Google não retornou um arquivo iCalendar (.ics) válido. Copie novamente o endereço secreto nas configurações do Google Agenda.'
         syncRecord.set('last_status', 'error')
         syncRecord.set('last_error', errMsg)
         $app.save(syncRecord)
         return e.json(400, { error: errMsg })
       }
 
-      // 3. Parser de VEVENTs (unfold RFC 5545)
+      // 3. Parser RFC 5545
       const rawLines = icsText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
       const unfoldedLines = []
       for (let i = 0; i < rawLines.length; i++) {
@@ -471,8 +540,8 @@ routerAdd(
       let calNameFromIcs = ''
       for (let i = 0; i < unfoldedLines.length; i++) {
         const line = unfoldedLines[i]
-        if (line.startsWith('X-WR-CALNAME:')) {
-          calNameFromIcs = line.substring(13).trim()
+        if (line.toUpperCase().startsWith('X-WR-CALNAME:')) {
+          calNameFromIcs = line.substring(line.indexOf(':') + 1).trim()
           break
         }
       }
@@ -515,6 +584,7 @@ routerAdd(
             } else if (propName === 'SUMMARY') {
               currentEvent.summary = val
                 .replace(/\\n/g, ' ')
+                .replace(/\\N/g, ' ')
                 .replace(/\\,/g, ',')
                 .replace(/\\;/g, ';')
                 .replace(/\\\\/g, '\\')
@@ -522,6 +592,7 @@ routerAdd(
             } else if (propName === 'DESCRIPTION') {
               currentEvent.description = val
                 .replace(/\\n/g, '\n')
+                .replace(/\\N/g, '\n')
                 .replace(/\\,/g, ',')
                 .replace(/\\;/g, ';')
                 .replace(/\\\\/g, '\\')
@@ -547,17 +618,21 @@ routerAdd(
           const y = parseInt(clean.substring(0, 4), 10)
           const m = parseInt(clean.substring(4, 6), 10) - 1
           const d = parseInt(clean.substring(6, 8), 10)
-          const dt = new Date(Date.UTC(y, m, d, 11, 0, 0)) // 08:00 horário SP
+          const dt = new Date(Date.UTC(y, m, d, 11, 0, 0))
           return { date: dt, duration: 480, isAllDay: true }
         }
 
         if (clean.length >= 15 && clean.indexOf('T') !== -1) {
-          const y = parseInt(clean.substring(0, 4), 10)
-          const m = parseInt(clean.substring(4, 6), 10) - 1
-          const d = parseInt(clean.substring(6, 8), 10)
-          const h = parseInt(clean.substring(9, 11), 10)
-          const min = parseInt(clean.substring(11, 13), 10)
-          const s = parseInt(clean.substring(13, 15), 10) || 0
+          const tIdx = clean.indexOf('T')
+          const datePart = clean.substring(0, tIdx)
+          const timePart = clean.substring(tIdx + 1)
+
+          const y = parseInt(datePart.substring(0, 4), 10)
+          const m = parseInt(datePart.substring(4, 6), 10) - 1
+          const d = parseInt(datePart.substring(6, 8), 10)
+          const h = parseInt(timePart.substring(0, 2), 10)
+          const min = parseInt(timePart.substring(2, 4), 10)
+          const s = parseInt(timePart.substring(4, 6), 10) || 0
 
           let dt = null
           if (clean.endsWith('Z')) {
@@ -574,7 +649,7 @@ routerAdd(
         'consultas',
         `origem = 'google' && user_id = '${userId}'`,
         '-data_hora',
-        2000,
+        3000,
         0,
       )
 
@@ -680,7 +755,7 @@ routerAdd(
       return e.json(200, {
         success: true,
         message: 'Sincronização concluída com sucesso!',
-        calendar_name: syncRecord.getString('calendar_name') || 'Google Calendar',
+        calendar_name: syncRecord.getString('calendar_name') || 'Google Agenda',
         total_in_feed: events.length,
         imported: importedCount,
         updated: updatedCount,
@@ -689,7 +764,8 @@ routerAdd(
       })
     } catch (syncErr) {
       const errMsg =
-        'Erro na sincronização: ' + (syncErr ? syncErr.message || syncErr : 'Desconhecido')
+        'Erro na sincronização: ' +
+        (syncErr ? syncErr.message || String(syncErr) : 'Erro desconhecido')
       try {
         syncRecord.set('last_status', 'error')
         syncRecord.set('last_error', errMsg)
@@ -724,7 +800,6 @@ routerAdd(
     }
 
     const fullUrl = syncRecord.getString('ics_url') || ''
-    // Truncar URL para segurança (exibir apenas domínio e primeiros/últimos caracteres)
     let maskedUrl = ''
     if (fullUrl.length > 28) {
       maskedUrl = fullUrl.substring(0, 32) + '••••••••' + fullUrl.substring(fullUrl.length - 12)
@@ -768,12 +843,12 @@ routerAdd(
       } catch (_) {}
     }
 
-    // Opcional: remover eventos importados do Google deste usuário
+    // Remover eventos importados do Google deste usuário
     const existingConsultas = $app.findRecordsByFilter(
       'consultas',
       `origem = 'google' && user_id = '${userId}'`,
       '-created',
-      2000,
+      3000,
       0,
     )
     for (let i = 0; i < existingConsultas.length; i++) {
@@ -808,7 +883,6 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
       return
     }
 
-    // Localizar paciente "Google Agenda"
     let pacienteId = ''
     try {
       const p = $app.findFirstRecordByData('pacientes', 'nome', 'Google Agenda')
@@ -834,19 +908,29 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
       if (!userId || !icsUrl) continue
 
       try {
-        const res = $http.send({
-          url: icsUrl,
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; SistemaSOUL/1.0; +https://clinicasoul.com.br)',
-            Accept: 'text/calendar, text/plain, */*',
-          },
-          timeout: 25,
-        })
+        let res = null
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            res = $http.send({
+              url: icsUrl,
+              method: 'GET',
+              headers: {
+                'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 SistemaSOUL/1.0',
+                Accept: 'text/calendar, text/plain, */*',
+                'Cache-Control': 'no-cache',
+              },
+              timeout: 30,
+            })
+            if (res && res.statusCode >= 200 && res.statusCode < 300) {
+              break
+            }
+          } catch (_) {}
+        }
 
-        if (res.statusCode < 200 || res.statusCode >= 300) {
+        if (!res || res.statusCode < 200 || res.statusCode >= 300) {
           syncRecord.set('last_status', 'error')
-          syncRecord.set('last_error', 'HTTP ' + res.statusCode)
+          syncRecord.set('last_error', 'HTTP ' + (res ? res.statusCode : 'Falha de rede'))
           $app.save(syncRecord)
           continue
         }
@@ -854,12 +938,11 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
         const icsText = res.raw || ''
         if (!icsText || icsText.indexOf('BEGIN:VCALENDAR') === -1) {
           syncRecord.set('last_status', 'error')
-          syncRecord.set('last_error', 'Arquivo iCal inválido')
+          syncRecord.set('last_error', 'Arquivo iCal inválido retornado pelo Google')
           $app.save(syncRecord)
           continue
         }
 
-        // Unfold
         const rawLines = icsText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
         const unfoldedLines = []
         for (let i = 0; i < rawLines.length; i++) {
@@ -906,6 +989,7 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
               } else if (propName === 'SUMMARY') {
                 currentEvent.summary = val
                   .replace(/\\n/g, ' ')
+                  .replace(/\\N/g, ' ')
                   .replace(/\\,/g, ',')
                   .replace(/\\;/g, ';')
                   .replace(/\\\\/g, '\\')
@@ -913,6 +997,7 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
               } else if (propName === 'DESCRIPTION') {
                 currentEvent.description = val
                   .replace(/\\n/g, '\n')
+                  .replace(/\\N/g, '\n')
                   .replace(/\\,/g, ',')
                   .replace(/\\;/g, ';')
                   .replace(/\\\\/g, '\\')
@@ -943,12 +1028,16 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
           }
 
           if (clean.length >= 15 && clean.indexOf('T') !== -1) {
-            const y = parseInt(clean.substring(0, 4), 10)
-            const m = parseInt(clean.substring(4, 6), 10) - 1
-            const d = parseInt(clean.substring(6, 8), 10)
-            const h = parseInt(clean.substring(9, 11), 10)
-            const min = parseInt(clean.substring(11, 13), 10)
-            const s = parseInt(clean.substring(13, 15), 10) || 0
+            const tIdx = clean.indexOf('T')
+            const datePart = clean.substring(0, tIdx)
+            const timePart = clean.substring(tIdx + 1)
+
+            const y = parseInt(datePart.substring(0, 4), 10)
+            const m = parseInt(datePart.substring(4, 6), 10) - 1
+            const d = parseInt(datePart.substring(6, 8), 10)
+            const h = parseInt(timePart.substring(0, 2), 10)
+            const min = parseInt(timePart.substring(2, 4), 10)
+            const s = parseInt(timePart.substring(4, 6), 10) || 0
 
             let dt = null
             if (clean.endsWith('Z')) {
@@ -965,7 +1054,7 @@ cronAdd('google_calendar_sync_cron', '*/15 * * * *', () => {
           'consultas',
           `origem = 'google' && user_id = '${userId}'`,
           '-data_hora',
-          2000,
+          3000,
           0,
         )
 

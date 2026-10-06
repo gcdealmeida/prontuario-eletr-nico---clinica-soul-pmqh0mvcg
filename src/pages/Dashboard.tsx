@@ -15,7 +15,9 @@ import {
   Activity,
   UserCheck,
   ChevronRight,
+  RefreshCw,
 } from 'lucide-react'
+import { ModalSincronizacaoIcs } from '@/components/ModalSincronizacaoIcs'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -48,6 +50,7 @@ export default function Dashboard() {
   const [minhasEvolucoesMesCount, setMinhasEvolucoesMesCount] = useState(0)
   const [minhasAvaliacoesCount, setMinhasAvaliacoesCount] = useState(0)
   const [meusPacientesRecentes, setMeusPacientesRecentes] = useState<PacienteRecord[]>([])
+  const [sincronizacaoOpen, setSincronizacaoOpen] = useState(false)
 
   const loadAdminData = async () => {
     // 1. Pacientes ativos e recentes
@@ -250,6 +253,16 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setSincronizacaoOpen(true)}
+            className="border-[#E3C89A] hover:bg-[#FAF4EA] text-[#8C6527] font-semibold rounded-xl h-10 px-3.5 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-2xs"
+            title="Sincronizar com Google Agenda"
+          >
+            <RefreshCw className="h-4 w-4 text-[#8C6527]" />
+            <span className="hidden sm:inline">Google Agenda</span>
+          </Button>
+
           <Button
             onClick={() => navigate('/prontuarios/novo')}
             className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] text-[#33221C] font-semibold shadow-sm hover:brightness-105 rounded-xl h-10 px-4 text-sm flex items-center gap-2 border border-[#DFBF8E]/40"
@@ -557,6 +570,15 @@ export default function Dashboard() {
                   >
                     <Calendar className="h-4 w-4 mr-2 text-[#B87355]" />
                     Agendar Atendimento
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setSincronizacaoOpen(true)}
+                    className="w-full justify-start h-11 rounded-xl border-[#E3C89A]/70 hover:bg-[#FAF4EA] text-[#8C6527] text-xs font-semibold"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2 text-[#8C6527]" />
+                    Sincronizar Google Agenda
                   </Button>
 
                   <Button
@@ -986,6 +1008,12 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {/* Modal de Sincronização Google Agenda / Exportação iCal */}
+      <ModalSincronizacaoIcs
+        open={sincronizacaoOpen}
+        onOpenChange={setSincronizacaoOpen}
+        onSyncComplete={loadDashboardData}
+      />
     </div>
   )
 }
