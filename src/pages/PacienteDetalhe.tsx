@@ -92,6 +92,13 @@ export default function PacienteDetalhe() {
   const [editTratamentos, setEditTratamentos] = useState('')
   const [editResultado, setEditResultado] = useState('')
   const [editDiagnostico, setEditDiagnostico] = useState('')
+  const [editGenero, setEditGenero] = useState('')
+  const [editQueixaDorOnde, setEditQueixaDorOnde] = useState('')
+  const [editAtividadeFisica, setEditAtividadeFisica] = useState('')
+  const [editFrequenciaSemanal, setEditFrequenciaSemanal] = useState('')
+  const [editDuracaoTreino, setEditDuracaoTreino] = useState('')
+  const [editControleAlimentar, setEditControleAlimentar] = useState('')
+  const [editQuemIndicou, setEditQuemIndicou] = useState('')
   const [savingDados, setSavingDados] = useState(false)
 
   const loadData = async () => {
@@ -114,6 +121,13 @@ export default function PacienteDetalhe() {
       setEditTratamentos(p.tratamentos_anteriores || '')
       setEditResultado(p.resultado_esperado || '')
       setEditDiagnostico(p.diagnostico_medico || '')
+      setEditGenero(p.genero || '')
+      setEditQueixaDorOnde(p.queixa_dor_onde || '')
+      setEditAtividadeFisica(p.atividade_fisica || '')
+      setEditFrequenciaSemanal(p.frequencia_semanal || '')
+      setEditDuracaoTreino(p.duracao_treino || '')
+      setEditControleAlimentar(p.controle_alimentar || '')
+      setEditQuemIndicou(p.quem_indicou || '')
 
       // Timeline
       const t = await getTimelineByPaciente(id)
@@ -191,6 +205,13 @@ export default function PacienteDetalhe() {
         tratamentos_anteriores: editTratamentos.trim() || undefined,
         resultado_esperado: editResultado.trim() || undefined,
         diagnostico_medico: editDiagnostico.trim() || undefined,
+        genero: editGenero.trim() || undefined,
+        queixa_dor_onde: editQueixaDorOnde.trim() || undefined,
+        atividade_fisica: editAtividadeFisica.trim() || undefined,
+        frequencia_semanal: editFrequenciaSemanal.trim() || undefined,
+        duracao_treino: editDuracaoTreino.trim() || undefined,
+        controle_alimentar: editControleAlimentar.trim() || undefined,
+        quem_indicou: editQuemIndicou.trim() || undefined,
       })
       setPaciente(updated)
       toast({
@@ -355,9 +376,12 @@ export default function PacienteDetalhe() {
           </div>
         </div>
 
-        {/* Banner de Pré-Cadastro se o paciente possuir respostas */}
+        {/* Banner de Pré-Cadastro / Respostas da Anamnese Inicial */}
         {(paciente.motivo_procura ||
           paciente.origem_como_chegou ||
+          paciente.queixa_dor_onde ||
+          paciente.atividade_fisica ||
+          paciente.ficha_pre_cadastro ||
           paciente.status === 'Pré-cadastro') && (
           <div className="mt-6 p-4 rounded-2xl bg-[#FAF5EE] border border-[#E3C89A]/70 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -366,7 +390,7 @@ export default function PacienteDetalhe() {
                   ✓
                 </span>
                 <h4 className="font-bold text-sm text-[#33221C]">
-                  Respostas do Link de Pré-Cadastro
+                  Respostas da Anamnese Inicial / Formulário de Cadastro
                 </h4>
                 {paciente.origem_como_chegou && (
                   <Badge
@@ -374,6 +398,14 @@ export default function PacienteDetalhe() {
                     className="text-[11px] bg-white border-[#C9A46A]/50 text-[#8C6527]"
                   >
                     Origem: {paciente.origem_como_chegou}
+                  </Badge>
+                )}
+                {paciente.genero && (
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] bg-white border-gray-200 text-gray-700"
+                  >
+                    {paciente.genero}
                   </Badge>
                 )}
               </div>
@@ -395,12 +427,44 @@ export default function PacienteDetalhe() {
                   <p className="text-gray-700 leading-relaxed">{paciente.motivo_procura}</p>
                 </div>
               )}
-              {paciente.limitacoes_incomodo && (
+              {(paciente.queixa_dor_onde || paciente.limitacoes_incomodo) && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">Local da Dor / Limitações:</span>
+                  <p className="text-gray-700 leading-relaxed">
+                    {paciente.queixa_dor_onde || paciente.limitacoes_incomodo}
+                  </p>
+                </div>
+              )}
+              {paciente.atividade_fisica && (
                 <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
                   <span className="font-bold text-[#8C6527] block">
-                    Limitações / O que incomoda:
+                    Atividade Física Praticada:
                   </span>
-                  <p className="text-gray-700 leading-relaxed">{paciente.limitacoes_incomodo}</p>
+                  <p className="text-gray-700 leading-relaxed">
+                    {paciente.atividade_fisica}
+                    {paciente.frequencia_semanal ? ` (${paciente.frequencia_semanal})` : ''}
+                    {paciente.duracao_treino ? ` - ${paciente.duracao_treino}` : ''}
+                  </p>
+                </div>
+              )}
+              {paciente.controle_alimentar && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">
+                    Controle Alimentar / Dieta:
+                  </span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.controle_alimentar}</p>
+                </div>
+              )}
+              {paciente.quem_indicou && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">Indicado por:</span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.quem_indicou}</p>
+                </div>
+              )}
+              {paciente.observacoes_formulario && (
+                <div className="p-3 rounded-xl bg-white/90 border border-[#E9E1D2]/80 space-y-1">
+                  <span className="font-bold text-[#8C6527] block">Observações do Paciente:</span>
+                  <p className="text-gray-700 leading-relaxed">{paciente.observacoes_formulario}</p>
                 </div>
               )}
               {paciente.tratamentos_anteriores && (
@@ -1034,14 +1098,59 @@ export default function PacienteDetalhe() {
                   Informações de Pré-Cadastro (Questionário)
                 </h4>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-700">Como chegou até nós</Label>
-                  <Input
-                    value={editOrigem}
-                    onChange={(e) => setEditOrigem(e.target.value)}
-                    placeholder="Indicação, Google, Instagram..."
-                    className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-700">
+                      Como chegou até nós
+                    </Label>
+                    <Input
+                      value={editOrigem}
+                      onChange={(e) => setEditOrigem(e.target.value)}
+                      placeholder="Indicação, Google, Instagram..."
+                      className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-700">Quem lhe indicou?</Label>
+                    <Input
+                      value={editQuemIndicou}
+                      onChange={(e) => setEditQuemIndicou(e.target.value)}
+                      placeholder="Nome do médico, academia, amigo..."
+                      className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-700">Atividade Física</Label>
+                    <Input
+                      value={editAtividadeFisica}
+                      onChange={(e) => setEditAtividadeFisica(e.target.value)}
+                      placeholder="Musculação, corrida, etc."
+                      className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-700">
+                      Frequência Semanal
+                    </Label>
+                    <Input
+                      value={editFrequenciaSemanal}
+                      onChange={(e) => setEditFrequenciaSemanal(e.target.value)}
+                      placeholder="Ex: 3 x"
+                      className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-700">Duração Média</Label>
+                    <Input
+                      value={editDuracaoTreino}
+                      onChange={(e) => setEditDuracaoTreino(e.target.value)}
+                      placeholder="Ex: 1 hora"
+                      className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

@@ -47,7 +47,9 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
-import { Link as LinkIcon, Sparkles } from 'lucide-react'
+import { ModalImportarPacientes } from '@/components/ModalImportarPacientes'
+import { useAuth } from '@/contexts/AuthContext'
+import { Link as LinkIcon, Sparkles, FileSpreadsheet } from 'lucide-react'
 
 export default function Pacientes() {
   const navigate = useNavigate()
@@ -89,6 +91,10 @@ export default function Pacientes() {
   // Modal Nova Consulta a partir de paciente
   const [consultaModalOpen, setConsultaModalOpen] = useState(false)
   const [selectedPacienteForConsulta, setSelectedPacienteForConsulta] = useState<string>('')
+
+  // Modal Importar Pacientes (Admin only)
+  const { isAdmin } = useAuth()
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -234,6 +240,19 @@ export default function Pacientes() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          {isAdmin && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportModalOpen(true)}
+              className="rounded-xl h-10 px-3.5 text-xs font-semibold border-amber-300/80 bg-amber-50/70 text-amber-900 hover:bg-amber-100/70 flex items-center gap-2 shadow-2xs"
+              title="Importar pacientes a partir de planilha Google Forms (.xlsx / .csv)"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-amber-700" />
+              Importar Pacientes
+            </Button>
+          )}
+
           <Button
             type="button"
             variant="outline"
@@ -713,6 +732,17 @@ export default function Pacientes() {
 
       {/* Modal Link de Pré-cadastro */}
       <ModalLinkPreCadastro open={linkPreCadastroOpen} onOpenChange={setLinkPreCadastroOpen} />
+
+      {/* Modal Importar Pacientes da Planilha (Admin only) */}
+      {isAdmin && (
+        <ModalImportarPacientes
+          open={importModalOpen}
+          onOpenChange={setImportModalOpen}
+          onSuccess={() => {
+            fetchPacientesList()
+          }}
+        />
+      )}
     </div>
   )
 }

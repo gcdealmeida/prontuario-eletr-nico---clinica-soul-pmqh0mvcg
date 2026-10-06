@@ -100,7 +100,7 @@ export interface PacienteRecord {
   endereco?: string
   observacoes?: string
   status: StatusPaciente
-  // Dados de Pré-Cadastro
+  // Dados de Pré-Cadastro e Anamnese Geral
   origem_como_chegou?: string
   motivo_procura?: string
   limitacoes_incomodo?: string
@@ -108,6 +108,15 @@ export interface PacienteRecord {
   resultado_esperado?: string
   diagnostico_medico?: string
   profissional_responsavel_id?: string
+  genero?: string
+  queixa_dor_onde?: string
+  atividade_fisica?: string
+  frequencia_semanal?: string
+  duracao_treino?: string
+  controle_alimentar?: string
+  quem_indicou?: string
+  observacoes_formulario?: string
+  ficha_pre_cadastro?: Record<string, any>
   created: string
   updated: string
 }

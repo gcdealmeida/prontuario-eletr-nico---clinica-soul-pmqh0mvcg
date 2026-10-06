@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T09:46:09.013Z",
+  "generatedAt": "2026-10-06T10:44:02.702Z",
   "collections": [
     {
       "name": "users",
@@ -211,6 +211,60 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "genero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "queixa_dor_onde",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "atividade_fisica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia_semanal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "duracao_treino",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "controle_alimentar",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quem_indicou",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes_formulario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ficha_pre_cadastro",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
