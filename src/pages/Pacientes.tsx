@@ -5,6 +5,7 @@ import {
   Plus,
   Search,
   Filter,
+  ArrowUpDown,
   MoreVertical,
   Calendar,
   FileText,
@@ -60,12 +61,20 @@ export default function Pacientes() {
   const [totalItems, setTotalItems] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  // Filtros
+  // Filtros e Ordenação
   const [search, setSearch] = useState(searchParams.get('busca') || '')
   const [debouncedSearch, setDebouncedSearch] = useState(search)
   const [statusFilter, setStatusFilter] = useState<'Todas' | 'Ativo' | 'Inativo' | 'Pré-cadastro'>(
     'Todas',
   )
+  // Opções de ordenação:
+  // 'nome_asc' = Alfabético A-Z
+  // 'nome_desc' = Alfabético Z-A
+  // 'created_desc' = Mais recente para mais antigo (maior para menor)
+  // 'created_asc' = Mais antigo para mais recente (menor para maior)
+  // 'nasc_desc' = Idade: mais jovem primeiro (data de nascimento mais recente)
+  // 'nasc_asc' = Idade: mais velho primeiro (data de nascimento mais antiga)
+  const [sortBy, setSortBy] = useState<string>('nome_asc')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
 
@@ -125,7 +134,32 @@ export default function Pacientes() {
         filter = parts.join(' && ')
       }
 
-      const res = await getPacientes(filter, '-created', perPage, page)
+      // Mapear opção de ordenação para a sintaxe do PocketBase
+      let sortExpression = 'nome'
+      switch (sortBy) {
+        case 'nome_asc':
+          sortExpression = 'nome'
+          break
+        case 'nome_desc':
+          sortExpression = '-nome'
+          break
+        case 'created_desc':
+          sortExpression = '-created'
+          break
+        case 'created_asc':
+          sortExpression = 'created'
+          break
+        case 'nasc_desc':
+          sortExpression = '-data_nascimento'
+          break
+        case 'nasc_asc':
+          sortExpression = 'data_nascimento'
+          break
+        default:
+          sortExpression = 'nome'
+      }
+
+      const res = await getPacientes(filter, sortExpression, perPage, page)
       setPacientes(res.items)
       setTotalItems(res.totalItems)
     } catch (err) {
@@ -137,7 +171,7 @@ export default function Pacientes() {
 
   useEffect(() => {
     fetchPacientesList()
-  }, [debouncedSearch, statusFilter, page, perPage])
+  }, [debouncedSearch, statusFilter, sortBy, page, perPage])
 
   // Realtime
   useRealtime('pacientes', () => {
@@ -286,11 +320,11 @@ export default function Pacientes() {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Status filter */}
           <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
             <Filter className="h-3.5 w-3.5 text-gray-400" />
-            <span>Status:</span>
+            <span className="hidden sm:inline">Status:</span>
             <Select
               value={statusFilter}
               onValueChange={(val) => {
@@ -298,14 +332,39 @@ export default function Pacientes() {
                 setPage(1)
               }}
             >
-              <SelectTrigger className="w-32 h-9 rounded-xl border-gray-200 text-xs">
+              <SelectTrigger className="w-32 h-9 rounded-xl border-gray-200 text-xs bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Todas">Todos</SelectItem>
+                <SelectItem value="Todas">Todos os status</SelectItem>
                 <SelectItem value="Ativo">Ativo</SelectItem>
                 <SelectItem value="Pré-cadastro">Pré-cadastro</SelectItem>
                 <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sort selector */}
+          <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+            <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />
+            <span className="hidden sm:inline">Ordenar:</span>
+            <Select
+              value={sortBy}
+              onValueChange={(val) => {
+                setSortBy(val)
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="w-48 sm:w-52 h-9 rounded-xl border-gray-200 text-xs bg-white">
+                <SelectValue placeholder="Ordenar por..." />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="nome_asc">Nome (A → Z)</SelectItem>
+                <SelectItem value="nome_desc">Nome (Z → A)</SelectItem>
+                <SelectItem value="created_desc">Cadastro: Mais recente (maior)</SelectItem>
+                <SelectItem value="created_asc">Cadastro: Mais antigo (menor)</SelectItem>
+                <SelectItem value="nasc_desc">Idade: Mais jovem primeiro</SelectItem>
+                <SelectItem value="nasc_asc">Idade: Mais idoso primeiro</SelectItem>
               </SelectContent>
             </Select>
           </div>
