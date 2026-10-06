@@ -905,6 +905,19 @@ export interface ProgramaSemanaRecord {
   updated: string
 }
 
+export interface ProgramaTreinoRecord {
+  id: string
+  programa_id: string
+  semana_indice: number
+  nome: string // ex: "Treino A", "Treino B", "Superiores", etc.
+  ordem?: number
+  foco?: string
+  objetivo_id?: string
+  observacoes?: string
+  created: string
+  updated: string
+}
+
 export interface ExercicioCatalogoRecord {
   id: string
   nome: string
@@ -921,6 +934,8 @@ export interface ProgramaExercicioRecord {
   id: string
   programa_id: string
   semana_indice: number
+  treino_id?: string
+  treino_nome?: string
   meta_id?: string
   exercicio_id?: string
   nome: string
@@ -938,6 +953,7 @@ export interface ProgramaExercicioRecord {
   updated: string
   expand?: {
     exercicio_id?: ExercicioCatalogoRecord
+    treino_id?: ProgramaTreinoRecord
   }
 }
 

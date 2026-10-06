@@ -25,6 +25,7 @@ import {
   getProgramaByToken,
   getMetasByPrograma,
   getSemanasByPrograma,
+  getTreinosByPrograma,
   getExerciciosByPrograma,
   getRegistrosCargaPorPrograma,
   getFotoExercicioUrl,
@@ -34,6 +35,7 @@ import type {
   ProgramaAcompanhamentoRecord,
   ProgramaMetaRecord,
   ProgramaSemanaRecord,
+  ProgramaTreinoRecord,
   ProgramaExercicioRecord,
   ProgramaRegistroCargaRecord,
 } from '@/types/database'
@@ -55,6 +57,7 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
   const [programa, setPrograma] = useState<ProgramaAcompanhamentoRecord | null>(null)
   const [metas, setMetas] = useState<ProgramaMetaRecord[]>([])
   const [semanas, setSemanas] = useState<ProgramaSemanaRecord[]>([])
+  const [treinos, setTreinos] = useState<ProgramaTreinoRecord[]>([])
   const [exercicios, setExercicios] = useState<ProgramaExercicioRecord[]>([])
   const [cargas, setCargas] = useState<Record<string, ProgramaRegistroCargaRecord[]>>({})
 
@@ -75,15 +78,17 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
 
         setPrograma(prog)
 
-        const [metasDb, semanasDb, exDb, cargasDb] = await Promise.all([
+        const [metasDb, semanasDb, treinosDb, exDb, cargasDb] = await Promise.all([
           getMetasByPrograma(prog.id).catch(() => []),
           getSemanasByPrograma(prog.id).catch(() => []),
+          getTreinosByPrograma(prog.id).catch(() => []),
           getExerciciosByPrograma(prog.id).catch(() => []),
           getRegistrosCargaPorPrograma(prog.id).catch(() => []),
         ])
 
         setMetas(metasDb)
         setSemanas(semanasDb)
+        setTreinos(treinosDb)
         setExercicios(exDb)
 
         const mapaCargas: Record<string, ProgramaRegistroCargaRecord[]> = {}
@@ -348,11 +353,17 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
             </div>
           </div>
 
-          {/* 3. PRESCRIÇÃO DOS EXERCÍCIOS SEMANA A SEMANA */}
+          {/* 3. PRESCRIÇÃO DOS EXERCÍCIOS SEMANA A SEMANA (COM DIVISÃO EM TREINOS A, B, C...) */}
           <div className="space-y-6 pt-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C6527] flex items-center gap-1.5">
-              <Dumbbell className="h-4 w-4" /> Prescrição dos Exercícios por Semana
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1 border-b border-gray-200">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C6527] flex items-center gap-1.5">
+                <Dumbbell className="h-4 w-4" /> Prescrição dos Exercícios por Semana & Divisão de
+                Treinos
+              </h3>
+              <span className="text-[11px] text-gray-500">
+                Divisões (Treino A, B, C...) organizadas para a rotina diária do aluno
+              </span>
+            </div>
 
             {periodos.map((p) => {
               const exerciciosDestaSemana = exercicios.filter((e) => e.semana_indice === p)
@@ -361,120 +372,212 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
               const metasAtivasIds = mapaSemanas.get(p) || []
               const metasAtivas = metas.filter((m) => metasAtivasIds.includes(m.id))
 
+              // Treinos cadastrados para esta semana
+              const treinosDestaSemana = treinos.filter((t) => t.semana_indice === p)
+
+              // Mapear grupos de treinos. Se houver treinos cadastrados, agrupar por treino_id.
+              // Se houver exercícios sem treino_id ou sem treinos cadastrados, criar grupo padrão 'Treino A'
+              type GrupoTreino = {
+                id: string
+                nome: string
+                foco?: string
+                exercicios: ProgramaExercicioRecord[]
+              }
+
+              const gruposMap = new Map<string, GrupoTreino>()
+
+              if (treinosDestaSemana.length > 0) {
+                treinosDestaSemana.forEach((t) => {
+                  gruposMap.set(t.id, {
+                    id: t.id,
+                    nome: t.nome,
+                    foco: t.foco,
+                    exercicios: [],
+                  })
+                })
+              } else {
+                gruposMap.set('padrao', {
+                  id: 'padrao',
+                  nome: 'Treino A',
+                  exercicios: [],
+                })
+              }
+
+              // Distribuir os exercícios nos grupos
+              exerciciosDestaSemana.forEach((ex) => {
+                if (ex.treino_id && gruposMap.has(ex.treino_id)) {
+                  gruposMap.get(ex.treino_id)!.exercicios.push(ex)
+                } else if (treinosDestaSemana.length === 1) {
+                  // Se só tem 1 treino cadastrado na semana, cai nele
+                  gruposMap.get(treinosDestaSemana[0].id)!.exercicios.push(ex)
+                } else if (gruposMap.has('padrao')) {
+                  gruposMap.get('padrao')!.exercicios.push(ex)
+                } else {
+                  // Caso tenha mais de 1 treino e o ex não tenha treino_id, coloca no primeiro
+                  const primeiro = treinosDestaSemana[0]
+                  if (primeiro && gruposMap.has(primeiro.id)) {
+                    gruposMap.get(primeiro.id)!.exercicios.push(ex)
+                  }
+                }
+              })
+
+              const grupos = Array.from(gruposMap.values()).filter((g) => g.exercicios.length > 0)
+              if (grupos.length === 0) return null
+
               return (
                 <div
                   key={p}
-                  className="p-5 rounded-2xl bg-white border border-gray-200/90 shadow-2xs space-y-3 break-inside-avoid"
+                  className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E9E1D2] shadow-2xs space-y-5 break-inside-avoid"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-gray-100">
-                    <span className="text-xs font-black text-gray-900 uppercase tracking-wide">
-                      {p}ª {singular.toUpperCase()} —{' '}
-                      {metasAtivas.map((m) => `${m.ordem}º ${m.titulo}`).join(' • ')}
-                    </span>
-                    <span className="text-[11px] text-gray-400">
-                      {exerciciosDestaSemana.length} exercício(s)
+                  {/* Cabeçalho da Semana */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 rounded-xl bg-[#FAF5EE] border border-[#E9E1D2] font-black text-[#8C6527] text-xs uppercase tracking-wider">
+                        {p}ª {singular.toUpperCase()}
+                      </span>
+                      {metasAtivas.length > 0 && (
+                        <span className="text-xs font-bold text-gray-800">
+                          {metasAtivas.map((m) => `${m.ordem}º ${m.titulo}`).join(' • ')}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-gray-400 font-semibold">
+                      {exerciciosDestaSemana.length} exercício(s) • {grupos.length} treino(s)
+                      dividido(s)
                     </span>
                   </div>
 
-                  <div className="divide-y divide-gray-100">
-                    {exerciciosDestaSemana.map((ex) => {
-                      const cargasEx = cargas[ex.id] || []
-                      const ultimaCarga =
-                        cargasEx.length > 0 ? cargasEx[cargasEx.length - 1].valor_kg : null
-                      const linkAcesso = ex.link || ex.expand?.exercicio_id?.link
-                      const fotoUrl =
-                        ex.foto_url ||
-                        (ex.expand?.exercicio_id
-                          ? getFotoExercicioUrl(ex.expand.exercicio_id)
-                          : null)
-
-                      return (
-                        <div key={ex.id} className="py-3 first:pt-1 last:pb-0 space-y-2">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-gray-900 text-xs sm:text-sm">
-                                {ex.nome}
+                  {/* BLOCOS DE TREINO (TREINO A, TREINO B, ETC.) */}
+                  <div className="space-y-4">
+                    {grupos.map((grupo, gIdx) => (
+                      <div
+                        key={grupo.id}
+                        className="rounded-2xl border border-gray-200/90 overflow-hidden bg-white shadow-2xs break-inside-avoid"
+                      >
+                        {/* Faixa Cabeçalho do Treino (Padrão SOUL Dourado/Rosé) */}
+                        <div className="bg-gradient-to-r from-[#FAF5EE] via-[#F5ECE0] to-white px-4 py-2.5 border-b border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-[#C9A46A] to-[#B88E52] text-[#33221C] font-black text-xs shadow-2xs">
+                              {grupo.nome.replace('Treino ', '').substring(0, 1) || gIdx + 1}
+                            </span>
+                            <h4 className="text-sm font-black text-[#33221C] tracking-tight">
+                              {grupo.nome}
+                            </h4>
+                            {grupo.foco && (
+                              <span className="text-[11px] text-[#8C6527] font-semibold bg-white/80 px-2 py-0.5 rounded-md border border-[#E9E1D2]">
+                                Foco: {grupo.foco}
                               </span>
-                              {linkAcesso && (
-                                <a
-                                  href={linkAcesso}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="print:hidden inline-flex items-center gap-1 text-[11px] font-bold text-[#8C6527] bg-[#FAF5EE] hover:bg-[#E9D5B5] border border-[#E9E1D2] px-2.5 py-0.5 rounded-full transition-colors"
-                                >
-                                  <ExternalLink className="h-3 w-3" /> Acessar exercício
-                                </a>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-xs">
-                              <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-semibold text-[11px]">
-                                {ex.series || 3} séries × {ex.quantidade || 12}{' '}
-                                {ex.tipo_repeticao === 'segundos' ? 'segundos' : 'reps'}
-                              </span>
-                              {ex.intervalo && (
-                                <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px]">
-                                  Descanso: {ex.intervalo}
-                                </span>
-                              )}
-                              {(ex.carga_prescrita || ultimaCarga) && (
-                                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 font-bold text-[11px] border border-amber-200">
-                                  Carga: {ultimaCarga ? `${ultimaCarga} kg` : ex.carga_prescrita}
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
+                          <span className="text-[11px] font-semibold text-[#8C6527]">
+                            {grupo.exercicios.length} exercício(s)
+                          </span>
+                        </div>
 
-                          {/* Foto e Link do Exercício para Entrega ao Cliente e Impressão */}
-                          {(fotoUrl || linkAcesso) && (
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-2.5 rounded-xl bg-[#FAF8F3] border border-[#E9E1D2]/80">
-                              {fotoUrl && (
-                                <img
-                                  src={fotoUrl}
-                                  alt={ex.nome}
-                                  className="h-16 w-24 object-cover rounded-lg border border-gray-200 shadow-2xs shrink-0"
-                                />
-                              )}
-                              <div className="text-xs space-y-0.5 min-w-0 flex-1">
-                                {linkAcesso && (
-                                  <>
-                                    <div className="hidden print:block text-[11px] text-gray-700">
-                                      <strong>Link de Acesso:</strong>{' '}
-                                      <span className="text-[#8C6527] underline break-all font-mono text-[10px]">
-                                        {linkAcesso}
-                                      </span>
-                                    </div>
-                                    <div className="print:hidden">
+                        {/* Lista dos Exercícios deste Treino */}
+                        <div className="p-4 divide-y divide-gray-100">
+                          {grupo.exercicios.map((ex) => {
+                            const cargasEx = cargas[ex.id] || []
+                            const ultimaCarga =
+                              cargasEx.length > 0 ? cargasEx[cargasEx.length - 1].valor_kg : null
+                            const linkAcesso = ex.link || ex.expand?.exercicio_id?.link
+                            const fotoUrl =
+                              ex.foto_url ||
+                              (ex.expand?.exercicio_id
+                                ? getFotoExercicioUrl(ex.expand.exercicio_id)
+                                : null)
+
+                            return (
+                              <div key={ex.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-gray-900 text-xs sm:text-sm">
+                                      {ex.nome}
+                                    </span>
+                                    {linkAcesso && (
                                       <a
                                         href={linkAcesso}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 font-bold text-xs text-[#8C6527] hover:underline"
+                                        className="print:hidden inline-flex items-center gap-1 text-[11px] font-bold text-[#8C6527] bg-[#FAF5EE] hover:bg-[#E9D5B5] border border-[#E9E1D2] px-2.5 py-0.5 rounded-full transition-colors"
                                       >
-                                        <ExternalLink className="h-3 w-3" /> Vídeo / Instrução de
-                                        Execução
+                                        <ExternalLink className="h-3 w-3" /> Acessar exercício
                                       </a>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                                    <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-semibold text-[11px]">
+                                      {ex.series || 3} séries × {ex.quantidade || 12}{' '}
+                                      {ex.tipo_repeticao === 'segundos' ? 'segundos' : 'reps'}
+                                    </span>
+                                    {ex.intervalo && (
+                                      <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px]">
+                                        Descanso: {ex.intervalo}
+                                      </span>
+                                    )}
+                                    {(ex.carga_prescrita || ultimaCarga) && (
+                                      <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 font-bold text-[11px] border border-amber-200">
+                                        Carga:{' '}
+                                        {ultimaCarga ? `${ultimaCarga} kg` : ex.carga_prescrita}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Foto e Link do Exercício para Entrega ao Cliente e Impressão */}
+                                {(fotoUrl || linkAcesso) && (
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-2.5 rounded-xl bg-[#FAF8F3] border border-[#E9E1D2]/80">
+                                    {fotoUrl && (
+                                      <img
+                                        src={fotoUrl}
+                                        alt={ex.nome}
+                                        className="h-16 w-24 object-cover rounded-lg border border-gray-200 shadow-2xs shrink-0"
+                                      />
+                                    )}
+                                    <div className="text-xs space-y-0.5 min-w-0 flex-1">
+                                      {linkAcesso && (
+                                        <>
+                                          <div className="hidden print:block text-[11px] text-gray-700">
+                                            <strong>Link de Acesso:</strong>{' '}
+                                            <span className="text-[#8C6527] underline break-all font-mono text-[10px]">
+                                              {linkAcesso}
+                                            </span>
+                                          </div>
+                                          <div className="print:hidden">
+                                            <a
+                                              href={linkAcesso}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center gap-1 font-bold text-xs text-[#8C6527] hover:underline"
+                                            >
+                                              <ExternalLink className="h-3 w-3" /> Vídeo / Instrução
+                                              de Execução
+                                            </a>
+                                          </div>
+                                        </>
+                                      )}
+                                      {ex.expand?.exercicio_id?.categoria && (
+                                        <span className="text-[10px] text-gray-500 block">
+                                          Grupo: {ex.expand.exercicio_id.categoria}
+                                          {ex.expand.exercicio_id.subcategoria &&
+                                            ` • ${ex.expand.exercicio_id.subcategoria}`}
+                                        </span>
+                                      )}
                                     </div>
-                                  </>
+                                  </div>
                                 )}
-                                {ex.expand?.exercicio_id?.categoria && (
-                                  <span className="text-[10px] text-gray-500 block">
-                                    Grupo: {ex.expand.exercicio_id.categoria}
-                                    {ex.expand.exercicio_id.subcategoria &&
-                                      ` • ${ex.expand.exercicio_id.subcategoria}`}
-                                  </span>
+
+                                {ex.observacao && (
+                                  <p className="text-[11px] text-gray-500 bg-[#FAF7F1] p-2 rounded-lg leading-relaxed">
+                                    💡 <strong>Recomendação:</strong> {ex.observacao}
+                                  </p>
                                 )}
                               </div>
-                            </div>
-                          )}
-
-                          {ex.observacao && (
-                            <p className="text-[11px] text-gray-500 bg-[#FAF7F1] p-2 rounded-lg leading-relaxed">
-                              💡 <strong>Recomendação:</strong> {ex.observacao}
-                            </p>
-                          )}
+                            )
+                          })}
                         </div>
-                      )
-                    })}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )

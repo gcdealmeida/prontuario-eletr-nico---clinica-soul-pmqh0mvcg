@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Plus,
   Trash2,
@@ -8,19 +8,28 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  BookOpen,
+  ExternalLink,
+  Image as ImageIcon,
+  Edit2,
+  Check,
+  X,
+  Layers,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import { CurvaCargaGrafico } from './CurvaCargaGrafico'
 import { ModalBancoExercicios } from './ModalBancoExercicios'
 import { getFotoExercicioUrl } from '@/services/programas'
-import { BookOpen, ExternalLink, Image as ImageIcon } from 'lucide-react'
 import type {
   ProgramaExercicioRecord,
   ProgramaMetaRecord,
   ProgramaRegistroCargaRecord,
+  ProgramaTreinoRecord,
   TipoRepeticaoExercicio,
   ExercicioCatalogoRecord,
 } from '@/types/database'
@@ -30,7 +39,13 @@ interface PainelExerciciosObjetivoProps {
   rotuloPeriodo: string
   metasDaSemana: ProgramaMetaRecord[]
   exercicios: ProgramaExercicioRecord[]
+  treinos: ProgramaTreinoRecord[]
+  treinoAtivoId?: string
   registrosCarga: Record<string, ProgramaRegistroCargaRecord[]> // chave: exercicio_id
+  onSelecionarTreino: (treinoId: string) => void
+  onCriarTreino: (nome: string, foco?: string) => Promise<ProgramaTreinoRecord | void>
+  onRenomearTreino: (treinoId: string, novoNome: string) => Promise<void>
+  onExcluirTreino: (treinoId: string) => Promise<void>
   onSalvarExercicio: (ex: Partial<ProgramaExercicioRecord>) => Promise<void>
   onExcluirExercicio: (id: string) => Promise<void>
   onAdicionarCarga: (
@@ -46,11 +61,35 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
   rotuloPeriodo,
   metasDaSemana,
   exercicios,
+  treinos,
+  treinoAtivoId,
   registrosCarga,
+  onSelecionarTreino,
+  onCriarTreino,
+  onRenomearTreino,
+  onExcluirTreino,
   onSalvarExercicio,
   onExcluirExercicio,
   onAdicionarCarga,
 }) => {
+  // Treinos desta semana
+  const treinosDaSemana = treinos.filter((t) => t.semana_indice === semanaIndice)
+
+  // Treino ativo selecionado
+  const treinoSelecionado =
+    treinosDaSemana.find((t) => t.id === treinoAtivoId) || treinosDaSemana[0]
+
+  // Estado para criação rápida de novo treino
+  const [modalNovoTreino, setModalNovoTreino] = useState(false)
+  const [nomeNovoTreino, setNomeNovoTreino] = useState('')
+  const [focoNovoTreino, setFocoNovoTreino] = useState('')
+  const [salvandoTreino, setSalvandoTreino] = useState(false)
+
+  // Estado para renomear treino
+  const [editandoTreinoId, setEditandoTreinoId] = useState<string | null>(null)
+  const [nomeEditado, setNomeEditado] = useState('')
+
+  // Formulário de Exercício
   const [novoExNome, setNovoExNome] = useState('')
   const [novoExMetaId, setNovoExMetaId] = useState('')
   const [novoExSeries, setNovoExSeries] = useState<number | ''>(3)
@@ -72,8 +111,43 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
   const [novaCargaReps, setNovaCargaReps] = useState('')
   const [salvandoCarga, setSalvandoCarga] = useState(false)
 
-  // Exercícios filtrados por esta semana
-  const exerciciosSemana = exercicios.filter((e) => e.semana_indice === semanaIndice)
+  // Sugestão de próximo nome de treino (Treino A, Treino B, Treino C...)
+  const letras = ['A', 'B', 'C', 'D', 'E', 'F']
+  const proximaLetra = letras[treinosDaSemana.length] || `Treino ${treinosDaSemana.length + 1}`
+  const sugestaoNome = `Treino ${proximaLetra}`
+
+  // Exercícios filtrados por esta semana e por este treino
+  const exerciciosDesteTreino = exercicios.filter((e) => {
+    if (e.semana_indice !== semanaIndice) return false
+    if (treinoSelecionado) {
+      return e.treino_id === treinoSelecionado.id || (!e.treino_id && treinosDaSemana.length <= 1)
+    }
+    return true
+  })
+
+  const handleSubmeterNovoTreino = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const nomeFinal = (nomeNovoTreino || sugestaoNome).trim()
+    if (!nomeFinal) return
+    try {
+      setSalvandoTreino(true)
+      await onCriarTreino(nomeFinal, focoNovoTreino.trim() || undefined)
+      setNomeNovoTreino('')
+      setFocoNovoTreino('')
+      setModalNovoTreino(false)
+    } finally {
+      setSalvandoTreino(false)
+    }
+  }
+
+  const handleSalvarRenomear = async (treinoId: string) => {
+    if (!nomeEditado.trim()) {
+      setEditandoTreinoId(null)
+      return
+    }
+    await onRenomearTreino(treinoId, nomeEditado.trim())
+    setEditandoTreinoId(null)
+  }
 
   const handleCriarExercicio = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +157,8 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
       setAdicionando(true)
       await onSalvarExercicio({
         semana_indice: semanaIndice,
+        treino_id: treinoSelecionado?.id,
+        treino_nome: treinoSelecionado?.nome || 'Treino A',
         meta_id: novoExMetaId || (metasDaSemana[0]?.id ?? ''),
         exercicio_id: novoExExercicioId,
         nome: novoExNome.trim(),
@@ -94,7 +170,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
         observacao: novoExObs || '',
         link: novoExLink || '',
         foto_url: novoExFotoUrl || '',
-        ordem: exerciciosSemana.length + 1,
+        ordem: exerciciosDesteTreino.length + 1,
       })
 
       // Reset
@@ -136,57 +212,303 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Modal Catálogo de Exercícios */}
       <ModalBancoExercicios
         open={modalBancoAberto}
         onOpenChange={setModalBancoAberto}
         onSelectExercicio={handleSelecionarExercicioCatalogo}
       />
-      {/* Cabeçalho da Semana / Período */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2]">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-bold text-xs">
-            {rotuloPeriodo}
-          </span>
-          <span className="text-xs font-bold text-gray-800">
-            Exercícios e Prescrição ({exerciciosSemana.length})
-          </span>
+
+      {/* CABEÇALHO DA SEMANA + SELETOR DE TREINOS (A, B, C...) */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E9E1D2]">
+          <div className="flex items-center gap-2.5">
+            <span className="px-3 py-1 rounded-xl bg-orange-600 text-white font-bold text-xs uppercase tracking-wide">
+              {rotuloPeriodo}
+            </span>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-gray-900">
+                Divisão de Treinos da Semana
+              </h4>
+              <p className="text-[11px] text-gray-500">
+                Prescreva sessões divididas (ex: Treino A e B, ou dias específicos)
+              </p>
+            </div>
+          </div>
+
+          {/* Botão de Adicionar Treino à Semana */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setNomeNovoTreino(sugestaoNome)
+                setModalNovoTreino(true)
+              }}
+              className="h-8 px-3 rounded-xl border-[#C9A46A] bg-white text-[#8C6527] hover:bg-[#FAF5EE] font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+            >
+              <Plus className="h-3.5 w-3.5 text-[#8C6527]" />
+              Novo Treino ({sugestaoNome})
+            </Button>
+          </div>
         </div>
 
-        {/* Metas ativas nesta semana */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-semibold text-gray-400">Metas ativas:</span>
-          {metasDaSemana.length === 0 ? (
-            <span className="text-[11px] text-gray-400 italic">Nenhuma meta associada</span>
-          ) : (
-            metasDaSemana.map((m) => (
-              <span
-                key={m.id}
-                className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white border border-[#E9E1D2] text-[#8C6527] shadow-2xs"
-              >
-                {m.ordem}º {m.titulo}
+        {/* Modal Inline: Novo Treino */}
+        {modalNovoTreino && (
+          <form
+            onSubmit={handleSubmeterNovoTreino}
+            className="p-3.5 rounded-2xl bg-white border border-[#C9A46A] shadow-xs space-y-2 animate-in fade-in duration-150"
+          >
+            <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+              <span className="text-xs font-bold text-[#8C6527] uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5" /> Adicionar Treino à {rotuloPeriodo}
               </span>
-            ))
+              <button
+                type="button"
+                onClick={() => setModalNovoTreino(false)}
+                className="text-gray-400 hover:text-gray-600 text-xs"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+              <div className="sm:col-span-6">
+                <Label className="text-[10px] font-bold text-gray-600 uppercase">
+                  Nome do Treino (ex: Treino A, Treino B, Superiores, Pernas...) *
+                </Label>
+                <Input
+                  required
+                  value={nomeNovoTreino}
+                  onChange={(e) => setNomeNovoTreino(e.target.value)}
+                  placeholder={`Ex: ${sugestaoNome}`}
+                  className="h-8 text-xs font-bold rounded-xl mt-0.5"
+                />
+              </div>
+              <div className="sm:col-span-6">
+                <Label className="text-[10px] font-bold text-gray-600 uppercase">
+                  Foco do Treino (opcional)
+                </Label>
+                <Input
+                  value={focoNovoTreino}
+                  onChange={(e) => setFocoNovoTreino(e.target.value)}
+                  placeholder="Ex: Quadríceps e Panturrilha, Peito e Tríceps..."
+                  className="h-8 text-xs rounded-xl mt-0.5"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setModalNovoTreino(false)}
+                className="h-7 text-xs rounded-lg"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={salvandoTreino}
+                className="h-7 bg-gradient-to-r from-[#C9A46A] to-[#B88E52] hover:brightness-105 text-[#33221C] font-bold text-xs rounded-lg px-3 shadow-2xs"
+              >
+                {salvandoTreino ? 'Criando...' : 'Criar Treino'}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* ABAS / BOTÕES DOS TREINOS DA SEMANA */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {treinosDaSemana.length === 0 ? (
+            <div className="flex items-center gap-2 text-xs text-gray-500 py-1">
+              <span>Nenhum treino específico ainda.</span>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleSubmeterNovoTreino()}
+                className="h-7 text-xs bg-[#C9A46A] text-[#33221C] font-bold rounded-lg"
+              >
+                Criar Treino A Padrão
+              </Button>
+            </div>
+          ) : (
+            treinosDaSemana.map((t) => {
+              const ativo = treinoSelecionado?.id === t.id
+              const exCount = exercicios.filter(
+                (e) =>
+                  e.semana_indice === semanaIndice &&
+                  (e.treino_id === t.id || (!e.treino_id && treinosDaSemana.length === 1)),
+              ).length
+              const editando = editandoTreinoId === t.id
+
+              if (editando) {
+                return (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-1 bg-white border border-[#C9A46A] rounded-xl px-2 py-1 shadow-2xs"
+                  >
+                    <Input
+                      autoFocus
+                      value={nomeEditado}
+                      onChange={(e) => setNomeEditado(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSalvarRenomear(t.id)
+                        if (e.key === 'Escape') setEditandoTreinoId(null)
+                      }}
+                      className="h-7 text-xs font-bold w-36 px-1.5"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSalvarRenomear(t.id)}
+                      className="h-6 w-6 p-0 text-emerald-600 hover:bg-emerald-50 rounded-md"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditandoTreinoId(null)}
+                      className="h-6 w-6 p-0 text-gray-400 hover:bg-gray-100 rounded-md"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )
+              }
+
+              return (
+                <div
+                  key={t.id}
+                  className={`group inline-flex items-center gap-1.5 rounded-2xl border transition-all text-xs font-bold pl-3 pr-1.5 py-1 ${
+                    ativo
+                      ? 'bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] text-[#33221C] border-[#B88E52] shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-[#C9A46A] hover:bg-amber-50/40'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelecionarTreino(t.id)}
+                    className="flex items-center gap-1.5 text-left py-0.5"
+                  >
+                    <Dumbbell
+                      className={`h-3.5 w-3.5 ${ativo ? 'text-[#33221C]' : 'text-[#8C6527]'}`}
+                    />
+                    <span className="truncate max-w-[150px]">{t.nome}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        ativo ? 'bg-[#33221C]/20 text-[#33221C]' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {exCount}
+                    </span>
+                  </button>
+
+                  <div className="flex items-center opacity-80 group-hover:opacity-100">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditandoTreinoId(t.id)
+                        setNomeEditado(t.nome)
+                      }}
+                      title="Renomear treino"
+                      className={`h-6 w-6 p-0 rounded-md ${
+                        ativo
+                          ? 'text-[#33221C] hover:bg-black/10'
+                          : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+
+                    {treinosDaSemana.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (
+                            confirm(
+                              `Excluir o "${t.nome}"? Os exercícios deste treino também serão excluídos.`,
+                            )
+                          ) {
+                            onExcluirTreino(t.id)
+                          }
+                        }}
+                        title="Excluir treino"
+                        className={`h-6 w-6 p-0 rounded-md ${
+                          ativo
+                            ? 'text-[#33221C] hover:bg-black/10'
+                            : 'text-red-400 hover:text-red-600 hover:bg-red-50'
+                        }`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })
           )}
         </div>
+
+        {/* Foco e Objetivos do Treino Selecionado */}
+        {treinoSelecionado && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-gray-600">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900">
+                Visualizando: <span className="text-[#8C6527]">{treinoSelecionado.nome}</span>
+              </span>
+              {treinoSelecionado.foco && (
+                <span className="text-[11px] bg-white px-2 py-0.5 rounded-lg border border-gray-200 text-gray-700">
+                  Foco: {treinoSelecionado.foco}
+                </span>
+              )}
+            </div>
+
+            {/* Metas da semana */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-gray-400">Metas ativas:</span>
+              {metasDaSemana.length === 0 ? (
+                <span className="text-[11px] text-gray-400 italic">Nenhuma meta associada</span>
+              ) : (
+                metasDaSemana.map((m) => (
+                  <span
+                    key={m.id}
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-[#E9E1D2] text-[#8C6527] shadow-2xs"
+                  >
+                    {m.ordem}º {m.titulo}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Lista de Exercícios Cadastrados */}
-      {exerciciosSemana.length === 0 ? (
-        <div className="p-6 rounded-2xl bg-white border border-dashed border-gray-200 text-center text-xs text-gray-400 space-y-1">
-          <Dumbbell className="h-6 w-6 text-gray-300 mx-auto" />
-          <p className="font-semibold text-gray-600">
-            Nenhum exercício montado para {rotuloPeriodo}.
+      {/* LISTA DE EXERCÍCIOS DO TREINO ATIVO */}
+      {exerciciosDesteTreino.length === 0 ? (
+        <div className="p-8 rounded-2xl bg-white border border-dashed border-gray-200 text-center text-xs text-gray-400 space-y-2">
+          <Dumbbell className="h-8 w-8 text-gray-300 mx-auto" />
+          <p className="font-bold text-gray-700 text-sm">
+            Nenhum exercício montado para o {treinoSelecionado?.nome || 'Treino A'}.
           </p>
-          <p className="text-gray-400">
-            Utilize o formulário abaixo para adicionar exercícios com séries, reps ou segundos,
-            intervalo e carga.
+          <p className="text-gray-400 max-w-md mx-auto">
+            Utilize o formulário abaixo para prescrever exercícios específicos desta divisão (com
+            séries, reps/tempo, intervalo, carga e link/foto).
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {exerciciosSemana.map((ex) => {
+          {exerciciosDesteTreino.map((ex) => {
             const metaRelacionada = metasDaSemana.find((m) => m.id === ex.meta_id)
             const cargas = registrosCarga[ex.id] || []
             const aberto = exercicioCargaAberto === ex.id
@@ -204,6 +526,11 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="text-sm font-bold text-gray-900 truncate">{ex.nome}</h4>
+                        {treinoSelecionado && (
+                          <span className="text-[10px] font-bold bg-[#FAF5EE] text-[#8C6527] border border-[#E9E1D2] px-2 py-0.5 rounded-full">
+                            {treinoSelecionado.nome}
+                          </span>
+                        )}
                         {ex.link && (
                           <a
                             href={ex.link}
@@ -298,7 +625,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
                   </div>
                 </div>
 
-                {/* Prévia da Foto do Exercício Prescrito, se houver */}
+                {/* Prévia da Foto do Exercício Prescrito */}
                 {(ex.foto_url ||
                   (ex.expand?.exercicio_id && getFotoExercicioUrl(ex.expand.exercicio_id))) && (
                   <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FAF8F3] border border-[#E9E1D2]/80">
@@ -346,7 +673,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
                     <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-2 text-xs">
                       <Label className="text-xs font-bold text-gray-800 flex items-center gap-1.5 uppercase">
                         <TrendingUp className="h-3.5 w-3.5 text-[#8C6527]" />
-                        Adicionar Registro de Carga Realizada
+                        Adicionar Registro de Carga Realizada ({ex.nome})
                       </Label>
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
                         <div>
@@ -404,18 +731,21 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
         </div>
       )}
 
-      {/* Formulário: Adicionar Novo Exercício à Semana */}
+      {/* FORMULÁRIO: ADICIONAR NOVO EXERCÍCIO AO TREINO SELECIONADO */}
       <form
         onSubmit={handleCriarExercicio}
-        className="p-4 rounded-2xl bg-white border border-[#E9E1D2] shadow-xs space-y-3"
+        className="p-5 rounded-2xl bg-white border border-[#E9E1D2] shadow-xs space-y-3.5"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100">
           <div>
             <Label className="text-xs font-bold text-[#8C6527] uppercase tracking-wider flex items-center gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Adicionar Exercício a {rotuloPeriodo}
+              <Plus className="h-3.5 w-3.5" /> Adicionar Exercício ao{' '}
+              <span className="underline decoration-[#C9A46A]">
+                {treinoSelecionado?.nome || 'Treino A'}
+              </span>
             </Label>
             <p className="text-[10px] text-gray-400">
-              Busque no catálogo oficial de exercícios da SOUL ou digite manualmente
+              Prescreva para {rotuloPeriodo} — {treinoSelecionado?.nome || 'Treino A'}
             </p>
           </div>
 
@@ -441,8 +771,8 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
               required
               value={novoExNome}
               onChange={(e) => setNovoExNome(e.target.value)}
-              placeholder="Ex: Agachamento Búlgaro, Prancha McGill..."
-              className="h-8 text-xs rounded-xl mt-0.5"
+              placeholder="Ex: Agachamento Búlgaro, Supino Reto..."
+              className="h-8 text-xs font-semibold rounded-xl mt-0.5"
             />
           </div>
 
@@ -473,7 +803,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
               onChange={(e) =>
                 setNovoExSeries(e.target.value === '' ? '' : parseInt(e.target.value, 10))
               }
-              className="h-8 text-xs rounded-xl mt-0.5"
+              className="h-8 text-xs rounded-xl mt-0.5 font-bold"
             />
           </div>
 
@@ -543,9 +873,9 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
           </div>
 
           {/* Link para o Aluno Acessar */}
-          <div className="sm:col-span-6">
+          <div className="sm:col-span-5">
             <Label className="text-[10px] text-[#8C6527] font-bold uppercase flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" /> Link do Exercício (para paciente acessar)
+              <ExternalLink className="h-3 w-3" /> Link do Exercício (para paciente)
             </Label>
             <Input
               type="url"
@@ -556,7 +886,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
             />
           </div>
 
-          {/* Foto URL (preenchida auto do banco ou digitada) */}
+          {/* Foto URL */}
           <div className="sm:col-span-6">
             <Label className="text-[10px] text-gray-600 font-bold uppercase flex items-center gap-1">
               <ImageIcon className="h-3 w-3" /> Foto / Ilustração (URL ou banco)
@@ -571,7 +901,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
           </div>
 
           {/* Observações / Descrição */}
-          <div className="sm:col-span-12">
+          <div className="sm:col-span-6">
             <Label className="text-[10px] text-gray-600 font-bold uppercase">
               Observações / Pedido Específico
             </Label>
@@ -591,7 +921,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
             className="bg-gradient-to-r from-[#C9A46A] to-[#B88E52] hover:brightness-105 text-[#33221C] font-bold text-xs h-8 px-4 rounded-xl shadow-2xs"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
-            {adicionando ? 'Salvando...' : 'Adicionar Exercício'}
+            {adicionando ? 'Salvando...' : `Adicionar ao ${treinoSelecionado?.nome || 'Treino A'}`}
           </Button>
         </div>
       </form>

@@ -3,6 +3,7 @@ import type {
   ProgramaAcompanhamentoRecord,
   ProgramaMetaRecord,
   ProgramaSemanaRecord,
+  ProgramaTreinoRecord,
   ProgramaExercicioRecord,
   ProgramaRegistroCargaRecord,
   ExercicioCatalogoRecord,
@@ -159,6 +160,31 @@ export async function saveSemanaPeriodo(data: {
   }
 }
 
+// TREINOS (SESSÕES / DIVISÕES A, B, C...) DENTRO DA SEMANA
+export async function getTreinosByPrograma(programaId: string) {
+  try {
+    return await pb.collection('programa_treino').getFullList<ProgramaTreinoRecord>({
+      filter: `programa_id = "${programaId}"`,
+      sort: 'semana_indice,ordem,created',
+    })
+  } catch (err) {
+    console.warn('Coleção programa_treino ainda não disponível ou vazia:', err)
+    return []
+  }
+}
+
+export async function createTreino(data: Partial<ProgramaTreinoRecord>) {
+  return await pb.collection('programa_treino').create<ProgramaTreinoRecord>(data)
+}
+
+export async function updateTreino(id: string, data: Partial<ProgramaTreinoRecord>) {
+  return await pb.collection('programa_treino').update<ProgramaTreinoRecord>(id, data)
+}
+
+export async function deleteTreino(id: string) {
+  return await pb.collection('programa_treino').delete(id)
+}
+
 // CATÁLOGO DE EXERCÍCIOS
 export async function getCatalogoExercicios(categoria?: string) {
   const options: Record<string, any> = {
@@ -204,8 +230,8 @@ export function getFotoExercicioUrl(exercicio: {
 export async function getExerciciosByPrograma(programaId: string) {
   return await pb.collection('programa_exercicio').getFullList<ProgramaExercicioRecord>({
     filter: `programa_id = "${programaId}"`,
-    sort: 'semana_indice,ordem',
-    expand: 'exercicio_id',
+    sort: 'semana_indice,ordem,created',
+    expand: 'exercicio_id,treino_id',
   })
 }
 

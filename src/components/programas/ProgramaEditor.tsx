@@ -35,6 +35,10 @@ import {
   deleteMeta,
   getSemanasByPrograma,
   saveSemanaPeriodo,
+  getTreinosByPrograma,
+  createTreino,
+  updateTreino,
+  deleteTreino,
   getExerciciosByPrograma,
   createExercicio,
   updateExercicio,
@@ -52,6 +56,7 @@ import type {
   ProgramaAcompanhamentoRecord,
   ProgramaMetaRecord,
   ProgramaSemanaRecord,
+  ProgramaTreinoRecord,
   ProgramaExercicioRecord,
   ProgramaRegistroCargaRecord,
   UnidadeDuracaoPrograma,
@@ -95,6 +100,10 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
   const [semanas, setSemanas] = useState<ProgramaSemanaRecord[]>([])
   const [semanaAtiva, setSemanaAtiva] = useState<number>(1)
 
+  // Treinos (Divisão A, B, C...)
+  const [treinos, setTreinos] = useState<ProgramaTreinoRecord[]>([])
+  const [treinoAtivoId, setTreinoAtivoId] = useState<string | undefined>(undefined)
+
   // Exercícios & Cargas
   const [exercicios, setExercicios] = useState<ProgramaExercicioRecord[]>([])
   const [registrosCarga, setRegistrosCarga] = useState<
@@ -134,15 +143,17 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
             setLinkPublicoAtivo(prog.link_publico_ativo ?? true)
 
             // Carregar sub-recursos com tolerância a falhas parciais
-            const [metasDb, semanasDb, exDb, cargasDb] = await Promise.all([
+            const [metasDb, semanasDb, treinosDb, exDb, cargasDb] = await Promise.all([
               getMetasByPrograma(idAtual).catch(() => []),
               getSemanasByPrograma(idAtual).catch(() => []),
+              getTreinosByPrograma(idAtual).catch(() => []),
               getExerciciosByPrograma(idAtual).catch(() => []),
               getRegistrosCargaPorPrograma(idAtual).catch(() => []),
             ])
 
             setMetas(metasDb)
             setSemanas(semanasDb)
+            setTreinos(treinosDb)
             setExercicios(exDb)
 
             // Agrupar cargas por exercicio_id
@@ -421,6 +432,72 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
     } catch (err: any) {
       toast({
         title: 'Erro ao replicar semanas',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // 3.1 GESTÃO DE TREINOS (TREINO A, TREINO B, ETC.)
+  const handleCriarTreino = async (nome: string, foco?: string) => {
+    if (!idAtual) {
+      toast({
+        title: 'Salve o programa primeiro',
+        description: 'Clique em "Salvar Programa" antes de criar treinos divididos.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const treinosSemana = treinos.filter((t) => t.semana_indice === semanaAtiva)
+      const novo = await createTreino({
+        programa_id: idAtual,
+        semana_indice: semanaAtiva,
+        nome: nome.trim(),
+        foco: foco?.trim(),
+        ordem: treinosSemana.length + 1,
+      })
+      setTreinos([...treinos, novo])
+      setTreinoAtivoId(novo.id)
+      toast({
+        title: 'Treino adicionado!',
+        description: `"${novo.nome}" criado para a ${semanaAtiva}ª semana.`,
+      })
+      return novo
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao criar treino',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleRenomearTreino = async (treinoId: string, novoNome: string) => {
+    try {
+      const updated = await updateTreino(treinoId, { nome: novoNome })
+      setTreinos(treinos.map((t) => (t.id === treinoId ? updated : t)))
+      toast({ title: 'Treino renomeado com sucesso!' })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao renomear treino',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleExcluirTreino = async (treinoId: string) => {
+    try {
+      await deleteTreino(treinoId)
+      setTreinos(treinos.filter((t) => t.id !== treinoId))
+      // Remover exercícios deste treino
+      setExercicios(exercicios.filter((e) => e.treino_id !== treinoId))
+      toast({ title: 'Treino e seus exercícios foram excluídos.' })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao excluir treino',
         description: err?.message,
         variant: 'destructive',
       })
@@ -923,7 +1000,13 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
           rotuloPeriodo={`${semanaAtiva}ª ${singular}`}
           metasDaSemana={metasAtivasNaSemana}
           exercicios={exercicios}
+          treinos={treinos}
+          treinoAtivoId={treinoAtivoId}
           registrosCarga={registrosCarga}
+          onSelecionarTreino={(id) => setTreinoAtivoId(id)}
+          onCriarTreino={handleCriarTreino}
+          onRenomearTreino={handleRenomearTreino}
+          onExcluirTreino={handleExcluirTreino}
           onSalvarExercicio={handleSalvarExercicio}
           onExcluirExercicio={handleExcluirExercicio}
           onAdicionarCarga={handleAdicionarCarga}

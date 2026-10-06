@@ -63,9 +63,10 @@ export default function GuiaUso() {
               Guia de Uso — Sistema SOUL de Avaliação
             </h1>
             <p className="text-xs sm:text-sm text-[#FAF4EA]/80 leading-relaxed font-sans">
-              Bem-vindo ao manual completo da Clínica SOUL. Aprenda como abrir novas avaliações
-              clínicas, consultar prontuários oficiais, acompanhar a evolução dos pacientes ao longo
-              do tempo e aproveitar ao máximo a inteligência clínica integrada.
+              Bem-vindo ao manual completo da Clínica SOUL (v0.0.35). Aprenda como abrir novas
+              avaliações clínicas, consultar prontuários oficiais, acompanhar a evolução dos
+              pacientes, prescrever programas de acompanhamento com divisão de treinos A/B/C e
+              aproveitar ao máximo a inteligência clínica integrada.
             </p>
           </div>
 
@@ -262,6 +263,13 @@ export default function GuiaUso() {
           >
             <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
             5. Aprovando Novos Acessos (Admin)
+          </TabsTrigger>
+          <TabsTrigger
+            value="programas"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <Dumbbell className="h-4 w-4 text-[#C9A46A]" />
+            6. Programas de Acompanhamento & Treinos A/B/C
           </TabsTrigger>
           <TabsTrigger
             value="faq"
@@ -1230,7 +1238,105 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 6: PERGUNTAS FREQUENTES (FAQ) */}
+        {/* TAB 6: PROGRAMAS DE ACOMPANHAMENTO & DIVISÃO DE TREINOS A, B, C */}
+        <TabsContent value="programas" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-2">
+                <Dumbbell className="h-3.5 w-3.5" />
+                <span>Módulo de Periodização de Treino & Acompanhamento</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Programas de Acompanhamento: Divisão em Múltiplos Treinos por Semana (Treino A, B,
+                C...)
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Prescreva rotinas personalizadas com múltiplos treinos independentes em cada semana,
+                atendendo a alunos que executam exercícios diferentes para cada dia da semana com
+                objetivos distintos.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  Etapa 1 · Matriz & Metas
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">Metas e Semanas</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Defina os objetivos prioritários do aluno (ex: Fortalecimento de Core, Hipertrofia
+                  de MMII, Mobilidade Torácica). A matriz visual de periodização mapeia a cobertura
+                  de cada meta ao longo das semanas do programa.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#B87355] px-2 py-0.5 rounded-md bg-[#FDF2EE] border border-[#E7BFB0]">
+                  Etapa 2 · Divisão Flexível
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">
+                  Múltiplos Treinos na Semana
+                </h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Dentro de cada semana, clique em <strong>"Novo Treino"</strong> para criar
+                  divisões nomeáveis (ex: <em>Treino A</em>, <em>Treino B</em>, <em>Treino C</em>,
+                  ou <em>"Pernas & Glúteo"</em>, <em>"Superiores"</em>). Você pode renomear e
+                  excluir divisões a qualquer momento com facilidade.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#477A53] px-2 py-0.5 rounded-md bg-[#F2F6F1] border border-[#C1D7C4]">
+                  Etapa 3 · Entrega & Carga
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">
+                  Link do Aluno & Curva de Carga
+                </h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  O aluno recebe um link público direto ou PDF onde cada treino (A, B, C) é exibido
+                  como um bloco organizado com fotos e vídeos explicativos. A curva de carga
+                  registra e grafica a evolução de kg ao longo das semanas por exercício.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Recursos Chave dos Treinos por Semana:
+              </h4>
+
+              <ul className="text-xs text-gray-700 space-y-2 list-disc pl-5 leading-relaxed">
+                <li>
+                  <strong>Criação Automática de Treino A:</strong> semanas recém-criadas ou
+                  programas legados recebem automaticamente o "Treino A" padrão, mantendo
+                  compatibilidade e agilidade imediata.
+                </li>
+                <li>
+                  <strong>Banco de Exercícios Integrado:</strong> puxe exercícios com foto, link de
+                  execução, séries, contagem de reps ou segundos e tempo de intervalo diretamente do
+                  catálogo ou adicione livremente.
+                </li>
+                <li>
+                  <strong>Renomeação em Linha:</strong> clique no ícone de lápis em qualquer aba de
+                  treino para ajustar o nome da divisão (ex: "Treino A - Peito e Tríceps") e
+                  pressione Enter.
+                </li>
+                <li>
+                  <strong>Visualização Clara para o Cliente (/programas/:id/cliente):</strong> na
+                  versão entregue ao aluno e no PDF de impressão, cada bloco de treino aparece com
+                  banner estilizado nas cores SOUL (dourado/rosé), ícones e instruções de execução.
+                </li>
+                <li>
+                  <strong>Evolução e Curva de Carga:</strong> registros de carga continuam
+                  vinculados a cada exercício, permitindo plotar o gráfico de progressão mesmo
+                  quando o exercício faz parte de um treino específico.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 7: PERGUNTAS FREQUENTES (FAQ) */}
         <TabsContent value="faq" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>
