@@ -921,3 +921,119 @@ onRecordUpdateRequest((e) => {
     console.log('Erro audit paciente update: ' + err)
   }
 }, 'pacientes')
+
+// 13. programa_acompanhamento - Create
+onRecordCreateRequest((e) => {
+  e.next()
+  try {
+    const rec = e.record
+    const auth = e.auth
+
+    let userId = auth ? auth.id : 'system'
+    let userEmail = auth
+      ? (auth.getString('email') || 'sistema@soul.com').toLowerCase().trim()
+      : 'sistema@soul.com'
+    let userName = auth ? auth.getString('name') || userEmail : 'Profissional Personal'
+
+    let pacienteId = rec.getString('paciente_id') || ''
+    let pacienteNome = ''
+    if (pacienteId) {
+      try {
+        const p = $app.findRecordById('pacientes', pacienteId)
+        pacienteNome = p.getString('nome') || ''
+      } catch (_) {}
+    }
+
+    const progNome = rec.getString('nome') || 'Programa de Treino'
+    const duracao = rec.getInt('total_periodos') + ' ' + rec.getString('unidade_duracao')
+    const esp = 'Personal'
+    const detalhes = 'Criação de Programa de Acompanhamento: "' + progNome + '" (' + duracao + ')'
+
+    const logRec = new Record($app.findCollectionByNameOrId('clinical_update_logs'))
+    logRec.set('user_id', userId)
+    logRec.set('user_name', userName)
+    logRec.set('user_email', userEmail)
+    logRec.set('acao', 'criar')
+    logRec.set('tipo_entidade', 'prontuario')
+    logRec.set('especialidade', esp)
+    logRec.set('entidade_id', rec.id)
+    logRec.set('paciente_id', pacienteId)
+    logRec.set('paciente_nome', pacienteNome)
+    logRec.set('detalhes', detalhes)
+    $app.save(logRec)
+
+    const admins = ['gcdealmeida@gmail.com', 'guivemax@hotmail.com']
+    for (let i = 0; i < admins.length; i++) {
+      try {
+        const adm = $app.findAuthRecordByEmail('_pb_users_auth_', admins[i])
+        if (adm) {
+          const notif = new Record($app.findCollectionByNameOrId('notifications'))
+          notif.set('user_id', adm.id)
+          notif.set('titulo', 'Novo Programa de Treino - Personal')
+          notif.set(
+            'descricao',
+            userName +
+              ' montou o programa "' +
+              progNome +
+              '" (' +
+              duracao +
+              ')' +
+              (pacienteNome ? ' para ' + pacienteNome : '') +
+              '.',
+          )
+          notif.set('tipo', 'clinical_update')
+          notif.set('lida', false)
+          notif.set('link', '/programas/' + rec.id)
+          $app.save(notif)
+        }
+      } catch (_) {}
+    }
+  } catch (err) {
+    console.log('Erro audit programa create: ' + err)
+  }
+}, 'programa_acompanhamento')
+
+// 14. programa_acompanhamento - Update
+onRecordUpdateRequest((e) => {
+  e.next()
+  try {
+    const rec = e.record
+    const auth = e.auth
+
+    let userId = auth ? auth.id : 'system'
+    let userEmail = auth
+      ? (auth.getString('email') || 'sistema@soul.com').toLowerCase().trim()
+      : 'sistema@soul.com'
+    let userName = auth ? auth.getString('name') || userEmail : 'Profissional Personal'
+
+    let pacienteId = rec.getString('paciente_id') || ''
+    let pacienteNome = ''
+    if (pacienteId) {
+      try {
+        const p = $app.findRecordById('pacientes', pacienteId)
+        pacienteNome = p.getString('nome') || ''
+      } catch (_) {}
+    }
+
+    const progNome = rec.getString('nome') || 'Programa de Treino'
+    const status = rec.getString('status') || 'ativo'
+    const esp = 'Personal'
+    const detalhes =
+      'Atualização do Programa de Acompanhamento: "' + progNome + '" (Status: ' + status + ')'
+
+    const logRec = new Record($app.findCollectionByNameOrId('clinical_update_logs'))
+    logRec.set('user_id', userId)
+    logRec.set('user_name', userName)
+    logRec.set('user_email', userEmail)
+    logRec.set('acao', 'editar')
+    logRec.set('tipo_entidade', 'prontuario')
+    logRec.set('especialidade', esp)
+    logRec.set('entidade_id', rec.id)
+    logRec.set('paciente_id', pacienteId)
+    logRec.set('paciente_nome', pacienteNome)
+    logRec.set('detalhes', detalhes)
+    $app.save(logRec)
+  } catch (err) {
+    console.log('Erro audit programa update: ' + err)
+  }
+}, 'programa_acompanhamento')

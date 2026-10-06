@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Info,
   ShieldCheck,
+  Dumbbell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -73,6 +74,9 @@ export default function PacienteDetalhe() {
 
   // Evoluções clínicas do paciente
   const [evolucoesPaciente, setEvolucoesPaciente] = useState<any[]>([])
+
+  // Programas de Treino do paciente
+  const [programasPaciente, setProgramasPaciente] = useState<any[]>([])
 
   // Modal Consulta
   const [consultaModalOpen, setConsultaModalOpen] = useState(false)
@@ -136,6 +140,15 @@ export default function PacienteDetalhe() {
       // Avaliações
       const avs = await getAvaliacoesByPaciente(id)
       setAvaliacoes(avs)
+
+      // Programas de Treino
+      try {
+        const { getProgramasByPaciente } = await import('@/services/programas')
+        const progs = await getProgramasByPaciente(id)
+        setProgramasPaciente(progs)
+      } catch (errProgs) {
+        console.warn('Erro ao carregar programas do paciente:', errProgs)
+      }
 
       // Evoluções
       try {
@@ -367,12 +380,20 @@ export default function PacienteDetalhe() {
               Agendar Consulta
             </Button>
             <Button
+              onClick={() => navigate(`/programas/novo?paciente=${paciente.id}`)}
+              variant="outline"
+              className="rounded-xl h-10 px-3.5 text-xs font-semibold border-[#E9E1D2] hover:bg-[#FAF7F1] text-[#8C6527] flex items-center gap-1.5"
+            >
+              <Dumbbell className="h-4 w-4" />
+              Montar Programa
+            </Button>
+            <Button
               onClick={() => navigate(`/prontuarios/novo?paciente=${paciente.id}`)}
               className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] rounded-xl h-10 px-4 text-xs font-semibold shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/40"
             >
               <Plus className="h-4 w-4 text-[#33221C]" />
               Nova Avaliação
-            </Button>{' '}
+            </Button>
           </div>
         </div>
 
@@ -506,6 +527,12 @@ export default function PacienteDetalhe() {
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#1E2530] data-[state=checked]:text-white transition-all h-10 px-4"
           >
             Evoluções ({evolucoesPaciente.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="programas"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#1E2530] data-[state=checked]:text-white transition-all h-10 px-4"
+          >
+            Programas de Treino ({programasPaciente.length})
           </TabsTrigger>
           <TabsTrigger
             value="avaliacoes"
@@ -741,6 +768,94 @@ export default function PacienteDetalhe() {
                             {evo.assinado_em ? formatDataHoraPTBR(evo.assinado_em) : ''}
                           </span>
                         </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB: PROGRAMAS DE TREINO */}
+        <TabsContent value="programas" className="pt-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Programas de Acompanhamento / Periodização
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Planejamento de treino fatiado em semanas, objetivos e mensuração de cargas.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => navigate(`/programas/novo?paciente=${paciente.id}`)}
+                className="bg-gradient-to-r from-[#C9A46A] to-[#B88E52] hover:brightness-105 text-[#33221C] font-bold text-xs rounded-xl h-8 px-3 shadow-2xs flex items-center gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" /> Montar Novo Programa
+              </Button>
+            </div>
+
+            {programasPaciente.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 space-y-2">
+                <Dumbbell className="h-8 w-8 text-gray-300 mx-auto" />
+                <p className="text-sm font-semibold text-gray-700">
+                  Nenhum programa de periodização montado para este aluno ainda.
+                </p>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  Crie um programa definindo a duração em semanas, os objetivos com tempo e a grade
+                  de treinos.
+                </p>
+                <Button
+                  onClick={() => navigate(`/programas/novo?paciente=${paciente.id}`)}
+                  className="bg-[#C9A46A] text-[#33221C] font-bold text-xs rounded-xl h-8 px-4 mt-2"
+                >
+                  Criar Programa de Treino
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {programasPaciente.map((prog) => {
+                  const statusCor =
+                    prog.status === 'ativo'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : prog.status === 'rascunho'
+                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        : 'bg-gray-100 text-gray-700 border-gray-200'
+
+                  return (
+                    <div
+                      key={prog.id}
+                      onClick={() => navigate(`/programas/${prog.id}`)}
+                      className="p-5 rounded-2xl border border-gray-200 hover:border-[#C9A46A] bg-white hover:shadow-xs transition-all cursor-pointer space-y-3 group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusCor}`}
+                        >
+                          {prog.status}
+                        </span>
+                        <span className="text-xs text-[#8C6527] font-semibold group-hover:underline">
+                          Abrir Grade →
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900 group-hover:text-[#8C6527]">
+                          {prog.nome}
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Duração: {prog.total_periodos} {prog.unidade_duracao} • Criado em{' '}
+                          {formatDataPTBR(prog.created)}
+                        </p>
+                      </div>
+
+                      {prog.observacoes && (
+                        <p className="text-[11px] text-gray-600 line-clamp-2 bg-gray-50 p-2 rounded-xl">
+                          {prog.observacoes}
+                        </p>
                       )}
                     </div>
                   )

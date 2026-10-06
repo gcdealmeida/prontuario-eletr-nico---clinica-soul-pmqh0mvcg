@@ -800,6 +800,82 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
           </div>
         )}
 
+        {/* Cruzamento Objetivos x Fragilidades com Medidas (Visualização) */}
+        {avaliacao.cruzamento_objetivos_fragilidades && (
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#FAF5EE] to-white border border-[#E9E1D2] space-y-4">
+            <div className="flex items-center gap-2 text-[#8C6527] font-bold text-xs uppercase tracking-wider">
+              <Sparkles className="h-4 w-4" />
+              <span>Cruzamento Clínico: Relação Objetivos × Fragilidades Medidas</span>
+            </div>
+
+            {/* Fragilidades com Medidas */}
+            {avaliacao.cruzamento_objetivos_fragilidades.fragilidades_medidas?.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-gray-700 uppercase">
+                  Fragilidades Registradas & Medidas da Avaliação:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {avaliacao.cruzamento_objetivos_fragilidades.fragilidades_medidas.map(
+                    (f: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-gray-900">{f.area}</span>
+                          <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-mono text-[10px] font-bold">
+                            {f.medida_exata}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 text-[11px]">{f.descricao}</p>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Relação Objetivos ↔ Fragilidades */}
+            {avaliacao.cruzamento_objetivos_fragilidades.cruzamentos?.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-bold text-gray-700 uppercase">
+                  Plano de Ataque: Objetivos Atacando Fragilidades:
+                </span>
+                <div className="space-y-2 text-xs">
+                  {avaliacao.cruzamento_objetivos_fragilidades.cruzamentos.map(
+                    (c: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-gray-900 text-xs">
+                            🎯 {c.objetivo_titulo}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#C9A46A]/20 text-[#8C6527]">
+                            {c.prioridade}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 text-xs">
+                          <strong>Ataca:</strong> {c.fragilidade_atacada} —{' '}
+                          <span className="text-amber-900 font-mono font-semibold">
+                            [{c.medida_citada}]
+                          </span>
+                        </p>
+                        {c.estrategia_prescricao && (
+                          <p className="text-gray-500 text-[11px] pt-1 border-t border-gray-100">
+                            <strong>Estratégia:</strong> {c.estrategia_prescricao}
+                          </p>
+                        )}
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {metas.divisao_rotina && (
           <div className="p-3 bg-white rounded-xl border border-gray-200">
             <span className="text-[10px] font-bold text-gray-600 uppercase block">

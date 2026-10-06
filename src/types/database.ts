@@ -697,6 +697,27 @@ export interface AvaliacaoPersonalRecord {
     meta_longo_prazo?: string
     divisao_rotina?: string
   }
+  cruzamento_objetivos_fragilidades?: {
+    fragilidades_medidas?: Array<{
+      area: string
+      descricao: string
+      medida_exata: string
+      impacto_biomecanico?: string
+    }>
+    cruzamentos?: Array<{
+      objetivo_titulo: string
+      fragilidade_atacada: string
+      medida_citada: string
+      estrategia_prescricao: string
+      prioridade: 'Alta' | 'Média' | 'Baixa'
+    }>
+    priorizacao_objetivos?: Array<{
+      ordem: number
+      objetivo: string
+      justificativa_clinica: string
+    }>
+    sintese_cruzamento?: string
+  }
   hipotese_diagnostica_ia?: string
   diagnostico_funcional?: string
   objetivos_treinamento?: string
@@ -827,4 +848,92 @@ export interface NotificationRecord {
   metadata?: Record<string, any>
   created: string
   updated: string
+}
+
+// ==========================================
+// PROGRAMA DE ACOMPANHAMENTO (PERIODIZAÇÃO)
+// ==========================================
+
+export type UnidadeDuracaoPrograma = 'dias' | 'semanas' | 'meses'
+export type StatusPrograma = 'rascunho' | 'ativo' | 'concluido'
+export type TipoRepeticaoExercicio = 'reps' | 'segundos'
+
+export interface ProgramaAcompanhamentoRecord {
+  id: string
+  paciente_id: string
+  profissional_id?: string
+  nome: string
+  unidade_duracao: UnidadeDuracaoPrograma
+  total_periodos: number
+  status: StatusPrograma
+  data_inicio?: string
+  data_fim?: string
+  observacoes?: string
+  token_compartilhamento?: string
+  link_publico_ativo?: boolean
+  avaliacao_origem_id?: string
+  created: string
+  updated: string
+  expand?: {
+    paciente_id?: PacienteRecord
+    profissional_id?: UserRecord
+  }
+}
+
+export interface ProgramaMetaRecord {
+  id: string
+  programa_id: string
+  ordem: number
+  titulo: string
+  duracao_periodos?: number
+  descricao?: string
+  fragilidade_ref?: string
+  cor?: string
+  created: string
+  updated: string
+}
+
+export interface ProgramaSemanaRecord {
+  id: string
+  programa_id: string
+  indice: number // 1..N
+  rotulo?: string
+  metas_ids?: string[] // IDs de programa_meta
+  foco?: string
+  observacoes?: string
+  created: string
+  updated: string
+}
+
+export interface ProgramaExercicioRecord {
+  id: string
+  programa_id: string
+  semana_indice: number
+  meta_id?: string
+  nome: string
+  series?: number
+  tipo_repeticao: TipoRepeticaoExercicio
+  quantidade?: string
+  intervalo?: string
+  carga_prescrita?: string
+  carga_atual_kg?: number
+  observacao?: string
+  ordem?: number
+  created: string
+  updated: string
+}
+
+export interface ProgramaRegistroCargaRecord {
+  id: string
+  exercicio_id: string
+  data: string
+  valor_kg: number
+  repeticoes_feitas?: string
+  rpe?: number
+  notas?: string
+  created: string
+  updated: string
+  expand?: {
+    exercicio_id?: ProgramaExercicioRecord
+  }
 }

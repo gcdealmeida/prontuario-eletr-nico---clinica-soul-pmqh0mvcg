@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T14:19:20.380Z",
+  "generatedAt": "2026-10-06T14:46:32.107Z",
   "collections": [
     {
       "name": "users",
@@ -1929,6 +1929,429 @@
       "indexes": [
         "CREATE INDEX idx_notif_user ON notifications (user_id, lida)",
         "CREATE INDEX idx_notif_created ON notifications (created DESC)"
+      ]
+    },
+    {
+      "name": "programa_acompanhamento",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = '' || profissional_id = null || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = '' || profissional_id = null || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = @request.auth.id) || token_compartilhamento != ''",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.profissional_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = @request.auth.id)"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "unidade_duracao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["dias", "semanas", "meses"]
+        },
+        {
+          "name": "total_periodos",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["rascunho", "ativo", "concluido"]
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_fim",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "token_compartilhamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link_publico_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avaliacao_origem_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_prog_paciente ON programa_acompanhamento (paciente_id)",
+        "CREATE INDEX idx_prog_profissional ON programa_acompanhamento (profissional_id)",
+        "CREATE INDEX idx_prog_token ON programa_acompanhamento (token_compartilhamento)"
+      ]
+    },
+    {
+      "name": "programa_meta",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+      },
+      "fields": [
+        {
+          "name": "programa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "programa_acompanhamento"
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "duracao_periodos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fragilidade_ref",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_meta_programa ON programa_meta (programa_id)",
+        "CREATE INDEX idx_meta_ordem ON programa_meta (programa_id, ordem)"
+      ]
+    },
+    {
+      "name": "programa_semana",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+      },
+      "fields": [
+        {
+          "name": "programa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "programa_acompanhamento"
+        },
+        {
+          "name": "indice",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "rotulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metas_ids",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "foco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_semana_programa ON programa_semana (programa_id)",
+        "CREATE UNIQUE INDEX idx_semana_prog_indice ON programa_semana (programa_id, indice)"
+      ]
+    },
+    {
+      "name": "programa_exercicio",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+      },
+      "fields": [
+        {
+          "name": "programa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "programa_acompanhamento"
+        },
+        {
+          "name": "semana_indice",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "meta_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "series",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_repeticao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["reps", "segundos"]
+        },
+        {
+          "name": "quantidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervalo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "carga_prescrita",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "carga_atual_kg",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_ex_programa ON programa_exercicio (programa_id)",
+        "CREATE INDEX idx_ex_semana ON programa_exercicio (programa_id, semana_indice)"
+      ]
+    },
+    {
+      "name": "programa_registro_carga",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || exercicio_id.programa_id.token_compartilhamento != ''",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+      },
+      "fields": [
+        {
+          "name": "exercicio_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "programa_exercicio"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "valor_kg",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "repeticoes_feitas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rpe",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_carga_exercicio ON programa_registro_carga (exercicio_id)",
+        "CREATE INDEX idx_carga_data ON programa_registro_carga (exercicio_id, data)"
       ]
     }
   ]

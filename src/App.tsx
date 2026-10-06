@@ -28,6 +28,9 @@ import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
 import Relatorios from '@/pages/Relatorios'
 import GuiaUso from '@/pages/GuiaUso'
 import Acessos from '@/pages/Acessos'
+import { Programas } from '@/pages/Programas'
+import { ProgramaDetalhe } from '@/pages/ProgramaDetalhe'
+import { ProgramaVersaoCliente } from '@/components/programas/ProgramaVersaoCliente'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -91,6 +94,12 @@ const App = () => (
           <Route path="/pre-cadastro" element={<PreCadastroPublico />} />
           <Route path="/pre-cadastro/:token" element={<PreCadastroPublico />} />
 
+          {/* Versão Pública do Programa de Treino para o Cliente (acesso por token sem login) */}
+          <Route
+            path="/programa-cliente/:token"
+            element={<ProgramaVersaoCliente modoPublico={true} />}
+          />
+
           {/* Página de espera de aprovação de acesso */}
           <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
 
@@ -104,6 +113,13 @@ const App = () => (
               <Route path="/prontuarios" element={<Prontuarios />} />
               <Route path="/prontuarios/novo" element={<NovaAvaliacao />} />
               <Route path="/prontuarios/:id" element={<AvaliacaoDetalhe />} />
+              <Route path="/programas" element={<Programas />} />
+              <Route path="/programas/novo" element={<ProgramaDetalhe />} />
+              <Route path="/programas/:id" element={<ProgramaDetalhe />} />
+              <Route
+                path="/programas/:id/cliente"
+                element={<ProgramaVersaoCliente modoPublico={false} />}
+              />
               <Route element={<AdminOnlyRoute />}>
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/acessos" element={<Acessos />} />

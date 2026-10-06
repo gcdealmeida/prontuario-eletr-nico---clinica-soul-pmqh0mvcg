@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Dumbbell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -107,6 +108,11 @@ export default function Layout() {
       icon: FileText,
       badge: consultasHojeCount > 0 ? consultasHojeCount : null,
     },
+    {
+      name: 'Programas de Treino',
+      path: '/programas',
+      icon: Dumbbell,
+    },
     ...(isAdmin
       ? [
           { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
@@ -136,6 +142,11 @@ export default function Layout() {
     if (path.startsWith('/prontuarios/novo')) return 'Nova Avaliação Clínica'
     if (path.startsWith('/prontuarios/') && path !== '/prontuarios')
       return 'Visualização de Prontuário'
+    if (path.startsWith('/programas/novo')) return 'Novo Programa de Treino'
+    if (path.startsWith('/programas/') && path.endsWith('/cliente'))
+      return 'Versão do Cliente - Programa'
+    if (path.startsWith('/programas/') && path !== '/programas') return 'Programa de Acompanhamento'
+    if (path.startsWith('/programas')) return 'Programas de Treino & Periodização'
     if (path.startsWith('/prontuarios')) return 'Prontuários & Avaliações'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
     if (path.startsWith('/acessos')) return 'Acessos & Governança'

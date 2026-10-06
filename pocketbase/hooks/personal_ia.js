@@ -14,7 +14,67 @@ routerAdd(
       const avaliacaoData = body.avaliacao || {}
 
       // Formatar o resumo de todos os dados do PHYSICAL TEST para o agente
-      const promptMensagem = `Realize a análise funcional e biomecânica completa da seguinte avaliação física de Personal Trainer (Padrão Physical Test) e elabore a Hipótese Diagnóstica / Avaliação Funcional, Diagnóstico Funcional (pontos fortes e limitações), Objetivos do Treinamento priorizados e o Plano de Treinamento semana a semana periodizado (12 semanas, cobrindo volume, intensidade, foco e critérios) em formato JSON.
+      // Se a requisição pedir apenas o Cruzamento Objetivos x Fragilidades com Medidas
+      const modoCruzamento = body.modo === 'cruzamento_objetivos_fragilidades'
+
+      let promptMensagem = ''
+
+      if (modoCruzamento) {
+        promptMensagem = `Você é o assistente biomecânico de elite da Clínica SOUL.
+Realize o CRUZAMENTO RELAÇÃO OBJETIVOS × FRAGILIDADES desta avaliação física do Personal.
+Compare rigorosamente os dados registrados:
+- Composição corporal / % gordura (Physical Test)
+- Dinamometria manual e assimetrias de força (%)
+- Flexibilidade (Banco de Wells e Flexitest)
+- Postura estática nas 3 vistas (anterior, lateral, posterior)
+- Teste Funcional de Core (McGill - tempos e razões flex/ext e lateral D/E)
+- FMS (Functional Movement Screen - score total, assimetrias e clearing tests)
+
+E, dentro da relação de objetivos declarados e necessidades esportivas do aluno, DESTAQUE TODAS AS FRAGILIDADES DA AVALIAÇÃO OBSERVADAS (SEMPRE COM AS MEDIDAS EXATAS — ex.: "FMS mobilidade de ombros lado D = 1 vs lado E = 2", "Assimetria de dinamometria em flexão de joelho de 18% a favor do lado E", "Flexão de tronco McGill 48s abaixo da razão de extensão", "Banco de Wells 19cm - classificação Baixa", "% Gordura corporal de 28.4%").
+
+DADOS DO ALUNO E AVALIAÇÃO:
+- Nome: ${avaliacaoData.paciente_nome || 'Aluno SOUL'}
+- Objetivo Principal Declarado: ${avaliacaoData.objetivo_principal || 'Melhora Geral'}
+- Restrições/Alertas: ${avaliacaoData.restricoes_treino || 'Nenhuma'}
+- Metas/Objetivos declarados pelo profissional: ${JSON.stringify(avaliacaoData.metas_treino || {})}
+- Objetivos do Treinamento já anotados: ${avaliacaoData.objetivos_treinamento || '—'}
+- Composição Corporal: %G=${avaliacaoData.composicao_corporal?.percentual_gordura ?? avaliacaoData.percentual_gordura ?? '—'}%, Dobras=${JSON.stringify(avaliacaoData.composicao_corporal?.dobras || {})}, Perímetros=${JSON.stringify(avaliacaoData.composicao_corporal?.perimetros || {})}
+- Dinamometria & Assimetrias: ${JSON.stringify(avaliacaoData.forca_dinamometro?.movimentos || [])}
+- Flexibilidade: Wells=${JSON.stringify(avaliacaoData.flexibilidade_dados?.banco_wells || {})}, Flexitest=${JSON.stringify(avaliacaoData.flexibilidade_dados?.flexitest_notas || {})}
+- Postura Estática: Anterior=${JSON.stringify(avaliacaoData.postural_dados?.vista_anterior || {})}, Lateral=${JSON.stringify(avaliacaoData.postural_dados?.vista_lateral || {})}, Posterior=${JSON.stringify(avaliacaoData.postural_dados?.vista_posterior || {})}
+- Core McGill: Ventral=${avaliacaoData.core_mcgill?.prancha_ventral_seg}s, LatD=${avaliacaoData.core_mcgill?.prancha_lat_d_seg}s, LatE=${avaliacaoData.core_mcgill?.prancha_lat_e_seg}s, Extensão=${avaliacaoData.core_mcgill?.extensao_biering_seg}s, Razões=${JSON.stringify(avaliacaoData.core_mcgill || {})}
+- FMS: Total=${avaliacaoData.fms_dados?.score_total}/21, Assimetrias=${avaliacaoData.fms_dados?.assimetrias_total}, Itens=${JSON.stringify(avaliacaoData.fms_dados?.itens || {})}
+
+Responda estritamente com um JSON válido contendo:
+{
+  "fragilidades_medidas": [
+    {
+      "area": "FMS | Dinamometria | Postura | Core McGill | Flexibilidade | Composição",
+      "descricao": "string concisa da fragilidade",
+      "medida_exata": "string com a medida numérica registrada ex: 'Score 1 no lado D, Score 2 no lado E (Assimetria)' ou 'Dinamometria D: 32kgf, E: 25kgf (28% assimetria)'",
+      "impacto_biomecanico": "string de impacto no treino"
+    }
+  ],
+  "cruzamentos": [
+    {
+      "objetivo_titulo": "string com o objetivo",
+      "fragilidade_atacada": "string com a fragilidade biomecânica associada",
+      "medida_citada": "string com a medida exata da avaliação",
+      "estrategia_prescricao": "como o treino atacará essa fragilidade com volume/séries/intensidade",
+      "prioridade": "Alta | Média | Baixa"
+    }
+  ],
+  "priorizacao_objetivos": [
+    {
+      "ordem": 1,
+      "objetivo": "string do objetivo",
+      "justificativa_clinica": "string com as medidas que justificam priorizar este objetivo"
+    }
+  ],
+  "sintese_cruzamento": "string com texto explicativo pronto para prontuário"
+}`
+      } else {
+        promptMensagem = `Realize a análise funcional e biomecânica completa da seguinte avaliação física de Personal Trainer (Padrão Physical Test) e elabore a Hipótese Diagnóstica / Avaliação Funcional, Diagnóstico Funcional (pontos fortes e limitações), Objetivos do Treinamento priorizados e o Plano de Treinamento semana a semana periodizado (12 semanas, cobrindo volume, intensidade, foco e critérios) em formato JSON.
 
 DADOS DO ALUNO E AVALIAÇÃO FÍSICA:
 - Nome/Identificação: ${avaliacaoData.paciente_nome || 'Aluno SOUL'} (Nasc: ${avaliacaoData.paciente_nascimento || 'Não informado'})
@@ -81,6 +141,7 @@ Por favor, responda estritamente com uma estrutura JSON válida contendo:
   "sintese_geral": "string textual resumo para o prontuário"
 }
 O array "plano_tratamento_semanal" deve conter a periodização completa de 12 semanas (ex: dividido em 6 blocos de 2 semanas cada, cobrindo Semanas 1 a 12).`
+      }
 
       const agentResult = $ai.agent('personal-clinica-soul').chat({
         user_id: userId,

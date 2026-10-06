@@ -151,7 +151,10 @@ export async function gerarIaFisioterapia(avaliacaoPayload: Record<string, unkno
   return data
 }
 
-export async function gerarIaPersonal(avaliacaoPayload: Record<string, unknown>) {
+export async function gerarIaPersonal(
+  avaliacaoPayload: Record<string, unknown>,
+  modo?: 'cruzamento_objetivos_fragilidades',
+) {
   const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/personal/gerar-ia`
   const token = pb.authStore.token
   const res = await fetch(url, {
@@ -160,7 +163,7 @@ export async function gerarIaPersonal(avaliacaoPayload: Record<string, unknown>)
       'Content-Type': 'application/json',
       Authorization: token ? `Bearer ${token}` : '',
     },
-    body: JSON.stringify({ avaliacao: avaliacaoPayload }),
+    body: JSON.stringify({ avaliacao: avaliacaoPayload, modo }),
   })
 
   const data = await res.json()
@@ -180,6 +183,26 @@ export async function gerarIaPersonal(avaliacaoPayload: Record<string, unknown>)
         criterios_evolucao?: string
       }>
       sintese_geral?: string
+      // Modo Cruzamento
+      fragilidades_medidas?: Array<{
+        area: string
+        descricao: string
+        medida_exata: string
+        impacto_biomecanico?: string
+      }>
+      cruzamentos?: Array<{
+        objetivo_titulo: string
+        fragilidade_atacada: string
+        medida_citada: string
+        estrategia_prescricao: string
+        prioridade: 'Alta' | 'Média' | 'Baixa'
+      }>
+      priorizacao_objetivos?: Array<{
+        ordem: number
+        objetivo: string
+        justificativa_clinica: string
+      }>
+      sintese_cruzamento?: string
     }
     citations?: any[]
   }
