@@ -1133,7 +1133,7 @@ export default function GuiaUso() {
                     </h5>
                     <p className="text-xs text-gray-600 leading-relaxed">
                       Clique no item <strong>"Acessos"</strong> do menu lateral (visível
-                      exclusivamente para a conta admin <code>gcdealmeida@gmail.com</code>).
+                      exclusivamente para administradores da clínica).
                     </p>
                   </div>
                 </div>

@@ -24,8 +24,8 @@ export default function Login() {
   const { login } = useAuth()
   const { toast } = useToast()
 
-  const [email, setEmail] = useState('gcdealmeida@gmail.com')
-  const [password, setPassword] = useState('Acesso@1234')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -99,7 +99,7 @@ export default function Login() {
           general:
             msg && !msg.toLowerCase().includes('failed to authenticate')
               ? msg
-              : 'E-mail ou senha incorretos. Tente novamente ou use os dados de teste.',
+              : 'E-mail ou senha incorretos. Tente novamente.',
         }))
       }
     } finally {
@@ -111,7 +111,7 @@ export default function Login() {
     toast({
       title: `Login com ${provider}`,
       description:
-        'Use o e-mail gcdealmeida@gmail.com / Acesso@1234 para entrar diretamente no sistema.',
+        'A autenticação via redes sociais requer configuração prévia do provedor pela administração.',
     })
   }
 
@@ -371,7 +371,7 @@ export default function Login() {
             </div>
 
             {/* Links footer */}
-            <div className="text-center space-y-2 pt-2 text-xs text-gray-500">
+            <div className="text-center pt-2 text-xs text-gray-500">
               <div>
                 Ainda não tem conta?{' '}
                 <Link
@@ -380,13 +380,6 @@ export default function Login() {
                 >
                   Criar conta
                 </Link>
-              </div>
-              <div className="text-[11px] text-gray-400">
-                Acesso de demonstração:{' '}
-                <span className="font-mono text-[#5C4033] font-semibold">
-                  gcdealmeida@gmail.com
-                </span>{' '}
-                / <span className="font-mono text-[#5C4033] font-semibold">Acesso@1234</span>
               </div>
             </div>
           </div>

@@ -127,9 +127,7 @@ export default function AguardandoAprovacao() {
 
         <div className="text-[11px] text-gray-500 flex items-center justify-center gap-1.5">
           <Mail className="h-3.5 w-3.5 text-gray-400" />
-          <span>
-            Dúvidas ou urgências: <strong>gcdealmeida@gmail.com</strong>
-          </span>
+          <span>Dúvidas ou urgências: contate a administração da Clínica SOUL</span>
         </div>
       </div>
     </div>
