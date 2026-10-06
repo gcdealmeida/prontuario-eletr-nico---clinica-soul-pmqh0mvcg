@@ -5,6 +5,7 @@ import type {
   ProgramaSemanaRecord,
   ProgramaExercicioRecord,
   ProgramaRegistroCargaRecord,
+  ExercicioCatalogoRecord,
 } from '@/types/database'
 import { createTimelineEvent } from './avaliacoes'
 
@@ -158,11 +159,53 @@ export async function saveSemanaPeriodo(data: {
   }
 }
 
-// EXERCÍCIOS
+// CATÁLOGO DE EXERCÍCIOS
+export async function getCatalogoExercicios(categoria?: string) {
+  const options: Record<string, any> = {
+    sort: 'categoria,subcategoria,nome',
+  }
+  if (categoria && categoria !== 'todos') {
+    options.filter = `categoria = "${categoria}"`
+  }
+  return await pb.collection('exercicios').getFullList<ExercicioCatalogoRecord>(options)
+}
+
+export async function getExercicioCatalogoById(id: string) {
+  return await pb.collection('exercicios').getOne<ExercicioCatalogoRecord>(id)
+}
+
+export async function createExercicioCatalogo(
+  formData: FormData | Partial<ExercicioCatalogoRecord>,
+) {
+  return await pb.collection('exercicios').create<ExercicioCatalogoRecord>(formData)
+}
+
+export async function updateExercicioCatalogo(
+  id: string,
+  formData: FormData | Partial<ExercicioCatalogoRecord>,
+) {
+  return await pb.collection('exercicios').update<ExercicioCatalogoRecord>(id, formData)
+}
+
+export async function deleteExercicioCatalogo(id: string) {
+  return await pb.collection('exercicios').delete(id)
+}
+
+export function getFotoExercicioUrl(exercicio: {
+  id: string
+  foto?: string
+  collectionId?: string
+}): string | null {
+  if (!exercicio.foto) return null
+  return pb.files.getURL(exercicio as any, exercicio.foto)
+}
+
+// EXERCÍCIOS PRESCRITOS DO PROGRAMA
 export async function getExerciciosByPrograma(programaId: string) {
   return await pb.collection('programa_exercicio').getFullList<ProgramaExercicioRecord>({
     filter: `programa_id = "${programaId}"`,
     sort: 'semana_indice,ordem',
+    expand: 'exercicio_id',
   })
 }
 

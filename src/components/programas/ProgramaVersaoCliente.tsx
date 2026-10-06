@@ -13,6 +13,8 @@ import {
   RefreshCw,
   QrCode,
   Lock,
+  ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +27,7 @@ import {
   getSemanasByPrograma,
   getExerciciosByPrograma,
   getRegistrosCargaPorPrograma,
+  getFotoExercicioUrl,
 } from '@/services/programas'
 import { formatDataPTBR } from '@/lib/constants'
 import type {
@@ -73,10 +76,10 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
         setPrograma(prog)
 
         const [metasDb, semanasDb, exDb, cargasDb] = await Promise.all([
-          getMetasByPrograma(prog.id),
-          getSemanasByPrograma(prog.id),
-          getExerciciosByPrograma(prog.id),
-          getRegistrosCargaPorPrograma(prog.id),
+          getMetasByPrograma(prog.id).catch(() => []),
+          getSemanasByPrograma(prog.id).catch(() => []),
+          getExerciciosByPrograma(prog.id).catch(() => []),
+          getRegistrosCargaPorPrograma(prog.id).catch(() => []),
         ])
 
         setMetas(metasDb)
@@ -217,34 +220,56 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
 
         {/* CARTÃO PRINCIPAL DO PROGRAMA (Impressão + Visual Web) */}
         <div className="p-6 sm:p-10 rounded-3xl bg-white border border-[#E9E1D2] shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
-          {/* Topo / Cabeçalho SOUL */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E9E1D2]">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#FAF5EE] to-[#E9D5B5] border border-[#E9E1D2] flex items-center justify-center">
-                <LogoSOUL size="sm" variant="compact" />
-              </div>
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8C6527]">
-                  Clínica SOUL • Personal Trainer
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-                  {programa.nome}
-                </h2>
-                <p className="text-xs text-gray-600 font-medium">
-                  Aluno: <strong className="text-gray-900">{alunoNome}</strong> • Duração:{' '}
-                  <strong>
-                    {programa.total_periodos} {plural.toLowerCase()}
-                  </strong>
-                </p>
-              </div>
+          {/* Topo / Cabeçalho SOUL Oficial - Arte Empilhada Limpa e Desobstruída */}
+          <div className="pb-6 border-b-2 border-[#E9E1D2] flex flex-col items-center justify-center text-center gap-3 overflow-visible">
+            <LogoSOUL
+              variant="full"
+              size="md"
+              theme="light"
+              className="shrink-0 mx-auto overflow-visible select-none"
+            />
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+              <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
+                Programa de Treino & Acompanhamento
+              </span>
+              <span className="text-[#D4B278]">•</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
+                Personal Trainer SOUL
+              </span>
+              <span className="text-[#D4B278]">•</span>
+              <span className="text-[11px] text-[#73574A]">
+                Atualizado em {formatDataPTBR(programa.updated || programa.created)}
+              </span>
+            </div>
+          </div>
+
+          {/* Dados do Aluno e do Programa */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8C6527] block mb-0.5">
+                Periodização Individualizada
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                {programa.nome}
+              </h2>
+              <p className="text-xs text-gray-600 font-medium mt-1">
+                Aluno(a): <strong className="text-gray-900">{alunoNome}</strong> • Duração Total:{' '}
+                <strong className="text-[#8C6527]">
+                  {programa.total_periodos} {plural.toLowerCase()}
+                </strong>
+              </p>
             </div>
 
-            <div className="text-left sm:text-right">
+            <div className="text-left sm:text-right shrink-0">
               <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold text-xs border border-emerald-200 uppercase">
                 {programa.status}
               </span>
               <p className="text-[10px] text-gray-400 mt-1">
-                Atualizado em {formatDataPTBR(programa.updated || programa.created)}
+                {programa.unidade_duracao === 'dias'
+                  ? 'Periodização diária'
+                  : programa.unidade_duracao === 'meses'
+                    ? 'Periodização mensal'
+                    : 'Periodização semanal'}
               </p>
             </div>
           </div>
@@ -356,13 +381,31 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
                       const cargasEx = cargas[ex.id] || []
                       const ultimaCarga =
                         cargasEx.length > 0 ? cargasEx[cargasEx.length - 1].valor_kg : null
+                      const linkAcesso = ex.link || ex.expand?.exercicio_id?.link
+                      const fotoUrl =
+                        ex.foto_url ||
+                        (ex.expand?.exercicio_id
+                          ? getFotoExercicioUrl(ex.expand.exercicio_id)
+                          : null)
 
                       return (
-                        <div key={ex.id} className="py-3 first:pt-1 last:pb-0 space-y-1.5">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                            <span className="font-bold text-gray-900 text-xs sm:text-sm">
-                              {ex.nome}
-                            </span>
+                        <div key={ex.id} className="py-3 first:pt-1 last:pb-0 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-gray-900 text-xs sm:text-sm">
+                                {ex.nome}
+                              </span>
+                              {linkAcesso && (
+                                <a
+                                  href={linkAcesso}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="print:hidden inline-flex items-center gap-1 text-[11px] font-bold text-[#8C6527] bg-[#FAF5EE] hover:bg-[#E9D5B5] border border-[#E9E1D2] px-2.5 py-0.5 rounded-full transition-colors"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Acessar exercício
+                                </a>
+                              )}
+                            </div>
                             <div className="flex flex-wrap items-center gap-2 text-xs">
                               <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-semibold text-[11px]">
                                 {ex.series || 3} séries × {ex.quantidade || 12}{' '}
@@ -380,6 +423,49 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
                               )}
                             </div>
                           </div>
+
+                          {/* Foto e Link do Exercício para Entrega ao Cliente e Impressão */}
+                          {(fotoUrl || linkAcesso) && (
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-2.5 rounded-xl bg-[#FAF8F3] border border-[#E9E1D2]/80">
+                              {fotoUrl && (
+                                <img
+                                  src={fotoUrl}
+                                  alt={ex.nome}
+                                  className="h-16 w-24 object-cover rounded-lg border border-gray-200 shadow-2xs shrink-0"
+                                />
+                              )}
+                              <div className="text-xs space-y-0.5 min-w-0 flex-1">
+                                {linkAcesso && (
+                                  <>
+                                    <div className="hidden print:block text-[11px] text-gray-700">
+                                      <strong>Link de Acesso:</strong>{' '}
+                                      <span className="text-[#8C6527] underline break-all font-mono text-[10px]">
+                                        {linkAcesso}
+                                      </span>
+                                    </div>
+                                    <div className="print:hidden">
+                                      <a
+                                        href={linkAcesso}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 font-bold text-xs text-[#8C6527] hover:underline"
+                                      >
+                                        <ExternalLink className="h-3 w-3" /> Vídeo / Instrução de
+                                        Execução
+                                      </a>
+                                    </div>
+                                  </>
+                                )}
+                                {ex.expand?.exercicio_id?.categoria && (
+                                  <span className="text-[10px] text-gray-500 block">
+                                    Grupo: {ex.expand.exercicio_id.categoria}
+                                    {ex.expand.exercicio_id.subcategoria &&
+                                      ` • ${ex.expand.exercicio_id.subcategoria}`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {ex.observacao && (
                             <p className="text-[11px] text-gray-500 bg-[#FAF7F1] p-2 rounded-lg leading-relaxed">

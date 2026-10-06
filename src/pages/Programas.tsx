@@ -15,10 +15,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { BookOpen } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { getProgramas, deletePrograma } from '@/services/programas'
 import { formatDataPTBR } from '@/lib/constants'
+import { ModalBancoExercicios } from '@/components/programas/ModalBancoExercicios'
 import type { ProgramaAcompanhamentoRecord } from '@/types/database'
 
 export const Programas: React.FC = () => {
@@ -30,6 +32,7 @@ export const Programas: React.FC = () => {
   const [programas, setProgramas] = useState<ProgramaAcompanhamentoRecord[]>([])
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
+  const [modalBancoAberto, setModalBancoAberto] = useState(false)
 
   const carregar = async () => {
     try {
@@ -96,14 +99,32 @@ export const Programas: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          onClick={() => navigate('/programas/novo')}
-          className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs h-9 px-4 rounded-xl shadow-sm flex items-center gap-2 border border-[#DFBF8E]/40"
-        >
-          <Plus className="h-4 w-4 text-[#33221C]" />
-          Novo Programa de Treino
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setModalBancoAberto(true)}
+            className="h-9 px-3.5 rounded-xl border-[#C9A46A] bg-[#FAF5EE] text-[#8C6527] hover:bg-[#E9D5B5]/60 font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+          >
+            <BookOpen className="h-4 w-4 text-[#8C6527]" />
+            Banco de Exercícios
+          </Button>
+
+          <Button
+            onClick={() => navigate('/programas/novo')}
+            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs h-9 px-4 rounded-xl shadow-sm flex items-center gap-2 border border-[#DFBF8E]/40"
+          >
+            <Plus className="h-4 w-4 text-[#33221C]" />
+            Novo Programa de Treino
+          </Button>
+        </div>
       </div>
+
+      <ModalBancoExercicios
+        open={modalBancoAberto}
+        onOpenChange={setModalBancoAberto}
+        onSelectExercicio={() => {}}
+      />
 
       {/* Barra de Filtros */}
       <div className="flex flex-col sm:flex-row gap-3">

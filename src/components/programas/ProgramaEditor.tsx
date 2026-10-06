@@ -106,6 +106,13 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
     Array<{ descricao: string; medida: string }>
   >([])
 
+  // Sincronizar idAtual caso o prop programaId mude
+  useEffect(() => {
+    if (programaId !== idAtual) {
+      setIdAtual(programaId)
+    }
+  }, [programaId])
+
   // Carregar dados iniciais
   useEffect(() => {
     async function carregar() {
@@ -115,37 +122,46 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
         setPacientes(todosPac)
 
         if (idAtual) {
-          const prog = await getProgramaById(idAtual)
-          setPacienteId(prog.paciente_id)
-          setNomePrograma(prog.nome)
-          setUnidadeDuracao(prog.unidade_duracao)
-          setTotalPeriodos(prog.total_periodos)
-          setStatusPrograma(prog.status)
-          setObservacoes(prog.observacoes || '')
-          setTokenCompartilhamento(prog.token_compartilhamento || '')
-          setLinkPublicoAtivo(prog.link_publico_ativo ?? true)
+          try {
+            const prog = await getProgramaById(idAtual)
+            setPacienteId(prog.paciente_id)
+            setNomePrograma(prog.nome)
+            setUnidadeDuracao(prog.unidade_duracao)
+            setTotalPeriodos(prog.total_periodos)
+            setStatusPrograma(prog.status)
+            setObservacoes(prog.observacoes || '')
+            setTokenCompartilhamento(prog.token_compartilhamento || '')
+            setLinkPublicoAtivo(prog.link_publico_ativo ?? true)
 
-          // Carregar sub-recursos
-          const [metasDb, semanasDb, exDb, cargasDb] = await Promise.all([
-            getMetasByPrograma(idAtual),
-            getSemanasByPrograma(idAtual),
-            getExerciciosByPrograma(idAtual),
-            getRegistrosCargaPorPrograma(idAtual),
-          ])
+            // Carregar sub-recursos com tolerância a falhas parciais
+            const [metasDb, semanasDb, exDb, cargasDb] = await Promise.all([
+              getMetasByPrograma(idAtual).catch(() => []),
+              getSemanasByPrograma(idAtual).catch(() => []),
+              getExerciciosByPrograma(idAtual).catch(() => []),
+              getRegistrosCargaPorPrograma(idAtual).catch(() => []),
+            ])
 
-          setMetas(metasDb)
-          setSemanas(semanasDb)
-          setExercicios(exDb)
+            setMetas(metasDb)
+            setSemanas(semanasDb)
+            setExercicios(exDb)
 
-          // Agrupar cargas por exercicio_id
-          const mapaCargas: Record<string, ProgramaRegistroCargaRecord[]> = {}
-          cargasDb.forEach((c) => {
-            if (!mapaCargas[c.exercicio_id]) {
-              mapaCargas[c.exercicio_id] = []
-            }
-            mapaCargas[c.exercicio_id].push(c)
-          })
-          setRegistrosCarga(mapaCargas)
+            // Agrupar cargas por exercicio_id
+            const mapaCargas: Record<string, ProgramaRegistroCargaRecord[]> = {}
+            cargasDb.forEach((c) => {
+              if (!mapaCargas[c.exercicio_id]) {
+                mapaCargas[c.exercicio_id] = []
+              }
+              mapaCargas[c.exercicio_id].push(c)
+            })
+            setRegistrosCarga(mapaCargas)
+          } catch (err: any) {
+            console.error('Erro ao buscar programa por id:', err)
+            toast({
+              title: 'Programa indisponível',
+              description: err?.message || 'Não foi possível carregar o programa solicitado.',
+              variant: 'destructive',
+            })
+          }
         } else if (pacienteParam) {
           // Pre-seleção do paciente pelo query param
           const pac = todosPac.find((p) => p.id === pacienteParam)
@@ -154,10 +170,10 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
           }
         }
       } catch (err) {
-        console.error('Erro ao carregar programa:', err)
+        console.error('Erro ao carregar lista de pacientes ou dados:', err)
         toast({
           title: 'Erro ao carregar dados',
-          description: 'Não foi possível carregar as informações do programa.',
+          description: 'Não foi possível carregar as informações necessárias.',
           variant: 'destructive',
         })
       } finally {

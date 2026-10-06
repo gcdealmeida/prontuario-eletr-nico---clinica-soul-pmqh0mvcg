@@ -14,11 +14,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CurvaCargaGrafico } from './CurvaCargaGrafico'
+import { ModalBancoExercicios } from './ModalBancoExercicios'
+import { getFotoExercicioUrl } from '@/services/programas'
+import { BookOpen, ExternalLink, Image as ImageIcon } from 'lucide-react'
 import type {
   ProgramaExercicioRecord,
   ProgramaMetaRecord,
   ProgramaRegistroCargaRecord,
   TipoRepeticaoExercicio,
+  ExercicioCatalogoRecord,
 } from '@/types/database'
 
 interface PainelExerciciosObjetivoProps {
@@ -55,7 +59,11 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
   const [novoExIntervalo, setNovoExIntervalo] = useState('60s')
   const [novoExCarga, setNovoExCarga] = useState('')
   const [novoExObs, setNovoExObs] = useState('')
+  const [novoExExercicioId, setNovoExExercicioId] = useState<string | undefined>(undefined)
+  const [novoExLink, setNovoExLink] = useState('')
+  const [novoExFotoUrl, setNovoExFotoUrl] = useState('')
   const [adicionando, setAdicionando] = useState(false)
+  const [modalBancoAberto, setModalBancoAberto] = useState(false)
 
   // Estado para modal / input rápido de nova carga
   const [exercicioCargaAberto, setExercicioCargaAberto] = useState<string | null>(null)
@@ -76,6 +84,7 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
       await onSalvarExercicio({
         semana_indice: semanaIndice,
         meta_id: novoExMetaId || (metasDaSemana[0]?.id ?? ''),
+        exercicio_id: novoExExercicioId,
         nome: novoExNome.trim(),
         series: typeof novoExSeries === 'number' ? novoExSeries : 3,
         tipo_repeticao: novoExTipo,
@@ -83,6 +92,8 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
         intervalo: novoExIntervalo || '60s',
         carga_prescrita: novoExCarga || '',
         observacao: novoExObs || '',
+        link: novoExLink || '',
+        foto_url: novoExFotoUrl || '',
         ordem: exerciciosSemana.length + 1,
       })
 
@@ -90,6 +101,9 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
       setNovoExNome('')
       setNovoExCarga('')
       setNovoExObs('')
+      setNovoExExercicioId(undefined)
+      setNovoExLink('')
+      setNovoExFotoUrl('')
     } finally {
       setAdicionando(false)
     }
@@ -112,8 +126,23 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
     }
   }
 
+  const handleSelecionarExercicioCatalogo = (ex: ExercicioCatalogoRecord) => {
+    setNovoExNome(ex.nome)
+    setNovoExExercicioId(ex.id)
+    if (ex.link) setNovoExLink(ex.link)
+    if (ex.descricao && !novoExObs) setNovoExObs(ex.descricao)
+    const url = getFotoExercicioUrl(ex)
+    if (url) setNovoExFotoUrl(url)
+  }
+
   return (
     <div className="space-y-4">
+      {/* Modal Catálogo de Exercícios */}
+      <ModalBancoExercicios
+        open={modalBancoAberto}
+        onOpenChange={setModalBancoAberto}
+        onSelectExercicio={handleSelecionarExercicioCatalogo}
+      />
       {/* Cabeçalho da Semana / Período */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2]">
         <div className="flex items-center gap-2">
@@ -172,10 +201,28 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
                     <span className="h-7 w-7 rounded-lg bg-[#FAF5EE] border border-[#E9E1D2] flex items-center justify-center text-[#8C6527] font-bold text-xs shrink-0">
                       <Dumbbell className="h-3.5 w-3.5" />
                     </span>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">{ex.nome}</h4>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-bold text-gray-900 truncate">{ex.nome}</h4>
+                        {ex.link && (
+                          <a
+                            href={ex.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#8C6527] hover:underline bg-[#FAF5EE] border border-[#E9E1D2] px-2 py-0.5 rounded-full"
+                          >
+                            <ExternalLink className="h-2.5 w-2.5" />
+                            Acessar exercício
+                          </a>
+                        )}
+                        {(ex.foto_url || ex.expand?.exercicio_id?.foto) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                            <ImageIcon className="h-2.5 w-2.5" /> Foto inclusa
+                          </span>
+                        )}
+                      </div>
                       {metaRelacionada && (
-                        <span className="text-[10px] font-bold text-[#8C6527] block">
+                        <span className="text-[10px] font-bold text-[#8C6527] block mt-0.5">
                           Objetivo: {metaRelacionada.ordem}º {metaRelacionada.titulo}
                         </span>
                       )}
@@ -250,6 +297,38 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
                     </span>
                   </div>
                 </div>
+
+                {/* Prévia da Foto do Exercício Prescrito, se houver */}
+                {(ex.foto_url ||
+                  (ex.expand?.exercicio_id && getFotoExercicioUrl(ex.expand.exercicio_id))) && (
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FAF8F3] border border-[#E9E1D2]/80">
+                    <img
+                      src={
+                        ex.foto_url ||
+                        (ex.expand?.exercicio_id
+                          ? getFotoExercicioUrl(ex.expand.exercicio_id)!
+                          : '')
+                      }
+                      alt={ex.nome}
+                      className="h-16 w-24 object-cover rounded-lg border border-gray-200 shadow-2xs shrink-0"
+                    />
+                    <div className="text-xs space-y-1 min-w-0">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#8C6527] block">
+                        Guia Visual de Execução
+                      </span>
+                      {ex.link && (
+                        <a
+                          href={ex.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[#8C6527] hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Acessar vídeo/página explicativa
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {ex.observacao && (
                   <p className="text-xs text-gray-600 bg-gray-50/70 p-2.5 rounded-xl border border-gray-100 leading-relaxed">
@@ -330,11 +409,26 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
         onSubmit={handleCriarExercicio}
         className="p-4 rounded-2xl bg-white border border-[#E9E1D2] shadow-xs space-y-3"
       >
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-bold text-[#8C6527] uppercase tracking-wider flex items-center gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Adicionar Exercício a {rotuloPeriodo}
-          </Label>
-          <span className="text-[10px] text-gray-400">Preencha os parâmetros prescritos</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100">
+          <div>
+            <Label className="text-xs font-bold text-[#8C6527] uppercase tracking-wider flex items-center gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Adicionar Exercício a {rotuloPeriodo}
+            </Label>
+            <p className="text-[10px] text-gray-400">
+              Busque no catálogo oficial de exercícios da SOUL ou digite manualmente
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setModalBancoAberto(true)}
+            className="h-8 px-3 rounded-xl border-[#C9A46A] bg-[#FAF5EE] text-[#8C6527] hover:bg-[#E9D5B5]/60 font-bold text-xs flex items-center gap-1.5 shadow-2xs self-start sm:self-auto"
+          >
+            <BookOpen className="h-3.5 w-3.5 text-[#8C6527]" />
+            Buscar no Banco de Exercícios
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
@@ -448,8 +542,36 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
             />
           </div>
 
+          {/* Link para o Aluno Acessar */}
+          <div className="sm:col-span-6">
+            <Label className="text-[10px] text-[#8C6527] font-bold uppercase flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" /> Link do Exercício (para paciente acessar)
+            </Label>
+            <Input
+              type="url"
+              value={novoExLink}
+              onChange={(e) => setNovoExLink(e.target.value)}
+              placeholder="https://youtube.com/... ou link de vídeo"
+              className="h-8 text-xs rounded-xl mt-0.5"
+            />
+          </div>
+
+          {/* Foto URL (preenchida auto do banco ou digitada) */}
+          <div className="sm:col-span-6">
+            <Label className="text-[10px] text-gray-600 font-bold uppercase flex items-center gap-1">
+              <ImageIcon className="h-3 w-3" /> Foto / Ilustração (URL ou banco)
+            </Label>
+            <Input
+              type="url"
+              value={novoExFotoUrl}
+              onChange={(e) => setNovoExFotoUrl(e.target.value)}
+              placeholder="Preenchido do banco ou URL da imagem"
+              className="h-8 text-xs rounded-xl mt-0.5"
+            />
+          </div>
+
           {/* Observações / Descrição */}
-          <div className="sm:col-span-5">
+          <div className="sm:col-span-12">
             <Label className="text-[10px] text-gray-600 font-bold uppercase">
               Observações / Pedido Específico
             </Label>

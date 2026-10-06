@@ -905,11 +905,24 @@ export interface ProgramaSemanaRecord {
   updated: string
 }
 
+export interface ExercicioCatalogoRecord {
+  id: string
+  nome: string
+  categoria: string
+  subcategoria?: string
+  foto?: string
+  link?: string
+  descricao?: string
+  created: string
+  updated: string
+}
+
 export interface ProgramaExercicioRecord {
   id: string
   programa_id: string
   semana_indice: number
   meta_id?: string
+  exercicio_id?: string
   nome: string
   series?: number
   tipo_repeticao: TipoRepeticaoExercicio
@@ -918,9 +931,14 @@ export interface ProgramaExercicioRecord {
   carga_prescrita?: string
   carga_atual_kg?: number
   observacao?: string
+  link?: string
+  foto_url?: string
   ordem?: number
   created: string
   updated: string
+  expand?: {
+    exercicio_id?: ExercicioCatalogoRecord
+  }
 }
 
 export interface ProgramaRegistroCargaRecord {

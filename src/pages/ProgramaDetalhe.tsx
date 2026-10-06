@@ -4,5 +4,5 @@ import { ProgramaEditor } from '@/components/programas/ProgramaEditor'
 
 export const ProgramaDetalhe: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  return <ProgramaEditor programaId={id} />
+  return <ProgramaEditor key={id || 'novo'} programaId={id} />
 }
