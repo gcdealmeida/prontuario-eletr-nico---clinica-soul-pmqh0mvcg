@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T16:46:15.828Z",
+  "generatedAt": "2026-10-06T16:54:21.964Z",
   "collections": [
     {
       "name": "users",
@@ -2043,7 +2043,7 @@
       "name": "programa_meta",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
         "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
@@ -2117,7 +2117,7 @@
       "name": "programa_semana",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
         "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
@@ -2185,7 +2185,7 @@
       "name": "programa_exercicio",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
         "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
@@ -2457,7 +2457,7 @@
       "name": "programa_treino",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
         "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",

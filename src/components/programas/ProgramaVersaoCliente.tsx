@@ -381,6 +381,7 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
                 id: string
                 nome: string
                 foco?: string
+                ordem?: number
                 exercicios: ProgramaExercicioRecord[]
               }
 
@@ -392,6 +393,7 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
                     id: t.id,
                     nome: t.nome,
                     foco: t.foco,
+                    ordem: t.ordem ?? 999,
                     exercicios: [],
                   })
                 })
@@ -399,6 +401,7 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
                 gruposMap.set('padrao', {
                   id: 'padrao',
                   nome: 'Treino A',
+                  ordem: 1,
                   exercicios: [],
                 })
               }
@@ -407,6 +410,23 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
               exerciciosDestaSemana.forEach((ex) => {
                 if (ex.treino_id && gruposMap.has(ex.treino_id)) {
                   gruposMap.get(ex.treino_id)!.exercicios.push(ex)
+                } else if (ex.treino_nome) {
+                  // Tentar encontrar por treino_nome se o treino_id não estiver no mapa
+                  const match = Array.from(gruposMap.values()).find(
+                    (g) => g.nome.toLowerCase() === ex.treino_nome?.toLowerCase(),
+                  )
+                  if (match) {
+                    match.exercicios.push(ex)
+                  } else if (treinosDestaSemana.length === 1) {
+                    gruposMap.get(treinosDestaSemana[0].id)!.exercicios.push(ex)
+                  } else if (gruposMap.has('padrao')) {
+                    gruposMap.get('padrao')!.exercicios.push(ex)
+                  } else {
+                    const primeiro = treinosDestaSemana[0]
+                    if (primeiro && gruposMap.has(primeiro.id)) {
+                      gruposMap.get(primeiro.id)!.exercicios.push(ex)
+                    }
+                  }
                 } else if (treinosDestaSemana.length === 1) {
                   // Se só tem 1 treino cadastrado na semana, cai nele
                   gruposMap.get(treinosDestaSemana[0].id)!.exercicios.push(ex)
@@ -421,7 +441,9 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
                 }
               })
 
-              const grupos = Array.from(gruposMap.values()).filter((g) => g.exercicios.length > 0)
+              const grupos = Array.from(gruposMap.values())
+                .filter((g) => g.exercicios.length > 0)
+                .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999))
               if (grupos.length === 0) return null
 
               return (

@@ -440,25 +440,53 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
 
   // 3.1 GESTÃO DE TREINOS (TREINO A, TREINO B, ETC.)
   const handleCriarTreino = async (nome: string, foco?: string) => {
-    if (!idAtual) {
-      toast({
-        title: 'Salve o programa primeiro',
-        description: 'Clique em "Salvar Programa" antes de criar treinos divididos.',
-        variant: 'destructive',
-      })
-      return
+    let targetProgramaId = idAtual
+
+    // Se o programa ainda não foi salvo, tenta salvá-lo automaticamente antes de criar o treino
+    if (!targetProgramaId) {
+      if (!pacienteId) {
+        toast({
+          title: 'Selecione o paciente',
+          description: 'Selecione o paciente antes de adicionar treinos.',
+          variant: 'destructive',
+        })
+        return
+      }
+      try {
+        const nomeFinal =
+          nomePrograma.trim() || `Programa do Aluno ${pacienteSelecionado?.nome || ''}`
+        const novoProg = await createPrograma({
+          paciente_id: pacienteId,
+          nome: nomeFinal,
+          unidade_duracao: unidadeDuracao,
+          total_periodos: totalPeriodos,
+          status: statusPrograma,
+          observacoes: observacoes.trim(),
+        })
+        targetProgramaId = novoProg.id
+        setIdAtual(novoProg.id)
+        setTokenCompartilhamento(novoProg.token_compartilhamento || '')
+        navigate(`/programas/${novoProg.id}`, { replace: true })
+      } catch (err: any) {
+        toast({
+          title: 'Salve o programa primeiro',
+          description: 'Clique no botão "Salvar Programa" antes de criar treinos divididos.',
+          variant: 'destructive',
+        })
+        return
+      }
     }
 
     try {
       const treinosSemana = treinos.filter((t) => t.semana_indice === semanaAtiva)
       const novo = await createTreino({
-        programa_id: idAtual,
+        programa_id: targetProgramaId,
         semana_indice: semanaAtiva,
         nome: nome.trim(),
         foco: foco?.trim(),
         ordem: treinosSemana.length + 1,
       })
-      setTreinos([...treinos, novo])
+      setTreinos((prev) => [...prev, novo])
       setTreinoAtivoId(novo.id)
       toast({
         title: 'Treino adicionado!',
@@ -506,13 +534,47 @@ export const ProgramaEditor: React.FC<ProgramaEditorProps> = ({ programaId }) =>
 
   // 4. EXERCÍCIOS & CARGAS
   const handleSalvarExercicio = async (ex: Partial<ProgramaExercicioRecord>) => {
-    if (!idAtual) return
+    let targetProgramaId = idAtual
+    if (!targetProgramaId) {
+      if (!pacienteId) {
+        toast({
+          title: 'Selecione o paciente',
+          description: 'Selecione o paciente antes de adicionar exercícios.',
+          variant: 'destructive',
+        })
+        return
+      }
+      try {
+        const nomeFinal =
+          nomePrograma.trim() || `Programa do Aluno ${pacienteSelecionado?.nome || ''}`
+        const novoProg = await createPrograma({
+          paciente_id: pacienteId,
+          nome: nomeFinal,
+          unidade_duracao: unidadeDuracao,
+          total_periodos: totalPeriodos,
+          status: statusPrograma,
+          observacoes: observacoes.trim(),
+        })
+        targetProgramaId = novoProg.id
+        setIdAtual(novoProg.id)
+        setTokenCompartilhamento(novoProg.token_compartilhamento || '')
+        navigate(`/programas/${novoProg.id}`, { replace: true })
+      } catch (err: any) {
+        toast({
+          title: 'Salve o programa primeiro',
+          description: 'Clique em "Salvar Programa" antes de prescrever exercícios.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
     try {
       const novo = await createExercicio({
         ...ex,
-        programa_id: idAtual,
+        programa_id: targetProgramaId,
       })
-      setExercicios([...exercicios, novo])
+      setExercicios((prev) => [...prev, novo])
       toast({ title: 'Exercício adicionado à semana!' })
     } catch (err: any) {
       toast({

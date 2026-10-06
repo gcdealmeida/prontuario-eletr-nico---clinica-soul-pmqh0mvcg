@@ -1498,6 +1498,29 @@ export default function GuiaUso() {
                   consultas e alertas de reavaliação da clínica diretamente no seu smartphone.
                 </AccordionContent>
               </AccordionItem>
+
+              <AccordionItem
+                value="faq-8-treinos"
+                className="border border-[#E9E1D2] rounded-2xl px-4 py-1"
+              >
+                <AccordionTrigger className="text-sm font-bold text-[#4A322A] hover:no-underline hover:text-[#8C6527]">
+                  Como dividir os treinos da semana em Treino A, Treino B, etc. no Programa de
+                  Acompanhamento?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-gray-600 leading-relaxed">
+                  Na etapa <strong>4 (Prescrição de Exercícios)</strong> do editor de programas,
+                  cada semana da periodização agora conta com abas de treinos:
+                  <br />• Clique em <strong>"Novo Treino"</strong> para adicionar uma nova divisão
+                  àquela semana (por exemplo, <em>Treino A</em>, <em>Treino B</em>,{' '}
+                  <em>Treino C</em>, ou nomes livres como <em>"Dia 1 - Inferiores"</em>).
+                  <br />• Cada treino possui sua própria lista independente de exercícios do
+                  catálogo, séries, reps/tempo, carga e descanso.
+                  <br />• Para renomear um treino, basta clicar no ícone de lápis na aba do treino.
+                  <br />• Na <strong>Versão do Cliente</strong> (acessível pelo botão superior ou
+                  pelo link público/WhatsApp do aluno), cada treino é exibido claramente com seu
+                  próprio banner dourado, identificando a divisão para cada dia da semana.
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </div>
         </TabsContent>

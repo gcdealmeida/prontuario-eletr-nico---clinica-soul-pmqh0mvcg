@@ -112,9 +112,20 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
   const [salvandoCarga, setSalvandoCarga] = useState(false)
 
   // Sugestão de próximo nome de treino (Treino A, Treino B, Treino C...)
-  const letras = ['A', 'B', 'C', 'D', 'E', 'F']
-  const proximaLetra = letras[treinosDaSemana.length] || `Treino ${treinosDaSemana.length + 1}`
+  const letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+  const proximaLetra = letras[treinosDaSemana.length] || `${treinosDaSemana.length + 1}`
   const sugestaoNome = `Treino ${proximaLetra}`
+
+  // Efeito para garantir que ao trocar de semana, se o treinoAtivoId não pertencer à semana,
+  // selecione automaticamente o primeiro treino da semana
+  useEffect(() => {
+    if (treinosDaSemana.length > 0) {
+      const existeNestaSemana = treinosDaSemana.some((t) => t.id === treinoAtivoId)
+      if (!existeNestaSemana) {
+        onSelecionarTreino(treinosDaSemana[0].id)
+      }
+    }
+  }, [semanaIndice, treinosDaSemana.length, treinoAtivoId])
 
   // Exercícios filtrados por esta semana e por este treino
   const exerciciosDesteTreino = exercicios.filter((e) => {
@@ -155,10 +166,23 @@ export const PainelExerciciosObjetivo: React.FC<PainelExerciciosObjetivoProps> =
 
     try {
       setAdicionando(true)
+
+      // Se ainda não existir nenhum treino nesta semana, cria automaticamente o "Treino A"
+      let treinoDestinoId = treinoSelecionado?.id
+      let treinoDestinoNome = treinoSelecionado?.nome || 'Treino A'
+
+      if (!treinoDestinoId && treinosDaSemana.length === 0) {
+        const treinoCriado = await onCriarTreino('Treino A')
+        if (treinoCriado) {
+          treinoDestinoId = treinoCriado.id
+          treinoDestinoNome = treinoCriado.nome
+        }
+      }
+
       await onSalvarExercicio({
         semana_indice: semanaIndice,
-        treino_id: treinoSelecionado?.id,
-        treino_nome: treinoSelecionado?.nome || 'Treino A',
+        treino_id: treinoDestinoId,
+        treino_nome: treinoDestinoNome,
         meta_id: novoExMetaId || (metasDaSemana[0]?.id ?? ''),
         exercicio_id: novoExExercicioId,
         nome: novoExNome.trim(),

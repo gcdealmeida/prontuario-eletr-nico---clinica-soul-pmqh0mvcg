@@ -17,7 +17,7 @@ migrate(
       treinoCol = new Collection({
         name: 'programa_treino',
         type: 'base',
-        listRule: subReadRule,
+        listRule: `${subReadRule} || programa_id.token_compartilhamento != ''`,
         viewRule: `${subReadRule} || programa_id.token_compartilhamento != ''`,
         createRule: subWriteRule,
         updateRule: subWriteRule,
@@ -59,7 +59,7 @@ migrate(
         new RelationField({
           name: 'treino_id',
           collectionId: treinoColId,
-          cascadeDelete: true,
+          cascadeDelete: false,
           maxSelect: 1,
         }),
       )
