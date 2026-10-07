@@ -550,6 +550,13 @@ export interface AvaliacaoFisioterapiaRecord {
   plano_semanal_detalhado?: PlanoSemanalItem[]
   anexos_exames?: string[]
   anexos_dinamometro?: string[]
+  dados_importados_planilha?: {
+    arquivo_origem?: string
+    importado_em?: string
+    abas_processadas?: string[]
+    resumo?: Record<string, any>
+    dados_extras?: Record<string, any>
+  }
   created: string
   updated: string
   expand?: {

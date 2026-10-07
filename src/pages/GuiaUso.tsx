@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   UserCheck,
   Lock,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -270,6 +271,13 @@ export default function GuiaUso() {
           >
             <Dumbbell className="h-4 w-4 text-[#C9A46A]" />
             6. Programas de Acompanhamento & Treinos A/B/C
+          </TabsTrigger>
+          <TabsTrigger
+            value="importador-planilha"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-[#C9A46A]" />
+            7. Importar Avaliação (Planilha .xlsx)
           </TabsTrigger>
           <TabsTrigger
             value="faq"
@@ -1336,7 +1344,114 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 7: PERGUNTAS FREQUENTES (FAQ) */}
+        {/* TAB 7: IMPORTADOR DE AVALIAÇÃO VIA PLANILHA */}
+        <TabsContent value="importador-planilha" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-2">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Módulo de Importação Inteligente</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Importador de Avaliações e Histórico Clínico (.xlsx)
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Cadastre pacientes e insira avaliações completas de Fisioterapia com evolução
+                histórica diretamente a partir de suas planilhas de avaliação anteriores.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  1. Processamento Local
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">100% no Navegador</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  O arquivo da planilha é lido e interpretado na memória do seu próprio navegador
+                  web, garantindo total sigilo dos dados do paciente e rapidez no processamento.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  2. Mapeamento Tolerante
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">Detecção Multiabas</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Reconhece abas como <em>ANAMNESE</em>, <em>EXAME FÍSICO</em>, <em>Evolução</em>,{' '}
+                  <em>Testes Funcionais</em>, <em>Cirtometria</em> e <em>Goniometria</em>, tolerando
+                  acentuação e pontuações variadas.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  3. Sem Perda de Dados
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">Bloco Dados Importados</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Qualquer informação complementar, como laudos de exames extensos ou testes
+                  específicos, é preservada dentro de uma seção especial na avaliação oficial.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-[#E9E1D2]">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Como realizar a importação passo a passo:
+              </h4>
+
+              <div className="space-y-3 text-xs text-gray-700">
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    <strong>Onde encontrar o botão:</strong> Em <strong>Pacientes</strong> (no topo
+                    da lista) ou dentro do perfil de qualquer paciente, clique no botão{' '}
+                    <strong>"Importar Avaliação (Planilha)"</strong>.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    <strong>Upload do arquivo:</strong> Arraste ou selecione a pasta de trabalho{' '}
+                    <code>.xlsx</code> com a avaliação do paciente.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    <strong>Revisão e Vínculo:</strong> O sistema buscará o paciente pelo CPF ou
+                    Nome. Se já existir, a avaliação será vinculada a ele; caso contrário, um novo
+                    cadastro será criado. Você pode revisar e editar qualquer campo antes de
+                    confirmar.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    4
+                  </div>
+                  <div>
+                    <strong>Histórico de Evolução:</strong> As anotações de evolução são agrupadas
+                    por data e criadas como rascunhos não assinados, respeitando os requisitos
+                    legais de prontuário.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 8: PERGUNTAS FREQUENTES (FAQ) */}
         <TabsContent value="faq" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>

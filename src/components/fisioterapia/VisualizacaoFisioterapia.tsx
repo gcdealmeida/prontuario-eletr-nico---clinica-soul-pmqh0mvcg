@@ -32,7 +32,9 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  FileSpreadsheet,
 } from 'lucide-react'
+import { formatDataPTBR } from '@/lib/constants'
 
 interface VisualizacaoFisioterapiaProps {
   avaliacao: AvaliacaoFisioterapiaRecord
@@ -1224,6 +1226,99 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
           )}
         </div>
       </div>
+
+      {/* 8. DADOS IMPORTADOS DA PLANILHA (QUANDO HOUVER ORIGEM DE PLANILHA) */}
+      {avaliacao.dados_importados_planilha && (
+        <div className="space-y-4 pt-2 border-t border-gray-100">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-amber-900 bg-amber-50/80 p-2.5 rounded-xl flex items-center gap-2 border border-amber-200/70">
+            <FileSpreadsheet className="h-4 w-4 text-amber-700" /> 8. Dados Importados da Planilha (
+            {avaliacao.dados_importados_planilha.arquivo_origem || 'Arquivo .xlsx'})
+          </h3>
+
+          <div className="space-y-3 text-xs bg-[#FAF7F1]/60 p-4 rounded-2xl border border-[#E9E1D2]">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E9E1D2]/60">
+              <span className="font-semibold text-gray-700">
+                Arquivo de Origem:{' '}
+                <strong>{avaliacao.dados_importados_planilha.arquivo_origem || '—'}</strong>
+              </span>
+              <span className="text-gray-500 text-[11px]">
+                Importado em:{' '}
+                {avaliacao.dados_importados_planilha.importado_em
+                  ? formatDataPTBR(avaliacao.dados_importados_planilha.importado_em)
+                  : '—'}
+              </span>
+            </div>
+
+            {/* Abas processadas */}
+            {avaliacao.dados_importados_planilha.abas_processadas && (
+              <div className="space-y-1">
+                <span className="font-bold text-gray-700 block text-[11px] uppercase tracking-wider">
+                  Abas Processadas na Pasta de Trabalho:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {avaliacao.dados_importados_planilha.abas_processadas.map((aba, i) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-0.5 rounded-full bg-white border border-[#C9A46A]/60 text-gray-800 text-[11px] font-medium"
+                    >
+                      {aba}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Laudos de Exames Complementares da planilha */}
+            {avaliacao.dados_importados_planilha.dados_extras?.exames_complementares_laudos &&
+              avaliacao.dados_importados_planilha.dados_extras.exames_complementares_laudos.length >
+                0 && (
+                <div className="space-y-1.5 pt-2">
+                  <span className="font-bold text-gray-800 block text-[11px] uppercase tracking-wider">
+                    Laudos Detalhados de Exames Complementares:
+                  </span>
+                  <div className="space-y-2">
+                    {avaliacao.dados_importados_planilha.dados_extras.exames_complementares_laudos.map(
+                      (laudo: string, i: number) => (
+                        <div
+                          key={i}
+                          className="p-3 bg-white rounded-xl border border-gray-200 text-gray-800 text-[11px] leading-relaxed whitespace-pre-wrap"
+                        >
+                          {laudo}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* Linhas não mapeadas ou notas adicionais */}
+            {avaliacao.dados_importados_planilha.dados_extras?.linhas_anamnese_nao_mapeadas &&
+              avaliacao.dados_importados_planilha.dados_extras.linhas_anamnese_nao_mapeadas.length >
+                0 && (
+                <div className="space-y-1.5 pt-2">
+                  <span className="font-bold text-gray-800 block text-[11px] uppercase tracking-wider">
+                    Outras Informações Registradas na Anamnese:
+                  </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {avaliacao.dados_importados_planilha.dados_extras.linhas_anamnese_nao_mapeadas.map(
+                      (item: { rotulo: string; valor: string }, i: number) => (
+                        <div
+                          key={i}
+                          className="p-2.5 bg-white rounded-xl border border-gray-200 text-[11px]"
+                        >
+                          {item.rotulo && (
+                            <strong className="text-gray-900 block mb-0.5">{item.rotulo}</strong>
+                          )}
+                          <span className="text-gray-700 whitespace-pre-wrap">{item.valor}</span>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

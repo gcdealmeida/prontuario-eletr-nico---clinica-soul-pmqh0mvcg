@@ -53,6 +53,8 @@ import {
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
+import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
+import { FileSpreadsheet } from 'lucide-react'
 
 export default function PacienteDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -80,6 +82,9 @@ export default function PacienteDetalhe() {
 
   // Modal Consulta
   const [consultaModalOpen, setConsultaModalOpen] = useState(false)
+
+  // Modal Importar Avaliação
+  const [importAvaliacaoModalOpen, setImportAvaliacaoModalOpen] = useState(false)
 
   // Edit Tab Form
   const [editNome, setEditNome] = useState('')
@@ -371,6 +376,18 @@ export default function PacienteDetalhe() {
                 Abrir Prontuário →
               </Button>
             )}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportAvaliacaoModalOpen(true)}
+              className="rounded-xl h-10 px-3.5 text-xs font-semibold border-[#C9A46A]/80 bg-[#FAF7F1] text-[#73574A] hover:bg-[#F3EAD9] flex items-center gap-1.5 shadow-2xs"
+              title="Importar avaliação e histórico de evolução deste paciente a partir de planilha .xlsx"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-[#8C6527]" />
+              Importar Avaliação (Planilha)
+            </Button>
+
             <Button
               onClick={() => setConsultaModalOpen(true)}
               variant="outline"
@@ -1364,6 +1381,17 @@ export default function PacienteDetalhe() {
         onOpenChange={setConsultaModalOpen}
         defaultPacienteId={paciente.id}
         onSuccess={() => loadData()}
+      />
+
+      {/* Modal Importar Avaliação para este Paciente */}
+      <ModalImportarAvaliacaoPlanilha
+        open={importAvaliacaoModalOpen}
+        onOpenChange={setImportAvaliacaoModalOpen}
+        pacientePredefinidoId={paciente.id}
+        pacientePredefinidoNome={paciente.nome}
+        onSuccess={() => {
+          loadData()
+        }}
       />
     </div>
   )

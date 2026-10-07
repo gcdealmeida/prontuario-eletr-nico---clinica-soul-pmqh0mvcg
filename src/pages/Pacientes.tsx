@@ -49,6 +49,7 @@ import { useToast } from '@/hooks/use-toast'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
 import { ModalImportarPacientes } from '@/components/ModalImportarPacientes'
+import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
 import { useAuth } from '@/contexts/AuthContext'
 import { Link as LinkIcon, Sparkles, FileSpreadsheet } from 'lucide-react'
 
@@ -104,6 +105,9 @@ export default function Pacientes() {
   // Modal Importar Pacientes (Admin only)
   const { isAdmin } = useAuth()
   const [importModalOpen, setImportModalOpen] = useState(false)
+
+  // Modal Importar Avaliação Planilha (.xlsx)
+  const [importAvaliacaoModalOpen, setImportAvaliacaoModalOpen] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -274,6 +278,17 @@ export default function Pacientes() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setImportAvaliacaoModalOpen(true)}
+            className="rounded-xl h-10 px-3.5 text-xs font-semibold border-[#C9A46A]/80 bg-[#FAF7F1] text-[#73574A] hover:bg-[#F3EAD9] flex items-center gap-2 shadow-2xs"
+            title="Importar avaliação clínica e evoluções de Fisioterapia a partir de pasta de trabalho .xlsx"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-[#8C6527]" />
+            Importar Avaliação (Planilha)
+          </Button>
+
           {isAdmin && (
             <Button
               type="button"
@@ -802,6 +817,16 @@ export default function Pacientes() {
           }}
         />
       )}
+
+      {/* Modal Importar Avaliação Planilha */}
+      <ModalImportarAvaliacaoPlanilha
+        open={importAvaliacaoModalOpen}
+        onOpenChange={setImportAvaliacaoModalOpen}
+        onSuccess={(res) => {
+          fetchPacientesList()
+          navigate(`/pacientes/${res.pacienteId}`)
+        }}
+      />
     </div>
   )
 }
