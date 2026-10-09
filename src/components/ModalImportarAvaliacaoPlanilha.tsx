@@ -522,7 +522,8 @@ export function ModalImportarAvaliacaoPlanilha({
                     {fileName}
                   </p>
                   <span className="text-[11px] text-gray-500 block">
-                    {parsedData.abasEncontradas.length} abas detectadas
+                    {parsedData.abasEncontradas.length} abas detectadas (
+                    {parsedData.diagnosticoImportacao.abasReconhecidas.length} clínicas)
                   </span>
                 </div>
 
@@ -550,9 +551,78 @@ export function ModalImportarAvaliacaoPlanilha({
                   <p className="text-[11px] text-gray-600">
                     {matchedPaciente
                       ? `CPF: ${matchedPaciente.cpf || '—'} | ID: ${matchedPaciente.id}`
-                      : 'O cadastro será criado automaticamente com os dados da Anamnese.'}
+                      : 'O cadastro será criado com os dados detectados na Anamnese.'}
                   </p>
                 </div>
+              </div>
+
+              {/* Painel de Transparência de Leitura: Campos Reconhecidos vs Não Encontrados */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-3.5 space-y-2.5 text-xs shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-amber-600" />
+                    Diagnóstico Estrutural da Leitura da Planilha
+                  </span>
+                  <span className="text-[11px] text-gray-500">
+                    {parsedData.diagnosticoImportacao.camposReconhecidos.length} itens reconhecidos
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                  {/* Campos reconhecidos */}
+                  <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 space-y-1.5">
+                    <span className="text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      Campos & Seções Reconhecidos:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {parsedData.diagnosticoImportacao.camposReconhecidos.map((campo, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="text-[10px] bg-white text-emerald-800 border-emerald-200 font-medium"
+                        >
+                          {campo}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Campos não encontrados no arquivo */}
+                  <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-1.5">
+                    <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                      Não Encontrados / Opcionais na Planilha:
+                    </span>
+                    {parsedData.diagnosticoImportacao.camposNaoEncontrados.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {parsedData.diagnosticoImportacao.camposNaoEncontrados.map((campo, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-[10px] bg-white text-amber-900 border-amber-200 font-normal"
+                          >
+                            {campo} (vazio)
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-emerald-700 italic">
+                        Todos os campos essenciais foram identificados!
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Aviso explícito amigável sobre campos não encontrados */}
+                {parsedData.diagnosticoImportacao.camposNaoEncontrados.length > 0 && (
+                  <p className="text-[11px] text-gray-500 bg-gray-50 p-2 rounded-xl border border-gray-100">
+                    <Info className="h-3.5 w-3.5 inline mr-1 text-gray-400" />
+                    <strong>Dica:</strong> Os campos vazios acima podem ser digitados diretamente
+                    nas abas abaixo antes de confirmar a importação, caso deseje complementá-los
+                    agora.
+                  </p>
+                )}
               </div>
 
               {/* Tabs de Revisão antes de Confirmar */}
@@ -594,9 +664,16 @@ export function ModalImportarAvaliacaoPlanilha({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium text-gray-700">
-                        Data de Nascimento
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium text-gray-700">
+                          Data de Nascimento
+                        </Label>
+                        {parsedData.anamnese.idade && (
+                          <span className="text-[10px] text-gray-500 font-medium">
+                            Idade na planilha: {parsedData.anamnese.idade} anos
+                          </span>
+                        )}
+                      </div>
                       <Input
                         type="date"
                         value={editDataNasc}

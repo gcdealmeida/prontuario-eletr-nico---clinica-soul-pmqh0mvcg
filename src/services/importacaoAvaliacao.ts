@@ -222,6 +222,7 @@ export interface ParsedPlanilhaAvaliacao {
     nome: string
     cpf: string
     dataNascimento?: string
+    idade?: string | number
     endereco?: string
     contato?: string
     profissao?: string
@@ -235,6 +236,12 @@ export interface ParsedPlanilhaAvaliacao {
   testesEspeciais: ParsedTestesEspeciaisData
   podal: ParsedPodalData
   dadosExtrasImportados: Record<string, any>
+  diagnosticoImportacao: {
+    camposReconhecidos: string[]
+    camposNaoEncontrados: string[]
+    abasReconhecidas: string[]
+    abasNaoReconhecidas: string[]
+  }
 }
 
 // Parser Genérico Principal da Planilha
@@ -244,8 +251,9 @@ export function parseAvaliacaoWorkbook(
 ): ParsedPlanilhaAvaliacao {
   const sheetNames = workbook.SheetNames || []
 
-  // Normaliza busca de abas
+  // Normaliza busca de abas tolerante a espaços extras, pontuações, maiúsculas/minúsculas e acentuação
   const findSheet = (keywords: string[]): XLSX.WorkSheet | null => {
+    // 1. Match exato normalizado
     for (const kw of keywords) {
       const targetNorm = normalizeLabel(kw)
       const foundName = sheetNames.find((s) => normalizeLabel(s) === targetNorm)
@@ -253,10 +261,26 @@ export function parseAvaliacaoWorkbook(
         return workbook.Sheets[foundName]
       }
     }
-    // Match parcial se não encontrou exato
+    // 2. Match onde o nome da aba contém a palavra-chave inteira normalizada
     for (const kw of keywords) {
       const targetNorm = normalizeLabel(kw)
-      const foundName = sheetNames.find((s) => normalizeLabel(s).includes(targetNorm))
+      if (!targetNorm) continue
+      const foundName = sheetNames.find((s) => {
+        const norm = normalizeLabel(s)
+        return norm.includes(targetNorm) || targetNorm.includes(norm)
+      })
+      if (foundName && workbook.Sheets[foundName]) {
+        return workbook.Sheets[foundName]
+      }
+    }
+    // 3. Match de tokens / palavras sem ordem
+    for (const kw of keywords) {
+      const kwTokens = normalizeLabel(kw).split(' ').filter(Boolean)
+      if (kwTokens.length === 0) continue
+      const foundName = sheetNames.find((s) => {
+        const norm = normalizeLabel(s)
+        return kwTokens.every((token) => norm.includes(token))
+      })
       if (foundName && workbook.Sheets[foundName]) {
         return workbook.Sheets[foundName]
       }
@@ -330,15 +354,75 @@ export function parseAvaliacaoWorkbook(
   const avaliacaoPeSheet = findSheet(['Avaliação do Pé', 'Avaliacao do Pe'])
   const parsedPodal = parsePodalSheets(peAvaliacaoSheet, avaliacaoPeSheet)
 
-  // Identificação do Paciente prioritária da aba ANAMNESE
+  // Identificação do Paciente prioritária da aba ANAMNESE (com fallback inteligente)
+  let fallbackNome = parsedAnamnese.nome || ''
+  let fallbackDataNasc = parsedAnamnese.dataNascimento
+
+  // Se o nome não veio da Anamnese, tenta extrair do próprio nome do arquivo
+  // Ex: "avaliacao-eduardo-magalhaes-sarmento-afonso-905b2.xlsx" -> "Eduardo Magalhaes Sarmento Afonso"
+  if (!fallbackNome && fileName) {
+    const cleanFile = fileName.replace(/\.xlsx?$/i, '')
+    // Remove hash final se houver (ex: "-905b2")
+    const semHash = cleanFile.replace(/[-_][a-f0-9]{4,10}$/i, '')
+    // Remove prefixos comuns ("avaliacao-", "prontuario-", "ficha-")
+    const semPrefixo = semHash.replace(/^(avaliacao|prontuario|ficha|paciente)[-_]/i, '')
+    if (semPrefixo && semPrefixo.length > 3) {
+      fallbackNome = semPrefixo
+        .split(/[-_]/)
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ')
+    }
+  }
+
   const pacienteIdentificado = {
-    nome: parsedAnamnese.nome || '',
+    nome: fallbackNome,
     cpf: normalizeCPF(parsedAnamnese.cpf) || '',
-    dataNascimento: parsedAnamnese.dataNascimento,
+    dataNascimento: fallbackDataNasc,
+    idade: parsedAnamnese.idade,
     endereco: parsedAnamnese.endereco || '',
     contato: normalizePhone(parsedAnamnese.contato) || parsedAnamnese.contato || '',
     profissao: parsedAnamnese.profissao || '',
   }
+
+  // Diagnóstico de importação para transparência ao usuário
+  const camposReconhecidos: string[] = []
+  const camposNaoEncontrados: string[] = []
+
+  if (pacienteIdentificado.nome) camposReconhecidos.push('Nome do Paciente')
+  else camposNaoEncontrados.push('Nome do Paciente')
+
+  if (pacienteIdentificado.idade)
+    camposReconhecidos.push(`Idade (${pacienteIdentificado.idade} anos)`)
+  else if (pacienteIdentificado.dataNascimento) camposReconhecidos.push('Data de Nascimento')
+  else camposNaoEncontrados.push('Idade / Data de Nascimento')
+
+  if (pacienteIdentificado.cpf) camposReconhecidos.push('CPF')
+  else camposNaoEncontrados.push('CPF')
+
+  if (pacienteIdentificado.contato) camposReconhecidos.push('Telefone / Contato')
+  else camposNaoEncontrados.push('Telefone / Contato')
+
+  if (pacienteIdentificado.profissao) camposReconhecidos.push('Profissão')
+  else camposNaoEncontrados.push('Profissão')
+
+  if (parsedAnamnese.queixaPrincipal) camposReconhecidos.push('Queixa Principal')
+  else camposNaoEncontrados.push('Queixa Principal')
+
+  if (parsedAnamnese.historico) camposReconhecidos.push('Histórico Clínico')
+  else camposNaoEncontrados.push('Histórico Clínico')
+
+  if (parsedAnamnese.eva) camposReconhecidos.push(`EVA da Dor (${parsedAnamnese.eva})`)
+  else camposNaoEncontrados.push('EVA da Dor')
+
+  if (parsedAnamnese.examesComplementares.length > 0)
+    camposReconhecidos.push(`${parsedAnamnese.examesComplementares.length} Laudos de Exames`)
+
+  if (parsedEvolucoes.length > 0)
+    camposReconhecidos.push(`${parsedEvolucoes.length} Sessões de Evolução`)
+
+  const abasReconhecidas: string[] = []
+  const abasNaoReconhecidas: string[] = []
 
   // Abas adicionais não comerciais guardadas em extras para garantir que nada se perde
   const dadosExtrasImportados: Record<string, any> = {}
@@ -364,12 +448,17 @@ export function parseAvaliacaoWorkbook(
       'avaliacao do pe',
     ]
     const isConhecida = conhecidas.some((c) => norm.includes(c))
-    if (!isConhecida && workbook.Sheets[name]) {
-      try {
-        const json = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' })
-        dadosExtrasImportados[name] = json
-      } catch {
-        // ignora
+    if (isConhecida) {
+      abasReconhecidas.push(name)
+    } else {
+      abasNaoReconhecidas.push(name)
+      if (workbook.Sheets[name]) {
+        try {
+          const json = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' })
+          dadosExtrasImportados[name] = json
+        } catch {
+          // ignora
+        }
       }
     }
   }
@@ -387,6 +476,12 @@ export function parseAvaliacaoWorkbook(
     testesEspeciais: parsedTestesEspeciais,
     podal: parsedPodal,
     dadosExtrasImportados,
+    diagnosticoImportacao: {
+      camposReconhecidos,
+      camposNaoEncontrados,
+      abasReconhecidas,
+      abasNaoReconhecidas,
+    },
   }
 }
 
@@ -471,17 +566,81 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
     const row = rows[i]
     if (!row || row.length === 0) continue
 
-    const col0Raw = row[0] !== undefined ? String(row[0]).trim() : ''
-    // Valor pode estar na coluna 1, ou se vazia na 2/3
-    let valRaw = ''
-    for (let c = 1; c < row.length; c++) {
+    // Encontra a primeira célula não vazia como rótulo candidato (normalmente col 0, mas tolera indentação)
+    let labelColIdx = -1
+    for (let c = 0; c < Math.min(3, row.length); c++) {
       if (row[c] !== undefined && String(row[c]).trim() !== '') {
-        valRaw = String(row[c]).trim()
+        labelColIdx = c
         break
       }
     }
 
-    const normLabel = normalizeLabel(col0Raw)
+    const col0Raw = labelColIdx !== -1 ? String(row[labelColIdx]).trim() : ''
+
+    // Se a própria célula do rótulo contiver dois pontos ou quebra de linha com valor embutido (ex: "Nome: Fulano de Tal")
+    let embeddedVal = ''
+    let cleanedLabel = col0Raw
+    if (col0Raw.includes(':')) {
+      const splitIdx = col0Raw.indexOf(':')
+      const possibleLabel = col0Raw.substring(0, splitIdx).trim()
+      const possibleVal = col0Raw.substring(splitIdx + 1).trim()
+      // Se a parte após os dois pontos tiver conteúdo substantivo, usamos como valor
+      if (possibleVal) {
+        cleanedLabel = possibleLabel
+        embeddedVal = possibleVal
+      }
+    }
+
+    // Valor pode estar na célula ao lado (a partir de labelColIdx + 1), ou no embeddedVal, ou na linha de baixo (se célula mesclada vertical)
+    let valRaw = embeddedVal
+    if (!valRaw) {
+      for (let c = labelColIdx + 1; c < row.length; c++) {
+        if (row[c] !== undefined && String(row[c]).trim() !== '') {
+          valRaw = String(row[c]).trim()
+          break
+        }
+      }
+    }
+
+    const normLabel = normalizeLabel(cleanedLabel || col0Raw)
+
+    // Se ainda não encontrou valor ao lado, mas o rótulo é conhecido (ex: Nome, Idade, Queixa), checa se o valor está na linha imediatamente abaixo (célula vertical mesclada)
+    if (!valRaw && i + 1 < rows.length) {
+      const nextRow = rows[i + 1]
+      if (nextRow) {
+        const nextCol0 =
+          nextRow[labelColIdx !== -1 ? labelColIdx : 0] !== undefined
+            ? String(nextRow[labelColIdx !== -1 ? labelColIdx : 0]).trim()
+            : ''
+        // Se a linha de baixo não é um novo rótulo conhecido
+        const normNext = normalizeLabel(nextCol0)
+        const isNextLabel = [
+          'nome',
+          'cpf',
+          'idade',
+          'dn',
+          'peso',
+          'altura',
+          'endereco',
+          'contato',
+          'profissao',
+          'queixa',
+          'eva',
+          'historico',
+          'objetivos',
+          'diagnostico',
+        ].some((k) => normNext.startsWith(k))
+
+        if (!isNextLabel) {
+          for (let c = 0; c < nextRow.length; c++) {
+            if (nextRow[c] !== undefined && String(nextRow[c]).trim() !== '') {
+              valRaw = String(nextRow[c]).trim()
+              break
+            }
+          }
+        }
+      }
+    }
 
     // Detecção de linha sem rótulo ou linha de continuação
     if (!col0Raw) {
@@ -501,14 +660,27 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
     }
 
     // 2. Identificação cadastral
-    if (normLabel === 'nome' || normLabel.startsWith('nome')) {
+    if (
+      normLabel === 'nome' ||
+      normLabel === 'nome completo' ||
+      normLabel === 'nome do paciente' ||
+      normLabel === 'paciente' ||
+      normLabel.startsWith('nome:') ||
+      normLabel.startsWith('nome ')
+    ) {
       result.nome = valRaw
       currentTargetCategory = null
       continue
     }
     if (
       normLabel === 'dn' ||
-      normLabel.startsWith('dn') ||
+      normLabel === 'd n' ||
+      normLabel === 'data nasc' ||
+      normLabel === 'data de nascimento' ||
+      normLabel === 'data nascimento' ||
+      normLabel === 'nascimento' ||
+      normLabel.startsWith('dn:') ||
+      normLabel.startsWith('d n') ||
       normLabel.includes('data de nascimento') ||
       normLabel.includes('data nascimento')
     ) {
@@ -517,73 +689,134 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'idade' || normLabel.startsWith('idade')) {
+    if (
+      normLabel === 'idade' ||
+      normLabel === 'idade anos' ||
+      normLabel.startsWith('idade:') ||
+      normLabel.startsWith('idade ')
+    ) {
       result.idade = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'peso' || normLabel.startsWith('peso')) {
+    if (normLabel === 'peso' || normLabel.startsWith('peso:') || normLabel.startsWith('peso ')) {
       result.peso = valRaw.replace(',', '.')
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'altura' || normLabel.startsWith('altura')) {
+    if (
+      normLabel === 'altura' ||
+      normLabel.startsWith('altura:') ||
+      normLabel.startsWith('altura ')
+    ) {
       result.altura = valRaw.replace(',', '.')
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'cpf' || normLabel.startsWith('cpf')) {
+    if (normLabel === 'cpf' || normLabel.startsWith('cpf:') || normLabel.startsWith('cpf ')) {
       result.cpf = normalizeCPF(valRaw)
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'endereco' || normLabel.startsWith('endereco')) {
+    if (
+      normLabel === 'endereco' ||
+      normLabel === 'endereco completo' ||
+      normLabel.startsWith('endereco:') ||
+      normLabel.startsWith('endereco ')
+    ) {
       result.endereco = valRaw
       currentTargetCategory = null
       continue
     }
     if (
       normLabel === 'contato' ||
-      normLabel.startsWith('contato') ||
-      normLabel.includes('telefone')
+      normLabel === 'telefone' ||
+      normLabel === 'celular' ||
+      normLabel === 'whatsapp' ||
+      normLabel.startsWith('contato:') ||
+      normLabel.startsWith('contato ') ||
+      normLabel.startsWith('telefone:') ||
+      normLabel.startsWith('telefone ') ||
+      normLabel.includes('telefone') ||
+      normLabel.includes('celular')
     ) {
       result.contato = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'profissao' || normLabel.startsWith('profissao')) {
+    if (
+      normLabel === 'profissao' ||
+      normLabel === 'ocupacao' ||
+      normLabel === 'trabalho' ||
+      normLabel.startsWith('profissao:') ||
+      normLabel.startsWith('profissao ')
+    ) {
       result.profissao = valRaw
       currentTargetCategory = null
       continue
     }
 
     // 3. Queixas e anamnese clínica
-    if (normLabel === 'diagnostico medico' || normLabel.startsWith('diagnostico medico')) {
+    if (
+      normLabel === 'diagnostico medico' ||
+      normLabel.startsWith('diagnostico medico') ||
+      normLabel.startsWith('diagnostico')
+    ) {
       result.diagnosticoMedico = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'objetivos' || normLabel.startsWith('objetivos')) {
+    if (
+      normLabel === 'objetivos' ||
+      normLabel.startsWith('objetivos') ||
+      normLabel.includes('objetivo do tratamento')
+    ) {
       result.objetivos = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'queixa principal' || normLabel.startsWith('queixa principal')) {
+    if (
+      normLabel === 'queixa principal' ||
+      normLabel.startsWith('queixa principal') ||
+      normLabel === 'queixa' ||
+      normLabel.startsWith('queixa:') ||
+      normLabel.startsWith('queixa ') ||
+      normLabel.includes('motivo da consulta') ||
+      normLabel.includes('motivo principal')
+    ) {
       result.queixaPrincipal = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'desde quando' || normLabel.startsWith('desde quando')) {
+    if (
+      normLabel === 'desde quando' ||
+      normLabel.startsWith('desde quando') ||
+      normLabel.includes('tempo de evolucao') ||
+      normLabel.includes('inicio dos sintomas')
+    ) {
       result.desdeQuando = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'tipo' || normLabel.startsWith('tipo de dor') || normLabel === 'tipo dor') {
+    if (
+      normLabel === 'tipo' ||
+      normLabel === 'tipo dor' ||
+      normLabel.startsWith('tipo de dor') ||
+      normLabel.startsWith('tipo dor') ||
+      normLabel.startsWith('caracteristica da dor')
+    ) {
       result.tipoDor = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'eva' || normLabel.startsWith('eva')) {
+    if (
+      normLabel === 'eva' ||
+      normLabel.startsWith('eva:') ||
+      normLabel.startsWith('eva ') ||
+      normLabel.includes('escala visual') ||
+      normLabel.includes('nivel da dor') ||
+      normLabel.includes('escala de dor')
+    ) {
       const numMatch = valRaw.match(/\d+([.,]\d+)?/)
       if (numMatch) {
         result.eva = parseFloat(numMatch[0].replace(',', '.'))
@@ -591,7 +824,12 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'historico' || normLabel.startsWith('historico')) {
+    if (
+      normLabel === 'historico' ||
+      normLabel.startsWith('historico') ||
+      normLabel.includes('hda') ||
+      normLabel.includes('historia da doenca')
+    ) {
       result.historico = valRaw
       currentTargetCategory = 'historico'
       continue
