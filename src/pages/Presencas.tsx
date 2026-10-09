@@ -10,15 +10,15 @@ import {
   Trash2,
   Users,
   UserCheck,
-  Stethoscope,
-  Calendar,
-  AlertCircle,
   X,
   Loader2,
   CheckCircle2,
-  Clock,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   RotateCcw,
+  Sparkles,
+  User,
+  Calendar,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
@@ -63,7 +63,6 @@ import {
   createPresenca,
   updatePresenca,
   deletePresenca,
-  type PresencasFilter,
   type PresencaPayload,
 } from '@/services/presencas'
 import type { PresencaRecord, PacienteRecord, UserRecord, StatusPresenca } from '@/types/database'
@@ -84,25 +83,82 @@ const SERVICOS_SUGERIDOS = [
 
 const STATUS_OPCOES: StatusPresenca[] = ['Presente', 'Confirmado', 'Justificado', 'Cancelado']
 
+const MESES_PTBR = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+]
+
+const MESES_SLUG = [
+  'janeiro',
+  'fevereiro',
+  'marco',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+]
+
+// Utilitário para formatar mês e ano ex: "Fevereiro de 2026"
+function formatMesAno(date: Date): string {
+  const mes = MESES_PTBR[date.getMonth()]
+  const ano = date.getFullYear()
+  return `${mes} de ${ano}`
+}
+
+// Utilitário para limites ISO do mês (YYYY-MM-01 até YYYY-MM-DD)
+function getMesRange(date: Date): { inicio: string; fim: string; mesNome: string; ano: number } {
+  const ano = date.getFullYear()
+  const mesIndex = date.getMonth()
+  const mesNum = String(mesIndex + 1).padStart(2, '0')
+  const ultimoDia = new Date(ano, mesIndex + 1, 0).getDate()
+  const ultimoDiaNum = String(ultimoDia).padStart(2, '0')
+
+  return {
+    inicio: `${ano}-${mesNum}-01`,
+    fim: `${ano}-${mesNum}-${ultimoDiaNum}`,
+    mesNome: MESES_PTBR[mesIndex],
+    ano,
+  }
+}
+
 export default function Presencas() {
   const { user, isAdmin } = useAuth()
 
-  // Dados carregados
+  // Navegação mensal (compartilhada por todos)
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+
+  // Dados carregados do backend
   const [presencas, setPresencas] = useState<PresencaRecord[]>([])
   const [pacientes, setPacientes] = useState<PacienteRecord[]>([])
   const [profissionais, setProfissionais] = useState<UserRecord[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Filtros
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
+  // Filtros complementares dentro do mês (para Admin)
   const [selectedPacienteId, setSelectedPacienteId] = useState('Todos')
   const [selectedProfissionalId, setSelectedProfissionalId] = useState('Todos')
   const [selectedArea, setSelectedArea] = useState('Todos')
   const [selectedStatus, setSelectedStatus] = useState<string>('Todos')
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Visualização e agrupamento
+  // Visualização e agrupamento (Admin)
   const [viewMode, setViewMode] = useState<'lista' | 'profissionais' | 'pacientes'>('lista')
 
   // Modais
@@ -128,14 +184,41 @@ export default function Presencas() {
   const [formStatus, setFormStatus] = useState<StatusPresenca>('Presente')
   const [formObservacoes, setFormObservacoes] = useState('')
 
-  // Carregar dados iniciais
+  // Intervalo do mês selecionado
+  const monthRange = useMemo(() => getMesRange(currentMonth), [currentMonth])
+
+  // Navegar mês
+  const handlePrevMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+  }
+
+  const handleNextMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+  }
+
+  const handleCurrentMonth = () => {
+    const now = new Date()
+    setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1))
+  }
+
+  const isCurrentMonthNow = useMemo(() => {
+    const now = new Date()
+    return (
+      now.getFullYear() === currentMonth.getFullYear() && now.getMonth() === currentMonth.getMonth()
+    )
+  }, [currentMonth])
+
+  // Carregar dados sempre com escopo do mês selecionado
   const carregarDados = async () => {
     try {
       setLoading(true)
       const [pacs, usersList, presList] = await Promise.all([
         getAllPacientes(),
         isAdmin ? getAllUsers() : Promise.resolve([]),
-        getAllPresencas({}),
+        getAllPresencas({
+          dataInicio: monthRange.inicio,
+          dataFim: monthRange.fim,
+        }),
       ])
       setPacientes(pacs)
       setProfissionais(usersList.filter((u) => u.access_status === 'approved'))
@@ -154,14 +237,14 @@ export default function Presencas() {
 
   useEffect(() => {
     carregarDados()
-  }, [isAdmin])
+  }, [isAdmin, monthRange.inicio, monthRange.fim])
 
   // Inscrição em tempo real na coleção de presenças
   useRealtime('presencas', () => {
     carregarDados()
   })
 
-  // Lista filtrada no frontend para resposta instantânea
+  // Lista filtrada no frontend
   const presencasFiltradas = useMemo(() => {
     return presencas.filter((item) => {
       // Escopo de visualização (garantia dupla frontend + backend)
@@ -169,24 +252,24 @@ export default function Presencas() {
         return false
       }
 
-      // Filtro de data inicial
-      if (dataInicio) {
-        const itemDate = item.data_atendimento ? item.data_atendimento.split(' ')[0] : ''
-        if (itemDate < dataInicio) return false
+      // Restrições de mês (confirmação estrita dentro do mês selecionado)
+      const itemDate = item.data_atendimento ? item.data_atendimento.split(' ')[0] : ''
+      if (itemDate && (itemDate < monthRange.inicio || itemDate > monthRange.fim)) {
+        return false
       }
 
-      // Filtro de data final
-      if (dataFim) {
-        const itemDate = item.data_atendimento ? item.data_atendimento.split(' ')[0] : ''
-        if (itemDate > dataFim) return false
+      // Se não for admin, a página é simples e exibe direto os lançamentos dele no mês
+      if (!isAdmin) {
+        return true
       }
 
+      // Filtros exclusivos de Admin dentro do mês:
       // Filtro de Paciente
       if (selectedPacienteId !== 'Todos' && item.paciente_id !== selectedPacienteId) {
         return false
       }
 
-      // Filtro de Profissional (apenas admin ou seleção)
+      // Filtro de Profissional
       if (selectedProfissionalId !== 'Todos' && item.profissional_id !== selectedProfissionalId) {
         return false
       }
@@ -234,8 +317,8 @@ export default function Presencas() {
     presencas,
     isAdmin,
     user?.id,
-    dataInicio,
-    dataFim,
+    monthRange.inicio,
+    monthRange.fim,
     selectedPacienteId,
     selectedProfissionalId,
     selectedArea,
@@ -243,8 +326,9 @@ export default function Presencas() {
     searchTerm,
   ])
 
-  // Contagens e Agrupamento por Profissional
+  // Contagens e Agrupamento por Profissional (apenas Admin)
   const agrupamentoPorProfissional = useMemo(() => {
+    if (!isAdmin) return []
     const map = new Map<string, { nome: string; count: number; itens: PresencaRecord[] }>()
 
     presencasFiltradas.forEach((p) => {
@@ -266,10 +350,11 @@ export default function Presencas() {
     return Array.from(map.entries())
       .map(([id, val]) => ({ id, ...val }))
       .sort((a, b) => b.count - a.count)
-  }, [presencasFiltradas])
+  }, [isAdmin, presencasFiltradas])
 
-  // Contagens e Agrupamento por Paciente
+  // Contagens e Agrupamento por Paciente (apenas Admin)
   const agrupamentoPorPaciente = useMemo(() => {
+    if (!isAdmin) return []
     const map = new Map<string, { nome: string; count: number; itens: PresencaRecord[] }>()
 
     presencasFiltradas.forEach((p) => {
@@ -287,12 +372,10 @@ export default function Presencas() {
     return Array.from(map.entries())
       .map(([id, val]) => ({ id, ...val }))
       .sort((a, b) => b.count - a.count)
-  }, [presencasFiltradas])
+  }, [isAdmin, presencasFiltradas])
 
-  // Reset de filtros
+  // Reset de filtros (Admin)
   const handleResetFilters = () => {
-    setDataInicio('')
-    setDataFim('')
     setSelectedPacienteId('Todos')
     setSelectedProfissionalId('Todos')
     setSelectedArea('Todos')
@@ -305,8 +388,20 @@ export default function Presencas() {
     setEditingPresenca(null)
     setFormPacienteId('')
     setFormPacienteBusca('')
-    setFormDataAtendimento(new Date().toISOString().split('T')[0])
-    setFormAreaServico('Fisioterapia')
+
+    // Se o mês selecionado é o mês atual, preenche com a data de hoje;
+    // se estiver navegando em outro mês, preenche com o primeiro dia do mês selecionado
+    const now = new Date()
+    const isNow =
+      now.getFullYear() === currentMonth.getFullYear() && now.getMonth() === currentMonth.getMonth()
+    const defaultDate = isNow ? now.toISOString().split('T')[0] : monthRange.inicio
+
+    setFormDataAtendimento(defaultDate)
+    setFormAreaServico(
+      user?.especialidade && SERVICOS_SUGERIDOS.includes(user.especialidade)
+        ? user.especialidade
+        : 'Fisioterapia',
+    )
     setFormAreaPersonalizada('')
     setFormDetalheServico('')
     // Profissional padrão: o próprio usuário logado
@@ -489,13 +584,13 @@ export default function Presencas() {
     }
   }
 
-  // Exportar XLSX externo via SheetJS
+  // Exportar XLSX externo via SheetJS (apenas Admin)
   const handleExportXLSX = () => {
     try {
       if (presencasFiltradas.length === 0) {
         toast({
           title: 'Sem lançamentos',
-          description: 'Nenhum atendimento encontrado para os filtros selecionados.',
+          description: `Nenhum atendimento encontrado para ${formatMesAno(currentMonth)}.`,
           variant: 'destructive',
         })
         return
@@ -544,23 +639,16 @@ export default function Presencas() {
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Presenças e Confirmações')
 
-      // Nome sugestivo com o mês atual ou período do filtro
-      const agora = new Date()
-      const ano = agora.getFullYear()
-      const mes = String(agora.getMonth() + 1).padStart(2, '0')
-      let fileName = `presencas_${ano}-${mes}.xlsx`
-
-      if (dataInicio && dataFim) {
-        fileName = `presencas_${dataInicio}_a_${dataFim}.xlsx`
-      } else if (dataInicio) {
-        fileName = `presencas_a_partir_de_${dataInicio}.xlsx`
-      }
+      // Nome sugestivo com o mês selecionado ex.: "presencas_fevereiro-2026.xlsx"
+      const mesSlug = MESES_SLUG[currentMonth.getMonth()]
+      const anoNum = currentMonth.getFullYear()
+      const fileName = `presencas_${mesSlug}-${anoNum}.xlsx`
 
       XLSX.writeFile(workbook, fileName)
 
       toast({
         title: 'Planilha exportada com sucesso!',
-        description: `Arquivo ${fileName} gerado com ${presencasFiltradas.length} lançamento(s).`,
+        description: `Arquivo ${fileName} gerado com ${presencasFiltradas.length} lançamento(s) de ${monthRange.mesNome}/${anoNum}.`,
       })
     } catch (err: any) {
       console.error('Erro ao exportar XLSX:', err)
@@ -572,7 +660,7 @@ export default function Presencas() {
     }
   }
 
-  // Imprimir Relatório Limpo com Cabeçalho da Clínica
+  // Imprimir Relatório Limpo com Cabeçalho da Clínica (apenas Admin)
   const handlePrint = () => {
     window.print()
   }
@@ -586,10 +674,66 @@ export default function Presencas() {
       .slice(0, 8)
   }, [pacientes, formPacienteBusca])
 
+  // Componente unificado da barra de controle mensal (‹ Mês Anterior | Mês Ano | Próximo Mês › + Mês Atual)
+  const renderNavegacaoMensal = () => (
+    <div className="flex items-center justify-between flex-wrap gap-3 bg-white rounded-2xl p-3 sm:p-4 border border-[#E9E1D2] shadow-xs">
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handlePrevMonth}
+          className="h-9 w-9 p-0 rounded-xl border-[#E9E1D2] hover:bg-[#FAF4EA] text-[#5C4033]"
+          title="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        <div className="px-3 sm:px-4 py-1.5 rounded-xl bg-[#FAF7F1] border border-[#E9E1D2] text-center min-w-[180px] sm:min-w-[220px]">
+          <span className="text-xs sm:text-sm font-serif font-bold text-[#4A322A] block capitalize">
+            {formatMesAno(currentMonth)}
+          </span>
+          <span className="text-[10px] text-gray-400">
+            {formatDataPTBR(monthRange.inicio)} até {formatDataPTBR(monthRange.fim)}
+          </span>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleNextMonth}
+          className="h-9 w-9 p-0 rounded-xl border-[#E9E1D2] hover:bg-[#FAF4EA] text-[#5C4033]"
+          title="Próximo mês"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {!isCurrentMonthNow && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCurrentMonth}
+            className="text-xs font-semibold text-[#8C6527] border-[#D4B278] hover:bg-[#FAF4EA] rounded-xl h-9 px-3"
+          >
+            <RotateCcw className="h-3 w-3 mr-1.5" />
+            Mês atual
+          </Button>
+        )}
+        <div className="text-xs text-[#73574A] font-medium hidden sm:block">
+          Total de <strong>{presencasFiltradas.length}</strong> atendimento(s)
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="space-y-6 pb-12 print:m-0 print:p-0">
       {/* ============================================================== */}
-      {/* CABEÇALHO OFICIAL EXCLUSIVO PARA IMPRESSÃO / PDF */}
+      {/* CABEÇALHO OFICIAL EXCLUSIVO PARA IMPRESSÃO / PDF (Admin) */}
       {/* ============================================================== */}
       <div className="hidden print:flex flex-col items-center justify-center pb-4 mb-4 border-b-2 border-[#E9E1D2] text-center gap-2 overflow-visible">
         <LogoSOUL variant="full" size="sm" theme="light" className="shrink-0 mx-auto" />
@@ -605,16 +749,9 @@ export default function Presencas() {
             <strong>Emissão:</strong> {new Date().toLocaleDateString('pt-BR')} às{' '}
             {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>
-          {dataInicio && (
-            <span>
-              <strong>De:</strong> {formatDataPTBR(dataInicio)}
-            </span>
-          )}
-          {dataFim && (
-            <span>
-              <strong>Até:</strong> {formatDataPTBR(dataFim)}
-            </span>
-          )}
+          <span>
+            <strong>Mês de Referência:</strong> {formatMesAno(currentMonth)}
+          </span>
           {selectedArea !== 'Todos' && (
             <span>
               <strong>Serviço:</strong> {selectedArea}
@@ -633,673 +770,810 @@ export default function Presencas() {
       </div>
 
       {/* ============================================================== */}
-      {/* HEADER PRINCIPAL NA TELA (Oculto na impressão) */}
+      {/* CASO A: VISÃO DO ADMINISTRADOR */}
       {/* ============================================================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-1">
-            <CalendarCheck2 className="h-3.5 w-3.5" />
-            <span>Processo de Atendimentos</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#4A322A]">
-            Presença / Confirmação
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Registro e conferência de atendimentos realizados, filtros combinados, exportação XLSX e
-            relatórios de presença.
-          </p>
-        </div>
+      {isAdmin ? (
+        <>
+          {/* HEADER ADMIN NA TELA (Oculto na impressão) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-1">
+                <CalendarCheck2 className="h-3.5 w-3.5" />
+                <span>Painel Administrativo de Presenças</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#4A322A]">
+                Presença / Confirmação
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                Controle mensal de atendimentos da clínica, estatísticas de quantidade, filtros
+                combinados e exportações.
+              </p>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            onClick={handleExportXLSX}
-            variant="outline"
-            className="border-[#D4B278] text-[#5C4033] hover:bg-[#FAF4EA] rounded-xl h-10 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs"
-            title="Exportar dados filtrados para pasta de trabalho Excel (.xlsx)"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-[#8C6527]" />
-            <span>Exportar Excel (.xlsx)</span>
-          </Button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button
+                onClick={handleExportXLSX}
+                variant="outline"
+                className="border-[#D4B278] text-[#5C4033] hover:bg-[#FAF4EA] rounded-xl h-10 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs"
+                title="Exportar dados do mês selecionado para pasta de trabalho Excel (.xlsx)"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-[#8C6527]" />
+                <span>Exportar Excel (.xlsx)</span>
+              </Button>
 
-          <Button
-            onClick={handlePrint}
-            variant="outline"
-            className="border-[#E9E1D2] hover:bg-white text-[#4A322A] rounded-xl h-10 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs"
-            title="Visualizar tela de impressão / gerar PDF limpo"
-          >
-            <Printer className="h-4 w-4" />
-            <span>Imprimir / PDF</span>
-          </Button>
+              <Button
+                onClick={handlePrint}
+                variant="outline"
+                className="border-[#E9E1D2] hover:bg-white text-[#4A322A] rounded-xl h-10 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs"
+                title="Visualizar tela de impressão / gerar PDF limpo"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Imprimir / PDF</span>
+              </Button>
 
-          <Button
-            onClick={handleOpenNewModal}
-            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-md border border-[#DFBF8E]/50 transition-transform active:scale-98"
-          >
-            <Plus className="h-4 w-4 text-[#33221C]" />
-            <span>Lançar Presença</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* CARDS DE RESUMO E CONTADORES */}
-      {/* ============================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
-        {/* Total Filtrado */}
-        <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center shrink-0">
-            <CalendarCheck2 className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-              Total no Filtro
-            </p>
-            <p className="text-2xl font-serif font-bold text-[#4A322A]">
-              {presencasFiltradas.length}
-            </p>
-            <p className="text-[11px] text-[#8C6527] truncate">
-              {presencasFiltradas.length === 1
-                ? '1 atendimento registrado'
-                : 'atendimentos localizados'}
-            </p>
-          </div>
-        </div>
-
-        {/* Presentes / Confirmados */}
-        <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-              Confirmados / Presentes
-            </p>
-            <p className="text-2xl font-serif font-bold text-emerald-800">
-              {
-                presencasFiltradas.filter(
-                  (p) => !p.status || p.status === 'Presente' || p.status === 'Confirmado',
-                ).length
-              }
-            </p>
-            <p className="text-[11px] text-emerald-600 truncate">Atendimentos efetivados</p>
-          </div>
-        </div>
-
-        {/* Pacientes Atendidos */}
-        <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-xl bg-[#FDF2EE] text-[#B87355] border border-[#E7BFB0] flex items-center justify-center shrink-0">
-            <Users className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-              Pacientes Únicos
-            </p>
-            <p className="text-2xl font-serif font-bold text-[#B87355]">
-              {agrupamentoPorPaciente.length}
-            </p>
-            <p className="text-[11px] text-gray-500 truncate">Pessoas atendidas no período</p>
-          </div>
-        </div>
-
-        {/* Profissionais Envolvidos */}
-        <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-xl bg-[#F0F5FA] text-[#3B82F6] border border-[#BFDBFE] flex items-center justify-center shrink-0">
-            <UserCheck className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-              Profissionais
-            </p>
-            <p className="text-2xl font-serif font-bold text-[#3B82F6]">
-              {agrupamentoPorProfissional.length}
-            </p>
-            <p className="text-[11px] text-gray-500 truncate">
-              {isAdmin ? 'Equipe no filtro' : 'Lançamentos próprios'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* BARRA DE FILTROS COMBINÁVEIS */}
-      {/* ============================================================== */}
-      <div className="bg-white rounded-3xl p-5 border border-[#E9E1D2] shadow-xs space-y-4 print:hidden">
-        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#E9E1D2]/60 pb-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[#8C6527]" />
-            <h3 className="font-serif font-bold text-sm text-[#4A322A]">Filtros de Presença</h3>
-            <span className="text-xs text-gray-400">|</span>
-            <span className="text-xs text-[#73574A]">
-              Combinar período, paciente, profissional e serviço
-            </span>
-          </div>
-
-          {(dataInicio ||
-            dataFim ||
-            selectedPacienteId !== 'Todos' ||
-            selectedProfissionalId !== 'Todos' ||
-            selectedArea !== 'Todos' ||
-            selectedStatus !== 'Todos' ||
-            searchTerm) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="text-xs text-[#8C6527] hover:text-[#5C4033] hover:bg-[#FAF4EA] h-8 px-2 flex items-center gap-1.5"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Limpar Filtros
-            </Button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Busca Textual */}
-          <div>
-            <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Busca Textual</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Paciente, serviço, observação..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8.5 h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
-              />
+              <Button
+                onClick={handleOpenNewModal}
+                className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-md border border-[#DFBF8E]/50 transition-transform active:scale-98"
+              >
+                <Plus className="h-4 w-4 text-[#33221C]" />
+                <span>Lançar Presença</span>
+              </Button>
             </div>
           </div>
 
-          {/* Período: Data Inicial */}
-          <div>
-            <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Data Inicial</Label>
-            <Input
-              type="date"
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-              className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
-            />
-          </div>
+          {/* NAVEGAÇÃO MENSAL (Admin) */}
+          <div className="print:hidden">{renderNavegacaoMensal()}</div>
 
-          {/* Período: Data Final */}
-          <div>
-            <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Data Final</Label>
-            <Input
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-              className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
-            />
-          </div>
-
-          {/* Filtro: Área / Serviço */}
-          <div>
-            <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">
-              Área / Serviço
-            </Label>
-            <Select value={selectedArea} onValueChange={setSelectedArea}>
-              <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
-                <SelectValue placeholder="Todas as áreas" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#E9E1D2]">
-                <SelectItem value="Todos">Todas as áreas</SelectItem>
-                {SERVICOS_SUGERIDOS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          {/* Filtro: Paciente */}
-          <div>
-            <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Paciente</Label>
-            <Select value={selectedPacienteId} onValueChange={setSelectedPacienteId}>
-              <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
-                <SelectValue placeholder="Todos os pacientes" />
-              </SelectTrigger>
-              <SelectContent className="max-h-56 rounded-xl border-[#E9E1D2]">
-                <SelectItem value="Todos">Todos os pacientes</SelectItem>
-                {pacientes.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Filtro: Profissional (visível para Admin) */}
-          {isAdmin ? (
-            <div>
-              <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">
-                Profissional Atendente
-              </Label>
-              <Select value={selectedProfissionalId} onValueChange={setSelectedProfissionalId}>
-                <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
-                  <SelectValue placeholder="Todos os profissionais" />
-                </SelectTrigger>
-                <SelectContent className="max-h-56 rounded-xl border-[#E9E1D2]">
-                  <SelectItem value="Todos">Todos os profissionais</SelectItem>
-                  {profissionais.map((prof) => (
-                    <SelectItem key={prof.id} value={prof.id}>
-                      {prof.name || prof.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div>
-              <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">
-                Profissional Atendente
-              </Label>
-              <div className="h-9 px-3 flex items-center bg-[#FAF4EA]/60 border border-[#E3C89A]/40 rounded-xl text-xs font-medium text-[#4A322A]">
-                {user?.name || user?.email || 'Seus lançamentos'}
+          {/* CARDS DE RESUMO E CONTADORES DO MÊS (Admin) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
+            {/* Total no Mês */}
+            <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center shrink-0">
+                <CalendarCheck2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
+                  Total no Mês
+                </p>
+                <p className="text-2xl font-serif font-bold text-[#4A322A]">
+                  {presencasFiltradas.length}
+                </p>
+                <p className="text-[11px] text-[#8C6527] truncate">
+                  {monthRange.mesNome} de {monthRange.ano}
+                </p>
               </div>
             </div>
-          )}
 
-          {/* Filtro: Status */}
-          <div>
-            <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Status</Label>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
-                <SelectValue placeholder="Todos os status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#E9E1D2]">
-                <SelectItem value="Todos">Todos os status</SelectItem>
-                {STATUS_OPCOES.map((st) => (
-                  <SelectItem key={st} value={st}>
-                    {st}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Presentes / Confirmados */}
+            <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
+                  Confirmados / Presentes
+                </p>
+                <p className="text-2xl font-serif font-bold text-emerald-800">
+                  {
+                    presencasFiltradas.filter(
+                      (p) => !p.status || p.status === 'Presente' || p.status === 'Confirmado',
+                    ).length
+                  }
+                </p>
+                <p className="text-[11px] text-emerald-600 truncate">Atendimentos efetivados</p>
+              </div>
+            </div>
+
+            {/* Pacientes Únicos */}
+            <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-xl bg-[#FDF2EE] text-[#B87355] border border-[#E7BFB0] flex items-center justify-center shrink-0">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
+                  Pacientes Únicos
+                </p>
+                <p className="text-2xl font-serif font-bold text-[#B87355]">
+                  {agrupamentoPorPaciente.length}
+                </p>
+                <p className="text-[11px] text-gray-500 truncate">Pessoas atendidas no mês</p>
+              </div>
+            </div>
+
+            {/* Profissionais Envolvidos */}
+            <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-xl bg-[#F0F5FA] text-[#3B82F6] border border-[#BFDBFE] flex items-center justify-center shrink-0">
+                <UserCheck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
+                  Profissionais
+                </p>
+                <p className="text-2xl font-serif font-bold text-[#3B82F6]">
+                  {agrupamentoPorProfissional.length}
+                </p>
+                <p className="text-[11px] text-gray-500 truncate">Equipe ativa no mês</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* ============================================================== */}
-      {/* TABS DE MODO DE VISUALIZAÇÃO: LISTA / POR PROFISSIONAL / POR PACIENTE */}
-      {/* ============================================================== */}
-      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
-        <Tabs
-          value={viewMode}
-          onValueChange={(val) => setViewMode(val as any)}
-          className="w-full sm:w-auto"
-        >
-          <TabsList className="bg-white border border-[#E9E1D2] rounded-2xl p-1 h-auto flex shadow-xs">
-            <TabsTrigger
-              value="lista"
-              className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
-            >
-              Lista Cronológica ({presencasFiltradas.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="profissionais"
-              className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
-            >
-              Por Profissional ({agrupamentoPorProfissional.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="pacientes"
-              className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
-            >
-              Por Paciente ({agrupamentoPorPaciente.length})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          {/* BARRA DE FILTROS COMBINÁVEIS DENTRO DO MÊS (Admin) */}
+          <div className="bg-white rounded-3xl p-5 border border-[#E9E1D2] shadow-xs space-y-4 print:hidden">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#E9E1D2]/60 pb-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-[#8C6527]" />
+                <h3 className="font-serif font-bold text-sm text-[#4A322A]">
+                  Filtros Complementares do Mês
+                </h3>
+                <span className="text-xs text-gray-400">|</span>
+                <span className="text-xs text-[#73574A]">
+                  Refinar por paciente, profissional, serviço, status ou busca
+                </span>
+              </div>
 
-        <div className="text-xs text-[#73574A] font-medium">
-          Exibindo <strong>{presencasFiltradas.length}</strong> registro(s)
-        </div>
-      </div>
+              {(selectedPacienteId !== 'Todos' ||
+                selectedProfissionalId !== 'Todos' ||
+                selectedArea !== 'Todos' ||
+                selectedStatus !== 'Todos' ||
+                searchTerm) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetFilters}
+                  className="text-xs text-[#8C6527] hover:text-[#5C4033] hover:bg-[#FAF4EA] h-8 px-2 flex items-center gap-1.5"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Limpar Filtros
+                </Button>
+              )}
+            </div>
 
-      {/* ============================================================== */}
-      {/* CORPO DE DADOS: LISTAGEM PRINCIPAL */}
-      {/* ============================================================== */}
-      {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-[#E9E1D2]">
-          <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
-          <p className="text-xs text-[#73574A] font-medium">
-            Carregando lançamentos de presença...
-          </p>
-        </div>
-      ) : presencasFiltradas.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-3xl border border-[#E9E1D2] space-y-3">
-          <CalendarCheck2 className="h-10 w-10 text-[#C9A46A]/60 mx-auto" />
-          <h3 className="font-serif font-bold text-base text-[#4A322A]">
-            Nenhum atendimento encontrado
-          </h3>
-          <p className="text-xs text-gray-500 max-w-md mx-auto">
-            Não há registros de presença correspondentes aos filtros aplicados. Altere os filtros ou
-            faça um novo lançamento de atendimento.
-          </p>
-          <Button
-            onClick={handleOpenNewModal}
-            size="sm"
-            className="mt-2 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold text-xs rounded-xl h-9"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Lançar Primeira Presença
-          </Button>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Busca Textual */}
+              <div className="lg:col-span-1">
+                <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">
+                  Busca Textual
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Nome, serviço..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8.5 h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Filtro: Paciente */}
+              <div>
+                <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Paciente</Label>
+                <Select value={selectedPacienteId} onValueChange={setSelectedPacienteId}>
+                  <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
+                    <SelectValue placeholder="Todos os pacientes" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56 rounded-xl border-[#E9E1D2]">
+                    <SelectItem value="Todos">Todos os pacientes</SelectItem>
+                    {pacientes.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro: Profissional Atendente */}
+              <div>
+                <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">
+                  Profissional Atendente
+                </Label>
+                <Select value={selectedProfissionalId} onValueChange={setSelectedProfissionalId}>
+                  <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
+                    <SelectValue placeholder="Todos os profissionais" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56 rounded-xl border-[#E9E1D2]">
+                    <SelectItem value="Todos">Todos os profissionais</SelectItem>
+                    {profissionais.map((prof) => (
+                      <SelectItem key={prof.id} value={prof.id}>
+                        {prof.name || prof.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro: Área / Serviço */}
+              <div>
+                <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">
+                  Área / Serviço
+                </Label>
+                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                  <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
+                    <SelectValue placeholder="Todas as áreas" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-[#E9E1D2]">
+                    <SelectItem value="Todos">Todas as áreas</SelectItem>
+                    {SERVICOS_SUGERIDOS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro: Status */}
+              <div>
+                <Label className="text-xs font-semibold text-[#5C4033] mb-1 block">Status</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-[#E9E1D2]">
+                    <SelectItem value="Todos">Todos os status</SelectItem>
+                    {STATUS_OPCOES.map((st) => (
+                      <SelectItem key={st} value={st}>
+                        {st}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* TABS DE MODO DE VISUALIZAÇÃO (Admin: Lista / Por Profissional / Por Paciente) */}
+          <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
+            <Tabs
+              value={viewMode}
+              onValueChange={(val) => setViewMode(val as any)}
+              className="w-full sm:w-auto"
+            >
+              <TabsList className="bg-white border border-[#E9E1D2] rounded-2xl p-1 h-auto flex shadow-xs">
+                <TabsTrigger
+                  value="lista"
+                  className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
+                >
+                  Lista Cronológica ({presencasFiltradas.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="profissionais"
+                  className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
+                >
+                  Por Profissional ({agrupamentoPorProfissional.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="pacientes"
+                  className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
+                >
+                  Por Paciente ({agrupamentoPorPaciente.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="text-xs text-[#73574A] font-medium">
+              Exibindo <strong>{presencasFiltradas.length}</strong> registro(s) em{' '}
+              {monthRange.mesNome}/{monthRange.ano}
+            </div>
+          </div>
+
+          {/* CORPO DE DADOS DO ADMIN */}
+          {loading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-[#E9E1D2]">
+              <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+              <p className="text-xs text-[#73574A] font-medium">
+                Carregando lançamentos de {formatMesAno(currentMonth)}...
+              </p>
+            </div>
+          ) : presencasFiltradas.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-[#E9E1D2] space-y-3">
+              <CalendarCheck2 className="h-10 w-10 text-[#C9A46A]/60 mx-auto" />
+              <h3 className="font-serif font-bold text-base text-[#4A322A]">
+                Nenhum atendimento em {formatMesAno(currentMonth)}
+              </h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Não há registros de presença correspondentes para este mês com os filtros aplicados.
+                Altere os filtros ou registre um novo atendimento.
+              </p>
+              <Button
+                onClick={handleOpenNewModal}
+                size="sm"
+                className="mt-2 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold text-xs rounded-xl h-9"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Lançar Presença em {monthRange.mesNome}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* MODO 1: LISTA CRONOLÓGICA (TABELA RESPONSIVA) */}
+              {viewMode === 'lista' && (
+                <div className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF7F1] border-b border-[#E9E1D2] text-[#5C4033] uppercase tracking-wider text-[10px] font-bold">
+                        <tr>
+                          <th className="py-3 px-4">Data</th>
+                          <th className="py-3 px-4">Paciente</th>
+                          <th className="py-3 px-4">Área / Serviço</th>
+                          <th className="py-3 px-4">Profissional</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 print:hidden text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {presencasFiltradas.map((item) => {
+                          const rawDate = item.data_atendimento
+                            ? item.data_atendimento.split(' ')[0]
+                            : ''
+                          const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
+                          const pacNome =
+                            item.paciente_nome || item.expand?.paciente_id?.nome || 'Paciente'
+                          const profNome =
+                            item.profissional_nome ||
+                            item.expand?.profissional_id?.name ||
+                            item.expand?.profissional_id?.email ||
+                            'Profissional'
+
+                          return (
+                            <tr
+                              key={item.id}
+                              className="hover:bg-[#FAF7F1]/60 transition-colors group"
+                            >
+                              <td className="py-3 px-4 font-mono font-medium text-[#4A322A] whitespace-nowrap">
+                                {dataFmt}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="font-bold text-[#33221C] block">{pacNome}</span>
+                                {item.observacoes && (
+                                  <span className="text-[11px] text-gray-400 line-clamp-1 italic">
+                                    "{item.observacoes}"
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="font-semibold text-[#8C6527] inline-flex items-center gap-1.5">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#C9A46A]" />
+                                  {item.area_servico}
+                                </span>
+                                {item.detalhe_servico && (
+                                  <p className="text-[11px] text-gray-500 line-clamp-1">
+                                    {item.detalhe_servico}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="h-5 w-5 rounded-full bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center text-[10px] font-bold">
+                                    {profNome.charAt(0).toUpperCase()}
+                                  </span>
+                                  <span>{profNome}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    item.status === 'Confirmado' || item.status === 'Presente'
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : item.status === 'Justificado'
+                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                        : item.status === 'Cancelado'
+                                          ? 'bg-red-50 text-red-800 border-red-200'
+                                          : 'bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]'
+                                  }
+                                >
+                                  {item.status || 'Presente'}
+                                </Badge>
+                              </td>
+                              <td className="py-3 px-4 text-right print:hidden whitespace-nowrap">
+                                <div className="inline-flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenEditModal(item)}
+                                    className="h-8 w-8 p-0 text-[#8C6527] hover:bg-[#FAF4EA] rounded-lg"
+                                    title="Editar presença"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRequestDelete(item)}
+                                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg"
+                                    title="Excluir presença"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* MODO 2: AGRUPAMENTO POR PROFISSIONAL */}
+              {viewMode === 'profissionais' && (
+                <div className="space-y-4">
+                  {agrupamentoPorProfissional.map((grupo) => (
+                    <div
+                      key={grupo.id}
+                      className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden"
+                    >
+                      <div className="p-4 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center font-bold text-sm">
+                            {grupo.nome.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-serif font-bold text-sm text-[#4A322A]">
+                              {grupo.nome}
+                            </h4>
+                            <p className="text-[11px] text-gray-500">
+                              Atendimentos no mês de {monthRange.mesNome}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge className="bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A] hover:bg-[#FAF4EA] text-xs font-bold px-3 py-1">
+                          {grupo.count} atendimento(s)
+                        </Badge>
+                      </div>
+
+                      <div className="divide-y divide-gray-100">
+                        {grupo.itens.map((item) => {
+                          const rawDate = item.data_atendimento
+                            ? item.data_atendimento.split(' ')[0]
+                            : ''
+                          const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
+                          const pacNome =
+                            item.paciente_nome || item.expand?.paciente_id?.nome || 'Paciente'
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="p-3.5 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors gap-3"
+                            >
+                              <div className="flex items-center gap-4 min-w-0">
+                                <span className="font-mono text-xs font-semibold text-[#5C4033] shrink-0">
+                                  {dataFmt}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-xs text-[#33221C] truncate">
+                                    {pacNome}
+                                  </p>
+                                  <p className="text-[11px] text-[#8C6527]">
+                                    {item.area_servico}
+                                    {item.detalhe_servico ? ` · ${item.detalhe_servico}` : ''}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    item.status === 'Confirmado' || item.status === 'Presente'
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  }
+                                >
+                                  {item.status || 'Presente'}
+                                </Badge>
+                                <div className="flex items-center print:hidden">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenEditModal(item)}
+                                    className="h-7 w-7 p-0 text-[#8C6527] hover:bg-[#FAF4EA]"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRequestDelete(item)}
+                                    className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* MODO 3: AGRUPAMENTO POR PACIENTE */}
+              {viewMode === 'pacientes' && (
+                <div className="space-y-4">
+                  {agrupamentoPorPaciente.map((grupo) => (
+                    <div
+                      key={grupo.id}
+                      className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden"
+                    >
+                      <div className="p-4 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-xl bg-[#FDF2EE] text-[#B87355] border border-[#E7BFB0] flex items-center justify-center font-bold text-sm">
+                            {grupo.nome.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-serif font-bold text-sm text-[#4A322A]">
+                              {grupo.nome}
+                            </h4>
+                            <p className="text-[11px] text-gray-500">
+                              Histórico de atendimentos em {monthRange.mesNome}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge className="bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A] hover:bg-[#FAF4EA] text-xs font-bold px-3 py-1">
+                          {grupo.count} atendimento(s)
+                        </Badge>
+                      </div>
+
+                      <div className="divide-y divide-gray-100">
+                        {grupo.itens.map((item) => {
+                          const rawDate = item.data_atendimento
+                            ? item.data_atendimento.split(' ')[0]
+                            : ''
+                          const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
+                          const profNome =
+                            item.profissional_nome ||
+                            item.expand?.profissional_id?.name ||
+                            item.expand?.profissional_id?.email ||
+                            'Profissional'
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="p-3.5 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors gap-3"
+                            >
+                              <div className="flex items-center gap-4 min-w-0">
+                                <span className="font-mono text-xs font-semibold text-[#5C4033] shrink-0">
+                                  {dataFmt}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-xs text-[#8C6527]">
+                                    {item.area_servico}
+                                    {item.detalhe_servico ? ` · ${item.detalhe_servico}` : ''}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500">
+                                    Atendido por:{' '}
+                                    <strong className="text-gray-700">{profNome}</strong>
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    item.status === 'Confirmado' || item.status === 'Presente'
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  }
+                                >
+                                  {item.status || 'Presente'}
+                                </Badge>
+                                <div className="flex items-center print:hidden">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenEditModal(item)}
+                                    className="h-7 w-7 p-0 text-[#8C6527] hover:bg-[#FAF4EA]"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRequestDelete(item)}
+                                    className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
       ) : (
-        <>
-          {/* MODO 1: LISTA CRONOLÓGICA (TABELA RESPONSIVA) */}
-          {viewMode === 'lista' && (
-            <div className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF7F1] border-b border-[#E9E1D2] text-[#5C4033] uppercase tracking-wider text-[10px] font-bold">
-                    <tr>
-                      <th className="py-3 px-4">Data</th>
-                      <th className="py-3 px-4">Paciente</th>
-                      <th className="py-3 px-4">Área / Serviço</th>
-                      <th className="py-3 px-4">Profissional</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 print:hidden text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {presencasFiltradas.map((item) => {
-                      const rawDate = item.data_atendimento
-                        ? item.data_atendimento.split(' ')[0]
-                        : ''
-                      const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
-                      const pacNome =
-                        item.paciente_nome || item.expand?.paciente_id?.nome || 'Paciente'
-                      const profNome =
-                        item.profissional_nome ||
-                        item.expand?.profissional_id?.name ||
-                        item.expand?.profissional_id?.email ||
-                        'Profissional'
+        /* ============================================================== */
+        /* CASO B: VISÃO DO COLABORADOR (Simples e Direta) */
+        /* ============================================================== */
+        <div className="space-y-6 max-w-5xl mx-auto">
+          {/* TOPO COM BOTÃO DE DESTAQUE "+ Lançar Presença" */}
+          <div className="bg-gradient-to-br from-[#FAF7F1] via-white to-[#FAF4EA] rounded-3xl p-6 sm:p-7 border border-[#E9E1D2] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold">
+                <CalendarCheck2 className="h-3.5 w-3.5" />
+                <span>Atendimentos do Profissional</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#4A322A]">
+                Presença / Confirmação
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Olá, <strong>{user?.name || user?.email}</strong>. Registre a presença dos pacientes
+                e alunos atendidos por você e consulte seu histórico mensal.
+              </p>
+            </div>
 
-                      const isOwnerOrAdmin = isAdmin || item.profissional_id === user?.id
+            <Button
+              onClick={handleOpenNewModal}
+              size="lg"
+              className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold rounded-2xl h-12 px-6 text-sm flex items-center gap-2.5 shadow-md border border-[#DFBF8E]/60 transition-transform active:scale-98 shrink-0"
+            >
+              <Plus className="h-5 w-5 text-[#33221C]" />
+              <span>+ Lançar Presença</span>
+            </Button>
+          </div>
 
-                      return (
-                        <tr key={item.id} className="hover:bg-[#FAF7F1]/60 transition-colors group">
-                          <td className="py-3 px-4 font-mono font-medium text-[#4A322A] whitespace-nowrap">
-                            {dataFmt}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-bold text-[#33221C] block">{pacNome}</span>
-                            {item.observacoes && (
-                              <span className="text-[11px] text-gray-400 line-clamp-1 italic">
-                                "{item.observacoes}"
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-semibold text-[#8C6527] inline-flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-[#C9A46A]" />
+          {/* SELETOR DE MÊS SIMPLES (Navegação mensal para o colaborador) */}
+          {renderNavegacaoMensal()}
+
+          {/* LISTA CRONOLÓGICA SIMPLES DOS PACIENTES/ALUNOS QUE VIERAM COM ELE */}
+          <div className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center font-bold">
+                  <User className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-sm text-[#4A322A]">
+                    Pacientes e Alunos Atendidos por Você
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    Sessões registradas em {monthRange.mesNome} de {monthRange.ano}
+                  </p>
+                </div>
+              </div>
+
+              <Badge className="bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A] hover:bg-[#FAF4EA] text-xs font-bold px-3 py-1">
+                {presencasFiltradas.length} atendimento(s)
+              </Badge>
+            </div>
+
+            {loading ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-7 w-7 animate-spin text-[#C9A46A]" />
+                <p className="text-xs text-[#73574A] font-medium">
+                  Buscando seus atendimentos de {formatMesAno(currentMonth)}...
+                </p>
+              </div>
+            ) : presencasFiltradas.length === 0 ? (
+              <div className="p-10 text-center space-y-3">
+                <CalendarCheck2 className="h-10 w-10 text-[#C9A46A]/50 mx-auto" />
+                <h4 className="font-serif font-bold text-base text-[#4A322A]">
+                  Nenhum atendimento registrado em {formatMesAno(currentMonth)}
+                </h4>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                  Você ainda não registrou atendimentos neste mês. Clique no botão abaixo para
+                  lançar a presença de um paciente.
+                </p>
+                <Button
+                  onClick={handleOpenNewModal}
+                  size="sm"
+                  className="mt-2 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold text-xs rounded-xl h-9"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />+ Lançar Presença
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {presencasFiltradas.map((item) => {
+                  const rawDate = item.data_atendimento ? item.data_atendimento.split(' ')[0] : ''
+                  const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
+                  const pacNome = item.paciente_nome || item.expand?.paciente_id?.nome || 'Paciente'
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 sm:px-6 flex items-center justify-between hover:bg-[#FAF7F1]/50 transition-colors gap-3"
+                    >
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                        <div className="h-10 w-10 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/40 flex flex-col items-center justify-center shrink-0">
+                          <Calendar className="h-4 w-4 text-[#8C6527]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-[#33221C] truncate">
+                              {pacNome}
+                            </span>
+                            <span className="font-mono text-xs font-semibold text-[#8C6527] bg-[#FAF4EA] px-2 py-0.5 rounded-md border border-[#E3C89A]/40">
+                              {dataFmt}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-[#73574A] flex-wrap">
+                            <span className="font-semibold text-[#8C6527]">
                               {item.area_servico}
                             </span>
                             {item.detalhe_servico && (
-                              <p className="text-[11px] text-gray-500 line-clamp-1">
-                                {item.detalhe_servico}
-                              </p>
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-gray-600 truncate">
+                                  {item.detalhe_servico}
+                                </span>
+                              </>
                             )}
-                          </td>
-                          <td className="py-3 px-4 text-gray-700 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              <span className="h-5 w-5 rounded-full bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center text-[10px] font-bold">
-                                {profNome.charAt(0).toUpperCase()}
-                              </span>
-                              <span>{profNome}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <Badge
-                              variant="outline"
-                              className={
-                                item.status === 'Confirmado' || item.status === 'Presente'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                  : item.status === 'Justificado'
-                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                    : item.status === 'Cancelado'
-                                      ? 'bg-red-50 text-red-800 border-red-200'
-                                      : 'bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]'
-                              }
-                            >
-                              {item.status || 'Presente'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4 text-right print:hidden whitespace-nowrap">
-                            {isOwnerOrAdmin && (
-                              <div className="inline-flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleOpenEditModal(item)}
-                                  className="h-8 w-8 p-0 text-[#8C6527] hover:bg-[#FAF4EA] rounded-lg"
-                                  title="Editar presença"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRequestDelete(item)}
-                                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg"
-                                  title="Excluir presença"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                            {item.observacoes && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-gray-400 italic truncate max-w-xs">
+                                  "{item.observacoes}"
+                                </span>
+                              </>
                             )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={
+                            item.status === 'Confirmado' || item.status === 'Presente'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : item.status === 'Justificado'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : item.status === 'Cancelado'
+                                  ? 'bg-red-50 text-red-800 border-red-200'
+                                  : 'bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]'
+                          }
+                        >
+                          {item.status || 'Presente'}
+                        </Badge>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEditModal(item)}
+                            className="h-8 w-8 p-0 text-[#8C6527] hover:bg-[#FAF4EA] rounded-lg"
+                            title="Editar atendimento"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRequestDelete(item)}
+                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="Excluir atendimento"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          )}
-
-          {/* MODO 2: AGRUPAMENTO POR PROFISSIONAL */}
-          {viewMode === 'profissionais' && (
-            <div className="space-y-4">
-              {agrupamentoPorProfissional.map((grupo) => (
-                <div
-                  key={grupo.id}
-                  className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden"
-                >
-                  <div className="p-4 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center font-bold text-sm">
-                        {grupo.nome.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-serif font-bold text-sm text-[#4A322A]">
-                          {grupo.nome}
-                        </h4>
-                        <p className="text-[11px] text-gray-500">
-                          Profissional responsável pelos atendimentos
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className="bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A] hover:bg-[#FAF4EA] text-xs font-bold px-3 py-1">
-                      {grupo.count} atendimento(s)
-                    </Badge>
-                  </div>
-
-                  <div className="divide-y divide-gray-100">
-                    {grupo.itens.map((item) => {
-                      const rawDate = item.data_atendimento
-                        ? item.data_atendimento.split(' ')[0]
-                        : ''
-                      const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
-                      const pacNome =
-                        item.paciente_nome || item.expand?.paciente_id?.nome || 'Paciente'
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="p-3.5 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors gap-3"
-                        >
-                          <div className="flex items-center gap-4 min-w-0">
-                            <span className="font-mono text-xs font-semibold text-[#5C4033] shrink-0">
-                              {dataFmt}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="font-bold text-xs text-[#33221C] truncate">{pacNome}</p>
-                              <p className="text-[11px] text-[#8C6527]">
-                                {item.area_servico}
-                                {item.detalhe_servico ? ` · ${item.detalhe_servico}` : ''}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge
-                              variant="outline"
-                              className={
-                                item.status === 'Confirmado' || item.status === 'Presente'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                  : 'bg-amber-50 text-amber-800 border-amber-200'
-                              }
-                            >
-                              {item.status || 'Presente'}
-                            </Badge>
-                            {(isAdmin || item.profissional_id === user?.id) && (
-                              <div className="flex items-center print:hidden">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleOpenEditModal(item)}
-                                  className="h-7 w-7 p-0 text-[#8C6527] hover:bg-[#FAF4EA]"
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRequestDelete(item)}
-                                  className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* MODO 3: AGRUPAMENTO POR PACIENTE */}
-          {viewMode === 'pacientes' && (
-            <div className="space-y-4">
-              {agrupamentoPorPaciente.map((grupo) => (
-                <div
-                  key={grupo.id}
-                  className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden"
-                >
-                  <div className="p-4 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-[#FDF2EE] text-[#B87355] border border-[#E7BFB0] flex items-center justify-center font-bold text-sm">
-                        {grupo.nome.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-serif font-bold text-sm text-[#4A322A]">
-                          {grupo.nome}
-                        </h4>
-                        <p className="text-[11px] text-gray-500">
-                          Histórico de presenças do paciente
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className="bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A] hover:bg-[#FAF4EA] text-xs font-bold px-3 py-1">
-                      {grupo.count} atendimento(s)
-                    </Badge>
-                  </div>
-
-                  <div className="divide-y divide-gray-100">
-                    {grupo.itens.map((item) => {
-                      const rawDate = item.data_atendimento
-                        ? item.data_atendimento.split(' ')[0]
-                        : ''
-                      const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
-                      const profNome =
-                        item.profissional_nome ||
-                        item.expand?.profissional_id?.name ||
-                        item.expand?.profissional_id?.email ||
-                        'Profissional'
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="p-3.5 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors gap-3"
-                        >
-                          <div className="flex items-center gap-4 min-w-0">
-                            <span className="font-mono text-xs font-semibold text-[#5C4033] shrink-0">
-                              {dataFmt}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="font-bold text-xs text-[#8C6527]">
-                                {item.area_servico}
-                                {item.detalhe_servico ? ` · ${item.detalhe_servico}` : ''}
-                              </p>
-                              <p className="text-[11px] text-gray-500">
-                                Atendido por: <strong className="text-gray-700">{profNome}</strong>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge
-                              variant="outline"
-                              className={
-                                item.status === 'Confirmado' || item.status === 'Presente'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                  : 'bg-amber-50 text-amber-800 border-amber-200'
-                              }
-                            >
-                              {item.status || 'Presente'}
-                            </Badge>
-                            {(isAdmin || item.profissional_id === user?.id) && (
-                              <div className="flex items-center print:hidden">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleOpenEditModal(item)}
-                                  className="h-7 w-7 p-0 text-[#8C6527] hover:bg-[#FAF4EA]"
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRequestDelete(item)}
-                                  className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ============================================================== */}
-      {/* MODAL DE NOVO LANÇAMENTO OU EDIÇÃO DE PRESENÇA */}
+      {/* MODAL DE NOVO LANÇAMENTO OU EDIÇÃO DE PRESENÇA (Compartilhado) */}
       {/* ============================================================== */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto bg-white rounded-3xl border border-[#E9E1D2] p-6 shadow-2xl">
@@ -1453,7 +1727,7 @@ export default function Presencas() {
               )}
             </div>
 
-            {/* DETALHE DO SERVIÇO (Campo aberto para detalhamento) */}
+            {/* DETALHE DO SERVIÇO */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-[#4A322A]">
                 Detalhamento do Serviço (opcional)
@@ -1488,12 +1762,12 @@ export default function Presencas() {
               ) : (
                 <div className="p-2.5 rounded-xl bg-[#FAF4EA] border border-[#E3C89A]/50 text-xs text-[#5C4033] flex items-center justify-between">
                   <span className="font-semibold">{user?.name || user?.email}</span>
-                  <span className="text-[10px] text-gray-400">Usuário Logado</span>
+                  <span className="text-[10px] text-gray-400">Você (Usuário Logado)</span>
                 </div>
               )}
               {!isAdmin && (
                 <p className="text-[11px] text-gray-400 italic">
-                  Profissionais comuns registram presenças em seu próprio nome.
+                  O lançamento será atribuído automaticamente a você.
                 </p>
               )}
             </div>
@@ -1539,7 +1813,7 @@ export default function Presencas() {
         <AlertDialogContent className="bg-white rounded-3xl border border-[#E9E1D2] p-6 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-serif font-bold text-lg text-red-900 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
+              <Trash2 className="h-5 w-5 text-red-600" />
               Excluir Registro de Presença?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-gray-600">

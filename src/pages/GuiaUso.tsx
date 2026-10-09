@@ -1468,50 +1468,117 @@ export default function GuiaUso() {
                 <span>Novo Processo Operacional</span>
               </div>
               <h3 className="text-xl font-serif font-bold text-[#4A322A]">
-                Processo de Presença / Confirmação de Atendimentos
+                Processo de Presença / Confirmação de Atendimentos (Controle Mensal)
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Controle de presença dos pacientes, registro ágil de sessões realizadas, filtros
-                combinados com contadores em tempo real e saídas em relatório impresso (PDF) e Excel
-                (.xlsx).
+                Controle de presença mensal dos pacientes e alunos com escopo por mês, diferenciado
+                conforme o papel de acesso: painel analítico completo para administradores e fluxo
+                direto e descomplicado para colaboradores.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  1. Lançamento Rápido
+                  1. Navegação Sempre por Mês
                 </span>
-                <h4 className="font-bold text-sm text-[#4A322A]">Registro com Autocomplete</h4>
+                <h4 className="font-bold text-sm text-[#4A322A]">Visão Mensal com Setas</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Selecione o paciente cadastrado por busca rápida (nome ou CPF), indique a data do
-                  atendimento, a área ou serviço realizado (Fisioterapia, Personal, Nutrição,
-                  Médico, Pilates ou outro livre) e detalhe o atendimento.
+                  Todos navegam mês a mês (‹ Mês Anterior | [Mês/Ano] | Próximo Mês ›) com o botão
+                  rápido "Mês atual". O sistema isola automaticamente os atendimentos entre o dia 1
+                  e o último dia do mês selecionado, facilitando a conferência e o fechamento.
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  2. Regras de Escopo (RLS)
+                  2. Visão do Administrador
                 </span>
-                <h4 className="font-bold text-sm text-[#4A322A]">Segurança por Perfil</h4>
+                <h4 className="font-bold text-sm text-[#4A322A]">Painel Analítico e Exportações</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Profissionais comuns visualizam, filtram e gerenciam exclusivamente os seus
-                  próprios lançamentos. O Administrador possui visão ampla de todos os profissionais
-                  e pode lançar ou filtrar por qualquer atendente da clínica.
+                  O administrador visualiza os cards de estatísticas (Total no mês, Confirmados,
+                  Pacientes únicos e Profissionais ativos), painel de filtros combináveis (paciente,
+                  profissional, serviço, status), 3 modos de visualização (Lista, Por Profissional e
+                  Por Paciente) e exportação em Excel (<code>.xlsx</code>) e PDF/Imprimir.
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  3. Exportação & Impressão
+                  3. Visão do Colaborador
                 </span>
-                <h4 className="font-bold text-sm text-[#4A322A]">XLSX e Relatório PDF</h4>
+                <h4 className="font-bold text-sm text-[#4A322A]">Simples, Direta e Sem Ruído</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Exporte diretamente para arquivo Excel <code>.xlsx</code> com nome sugestivo (ex.:{' '}
-                  <em>presencas_2026-02.xlsx</em>) ou gere o relatório limpo oficial em PDF com
-                  cabeçalho da clínica, total de atendimentos e filtros aplicados.
+                  Para fisioterapeutas, personais e demais colaboradores, a página é limpa: no topo
+                  destaca-se o botão <strong>"+ Lançar Presença"</strong> e, abaixo, a lista
+                  cronológica com os pacientes e alunos atendidos por ele no mês selecionado, com
+                  opção de editar ou excluir seus próprios registros.
                 </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-[#E9E1D2]">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Diferenças entre o Papel de Administrador e o Colaborador:
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] space-y-2">
+                  <span className="font-bold text-sm text-[#8C6527] block">
+                    👑 Administrador (gcdealmeida@gmail.com)
+                  </span>
+                  <ul className="text-gray-700 space-y-1.5 list-disc pl-4 leading-relaxed">
+                    <li>
+                      <strong>Cards estatísticos mensais:</strong> Total do mês, confirmados,
+                      pacientes únicos atendidos e profissionais ativos.
+                    </li>
+                    <li>
+                      <strong>Painel de filtros combináveis:</strong> busca textual, seleção de
+                      paciente, filtro por qualquer profissional da clínica, área e status.
+                    </li>
+                    <li>
+                      <strong>3 Visualizações:</strong> Lista Cronológica geral, agrupamento Por
+                      Profissional e agrupamento Por Paciente.
+                    </li>
+                    <li>
+                      <strong>Exportação e Relatório:</strong> botão "Exportar Excel (.xlsx)" com
+                      nome sugestivo do mês (ex: <code>presencas_fevereiro-2026.xlsx</code>) e botão
+                      "Imprimir / PDF" formatado com cabeçalho oficial SOUL.
+                    </li>
+                    <li>
+                      <strong>Lançamento flexível:</strong> pode atribuir presenças para si ou em
+                      nome de qualquer profissional da equipe.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#F0F5FA] border border-[#BFDBFE] space-y-2">
+                  <span className="font-bold text-sm text-[#2563EB] block">
+                    👤 Colaborador (Fisio, Personal, Nutri, etc.)
+                  </span>
+                  <ul className="text-gray-700 space-y-1.5 list-disc pl-4 leading-relaxed">
+                    <li>
+                      <strong>Página simples e limpa:</strong> sem cards agregados de estatística e
+                      sem painel de filtros complexos, focada 100% no trabalho diário.
+                    </li>
+                    <li>
+                      <strong>Botão em destaque no topo:</strong> "+ Lançar Presença" com o
+                      profissional já pré-selecionado como ele mesmo.
+                    </li>
+                    <li>
+                      <strong>Lista cronológica própria:</strong> exibe apenas os pacientes e/ou
+                      alunos que vieram com ele no mês selecionado.
+                    </li>
+                    <li>
+                      <strong>Navegação mensal preservada:</strong> pode avançar ou retroceder meses
+                      para conferir atendimentos passados ou voltar ao "Mês atual".
+                    </li>
+                    <li>
+                      <strong>Autonomia com segurança:</strong> pode visualizar, editar ou excluir
+                      seus próprios lançamentos com rastreamento completo na auditoria clínica.
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -1536,10 +1603,9 @@ export default function GuiaUso() {
                     2
                   </div>
                   <div>
-                    <strong>Lançar Novo Atendimento:</strong> Clique no botão dourado{' '}
-                    <strong>"Lançar Presença"</strong>. Selecione o paciente no campo de busca,
-                    informe a data, o serviço (opção de detalhar o atendimento), o status (Presente,
-                    Confirmado, Justificado ou Cancelado) e observações complementares.
+                    <strong>Navegar no Mês Desejado:</strong> Utilize as setas no seletor mensal
+                    (ex.: "Fevereiro de 2026") para alternar o período ou clique em "Mês atual" para
+                    retornar instantaneamente.
                   </div>
                 </div>
 
@@ -1548,10 +1614,10 @@ export default function GuiaUso() {
                     3
                   </div>
                   <div>
-                    <strong>Filtros e Contagens:</strong> Utilize a barra de filtros para cruzar
-                    datas (início e fim), paciente, área/serviço e profissional atendente. Os
-                    contadores no topo atualizam em tempo real, informando o total de atendimentos e
-                    pessoas atendidas.
+                    <strong>Lançar Atendimento:</strong> Clique no botão dourado{' '}
+                    <strong>"+ Lançar Presença"</strong>. Digite o nome ou CPF do paciente no campo
+                    de busca com autocomplete, confirme a data, área/serviço, detalhe opcional e
+                    status (Presente, Confirmado, Justificado ou Cancelado).
                   </div>
                 </div>
 
@@ -1560,10 +1626,9 @@ export default function GuiaUso() {
                     4
                   </div>
                   <div>
-                    <strong>Modos de Visualização:</strong> Alterne entre{' '}
-                    <em>"Lista Cronológica"</em>, <em>"Por Profissional"</em> e{' '}
-                    <em>"Por Paciente"</em> para verificar o acumulado de sessões por profissional
-                    ou por aluno.
+                    <strong>Conferência e Acompanhamento:</strong> O colaborador confere sua lista
+                    de pacientes atendidos no mês; o administrador visualiza contadores e pode
+                    cruzar filtros por equipe ou exportar relatórios gerenciais em XLSX ou PDF.
                   </div>
                 </div>
 
@@ -1572,9 +1637,9 @@ export default function GuiaUso() {
                     5
                   </div>
                   <div>
-                    <strong>Auditoria e Notificações:</strong> Criação, edição e exclusão de
-                    lançamentos são registradas com rastreabilidade nos logs de governança e
-                    notificadas aos administradores do sistema.
+                    <strong>Auditoria e Governança Clínica:</strong> Toda ação de registro, edição
+                    ou exclusão de presença gera registro nos logs de auditoria e notifica a
+                    administração automaticamente.
                   </div>
                 </div>
               </div>
