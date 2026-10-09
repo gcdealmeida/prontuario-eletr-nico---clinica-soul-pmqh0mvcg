@@ -1037,3 +1037,264 @@ onRecordUpdateRequest((e) => {
     console.log('Erro audit programa update: ' + err)
   }
 }, 'programa_acompanhamento')
+
+// 15. presencas - Create
+onRecordCreateRequest((e) => {
+  e.next()
+  try {
+    const rec = e.record
+    const auth = e.auth
+
+    let userId = auth ? auth.id : rec.getString('profissional_id') || 'system'
+    let userEmail = auth
+      ? (auth.getString('email') || 'sistema@soul.com').toLowerCase().trim()
+      : 'sistema@soul.com'
+    let userName = auth
+      ? auth.getString('name') || userEmail
+      : rec.getString('profissional_nome') || 'Profissional SOUL'
+
+    let pacienteId = rec.getString('paciente_id') || ''
+    let pacienteNome = rec.getString('paciente_nome') || ''
+    if (pacienteId && !pacienteNome) {
+      try {
+        const p = $app.findRecordById('pacientes', pacienteId)
+        pacienteNome = p.getString('nome') || ''
+      } catch (_) {}
+    }
+
+    const area = rec.getString('area_servico') || 'Geral'
+    const detalhe = rec.getString('detalhe_servico') || ''
+    const dataAtend = rec.getString('data_atendimento') || ''
+    const profNome = rec.getString('profissional_nome') || userName
+
+    let dataFmt = dataAtend
+    if (dataFmt && dataFmt.indexOf(' ') > 0) {
+      dataFmt = dataFmt.split(' ')[0]
+    }
+
+    const espVal = ['Fisioterapia', 'Personal', 'Nutrição', 'Médico'].includes(area)
+      ? area
+      : 'Geral'
+    const detalhes =
+      'Lançamento de Presença / Confirmação: ' +
+      area +
+      (detalhe ? ' (' + detalhe + ')' : '') +
+      (dataFmt ? ' em ' + dataFmt : '') +
+      ' | Atendido por ' +
+      profNome
+
+    const logRec = new Record($app.findCollectionByNameOrId('clinical_update_logs'))
+    logRec.set('user_id', userId)
+    logRec.set('user_name', userName)
+    logRec.set('user_email', userEmail)
+    logRec.set('acao', 'criar')
+    logRec.set('tipo_entidade', 'presenca')
+    logRec.set('especialidade', espVal)
+    logRec.set('entidade_id', rec.id)
+    logRec.set('paciente_id', pacienteId)
+    logRec.set('paciente_nome', pacienteNome)
+    logRec.set('detalhes', detalhes)
+    $app.save(logRec)
+
+    const admins = ['gcdealmeida@gmail.com', 'guivemax@hotmail.com']
+    for (let i = 0; i < admins.length; i++) {
+      try {
+        const adm = $app.findAuthRecordByEmail('_pb_users_auth_', admins[i])
+        if (adm) {
+          const notif = new Record($app.findCollectionByNameOrId('notifications'))
+          notif.set('user_id', adm.id)
+          notif.set('titulo', 'Presença Registrada - ' + area)
+          notif.set(
+            'descricao',
+            userName +
+              ' registrou presença para ' +
+              (pacienteNome || 'paciente') +
+              ' em ' +
+              area +
+              (dataFmt ? ' no dia ' + dataFmt : '') +
+              '.',
+          )
+          notif.set('tipo', 'clinical_update')
+          notif.set('lida', false)
+          notif.set('link', '/presencas')
+          $app.save(notif)
+        }
+      } catch (_) {}
+    }
+  } catch (err) {
+    console.log('Erro audit presenca create: ' + err)
+  }
+}, 'presencas')
+
+// 16. presencas - Update
+onRecordUpdateRequest((e) => {
+  e.next()
+  try {
+    const rec = e.record
+    const auth = e.auth
+
+    let userId = auth ? auth.id : rec.getString('profissional_id') || 'system'
+    let userEmail = auth
+      ? (auth.getString('email') || 'sistema@soul.com').toLowerCase().trim()
+      : 'sistema@soul.com'
+    let userName = auth
+      ? auth.getString('name') || userEmail
+      : rec.getString('profissional_nome') || 'Profissional SOUL'
+
+    let pacienteId = rec.getString('paciente_id') || ''
+    let pacienteNome = rec.getString('paciente_nome') || ''
+    if (pacienteId && !pacienteNome) {
+      try {
+        const p = $app.findRecordById('pacientes', pacienteId)
+        pacienteNome = p.getString('nome') || ''
+      } catch (_) {}
+    }
+
+    const area = rec.getString('area_servico') || 'Geral'
+    const detalhe = rec.getString('detalhe_servico') || ''
+    const dataAtend = rec.getString('data_atendimento') || ''
+    const profNome = rec.getString('profissional_nome') || userName
+
+    let dataFmt = dataAtend
+    if (dataFmt && dataFmt.indexOf(' ') > 0) {
+      dataFmt = dataFmt.split(' ')[0]
+    }
+
+    const espVal = ['Fisioterapia', 'Personal', 'Nutrição', 'Médico'].includes(area)
+      ? area
+      : 'Geral'
+    const detalhes =
+      'Edição de Presença: ' +
+      area +
+      (detalhe ? ' (' + detalhe + ')' : '') +
+      (dataFmt ? ' em ' + dataFmt : '') +
+      ' | Atendido por ' +
+      profNome
+
+    const logRec = new Record($app.findCollectionByNameOrId('clinical_update_logs'))
+    logRec.set('user_id', userId)
+    logRec.set('user_name', userName)
+    logRec.set('user_email', userEmail)
+    logRec.set('acao', 'editar')
+    logRec.set('tipo_entidade', 'presenca')
+    logRec.set('especialidade', espVal)
+    logRec.set('entidade_id', rec.id)
+    logRec.set('paciente_id', pacienteId)
+    logRec.set('paciente_nome', pacienteNome)
+    logRec.set('detalhes', detalhes)
+    $app.save(logRec)
+
+    const admins = ['gcdealmeida@gmail.com', 'guivemax@hotmail.com']
+    for (let i = 0; i < admins.length; i++) {
+      try {
+        const adm = $app.findAuthRecordByEmail('_pb_users_auth_', admins[i])
+        if (adm) {
+          const notif = new Record($app.findCollectionByNameOrId('notifications'))
+          notif.set('user_id', adm.id)
+          notif.set('titulo', 'Presença Editada - ' + area)
+          notif.set(
+            'descricao',
+            userName +
+              ' editou lançamento de presença de ' +
+              (pacienteNome || 'paciente') +
+              ' (' +
+              area +
+              ').',
+          )
+          notif.set('tipo', 'clinical_update')
+          notif.set('lida', false)
+          notif.set('link', '/presencas')
+          $app.save(notif)
+        }
+      } catch (_) {}
+    }
+  } catch (err) {
+    console.log('Erro audit presenca update: ' + err)
+  }
+}, 'presencas')
+
+// 17. presencas - Delete
+onRecordDeleteRequest((e) => {
+  const rec = e.record
+  const auth = e.auth
+
+  let userId = auth ? auth.id : rec.getString('profissional_id') || 'system'
+  let userEmail = auth
+    ? (auth.getString('email') || 'sistema@soul.com').toLowerCase().trim()
+    : 'sistema@soul.com'
+  let userName = auth
+    ? auth.getString('name') || userEmail
+    : rec.getString('profissional_nome') || 'Profissional SOUL'
+
+  let pacienteId = rec.getString('paciente_id') || ''
+  let pacienteNome = rec.getString('paciente_nome') || ''
+  if (pacienteId && !pacienteNome) {
+    try {
+      const p = $app.findRecordById('pacientes', pacienteId)
+      pacienteNome = p.getString('nome') || ''
+    } catch (_) {}
+  }
+
+  const area = rec.getString('area_servico') || 'Geral'
+  const detalhe = rec.getString('detalhe_servico') || ''
+  const dataAtend = rec.getString('data_atendimento') || ''
+  const profNome = rec.getString('profissional_nome') || userName
+
+  let dataFmt = dataAtend
+  if (dataFmt && dataFmt.indexOf(' ') > 0) {
+    dataFmt = dataFmt.split(' ')[0]
+  }
+
+  const espVal = ['Fisioterapia', 'Personal', 'Nutrição', 'Médico'].includes(area) ? area : 'Geral'
+  const detalhes =
+    'Exclusão de Presença: ' +
+    area +
+    (detalhe ? ' (' + detalhe + ')' : '') +
+    (dataFmt ? ' de ' + dataFmt : '') +
+    ' | Profissional ' +
+    profNome
+
+  e.next()
+
+  try {
+    const logRec = new Record($app.findCollectionByNameOrId('clinical_update_logs'))
+    logRec.set('user_id', userId)
+    logRec.set('user_name', userName)
+    logRec.set('user_email', userEmail)
+    logRec.set('acao', 'excluir')
+    logRec.set('tipo_entidade', 'presenca')
+    logRec.set('especialidade', espVal)
+    logRec.set('entidade_id', rec.id)
+    logRec.set('paciente_id', pacienteId)
+    logRec.set('paciente_nome', pacienteNome)
+    logRec.set('detalhes', detalhes)
+    $app.save(logRec)
+
+    const admins = ['gcdealmeida@gmail.com', 'guivemax@hotmail.com']
+    for (let i = 0; i < admins.length; i++) {
+      try {
+        const adm = $app.findAuthRecordByEmail('_pb_users_auth_', admins[i])
+        if (adm) {
+          const notif = new Record($app.findCollectionByNameOrId('notifications'))
+          notif.set('user_id', adm.id)
+          notif.set('titulo', 'Presença Excluída - ' + area)
+          notif.set(
+            'descricao',
+            userName +
+              ' excluiu o registro de presença de ' +
+              (pacienteNome || 'paciente') +
+              ' (' +
+              area +
+              ').',
+          )
+          notif.set('tipo', 'clinical_update')
+          notif.set('lida', false)
+          notif.set('link', '/presencas')
+          $app.save(notif)
+        }
+      } catch (_) {}
+    }
+  } catch (err) {
+    console.log('Erro audit presenca delete: ' + err)
+  }
+}, 'presencas')

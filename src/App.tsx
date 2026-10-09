@@ -22,6 +22,7 @@ import Dashboard from '@/pages/Dashboard'
 import Pacientes from '@/pages/Pacientes'
 import PacienteDetalhe from '@/pages/PacienteDetalhe'
 import Agenda from '@/pages/Agenda'
+import Presencas from '@/pages/Presencas'
 import Prontuarios from '@/pages/Prontuarios'
 import NovaAvaliacao from '@/pages/NovaAvaliacao'
 import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
@@ -110,6 +111,7 @@ const App = () => (
               <Route path="/pacientes" element={<Pacientes />} />
               <Route path="/pacientes/:id" element={<PacienteDetalhe />} />
               <Route path="/agenda" element={<Agenda />} />
+              <Route path="/presencas" element={<Presencas />} />
               <Route path="/prontuarios" element={<Prontuarios />} />
               <Route path="/prontuarios/novo" element={<NovaAvaliacao />} />
               <Route path="/prontuarios/:id" element={<AvaliacaoDetalhe />} />

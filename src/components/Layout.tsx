@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Dumbbell,
+  CalendarCheck2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -103,6 +104,11 @@ export default function Layout() {
     { name: 'Pacientes', path: '/pacientes', icon: Users },
     { name: 'Agenda', path: '/agenda', icon: Calendar },
     {
+      name: 'Presença / Confirmação',
+      path: '/presencas',
+      icon: CalendarCheck2,
+    },
+    {
       name: 'Prontuários',
       path: '/prontuarios',
       icon: FileText,
@@ -139,6 +145,7 @@ export default function Layout() {
     if (path.startsWith('/pacientes/') && path !== '/pacientes') return 'Prontuário do Paciente'
     if (path.startsWith('/pacientes')) return 'Pacientes'
     if (path.startsWith('/agenda')) return 'Agenda de Consultas'
+    if (path.startsWith('/presencas')) return 'Presença / Confirmação de Atendimentos'
     if (path.startsWith('/prontuarios/novo')) return 'Nova Avaliação Clínica'
     if (path.startsWith('/prontuarios/') && path !== '/prontuarios')
       return 'Visualização de Prontuário'

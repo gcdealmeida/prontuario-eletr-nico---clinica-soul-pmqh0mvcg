@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-09T13:40:04.507Z",
+  "generatedAt": "2026-10-09T15:08:18.523Z",
   "collections": [
     {
       "name": "users",
@@ -1808,7 +1808,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["avaliacao", "prontuario", "evolucao"]
+          "selectValues": ["avaliacao", "prontuario", "evolucao", "presenca"]
         },
         {
           "name": "especialidade",
@@ -2532,6 +2532,97 @@
         "CREATE INDEX idx_treino_programa ON programa_treino (programa_id)",
         "CREATE INDEX idx_treino_prog_semana ON programa_treino (programa_id, semana_indice)",
         "CREATE INDEX idx_treino_ordem ON programa_treino (programa_id, semana_indice, ordem)"
+      ]
+    },
+    {
+      "name": "presencas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.profissional_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "data_atendimento",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "area_servico",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "detalhe_servico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Presente", "Confirmado", "Justificado", "Cancelado"]
+        },
+        {
+          "name": "paciente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_presencas_profissional ON presencas (profissional_id)",
+        "CREATE INDEX idx_presencas_paciente ON presencas (paciente_id)",
+        "CREATE INDEX idx_presencas_data ON presencas (data_atendimento DESC)",
+        "CREATE INDEX idx_presencas_prof_data ON presencas (profissional_id, data_atendimento DESC)",
+        "CREATE INDEX idx_presencas_pac_data ON presencas (paciente_id, data_atendimento DESC)"
       ]
     }
   ]

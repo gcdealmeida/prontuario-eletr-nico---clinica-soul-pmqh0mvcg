@@ -33,6 +33,7 @@ import {
   UserCheck,
   Lock,
   FileSpreadsheet,
+  CalendarCheck2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -277,7 +278,14 @@ export default function GuiaUso() {
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
             <FileSpreadsheet className="h-4 w-4 text-[#C9A46A]" />
-            7. Importar Avaliação (Planilha .xlsx)
+            7. Importar Avaliação (.xlsx)
+          </TabsTrigger>
+          <TabsTrigger
+            value="presencas"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <CalendarCheck2 className="h-4 w-4 text-[#C9A46A]" />
+            8. Presença / Confirmação
           </TabsTrigger>
           <TabsTrigger
             value="faq"
@@ -1451,7 +1459,130 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 8: PERGUNTAS FREQUENTES (FAQ) */}
+        {/* TAB 8: NOVO PROCESSO DE PRESENÇA / CONFIRMAÇÃO */}
+        <TabsContent value="presencas" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-2">
+                <CalendarCheck2 className="h-3.5 w-3.5" />
+                <span>Novo Processo Operacional</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Processo de Presença / Confirmação de Atendimentos
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Controle de presença dos pacientes, registro ágil de sessões realizadas, filtros
+                combinados com contadores em tempo real e saídas em relatório impresso (PDF) e Excel
+                (.xlsx).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  1. Lançamento Rápido
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">Registro com Autocomplete</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Selecione o paciente cadastrado por busca rápida (nome ou CPF), indique a data do
+                  atendimento, a área ou serviço realizado (Fisioterapia, Personal, Nutrição,
+                  Médico, Pilates ou outro livre) e detalhe o atendimento.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  2. Regras de Escopo (RLS)
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">Segurança por Perfil</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Profissionais comuns visualizam, filtram e gerenciam exclusivamente os seus
+                  próprios lançamentos. O Administrador possui visão ampla de todos os profissionais
+                  e pode lançar ou filtrar por qualquer atendente da clínica.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  3. Exportação & Impressão
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">XLSX e Relatório PDF</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Exporte diretamente para arquivo Excel <code>.xlsx</code> com nome sugestivo (ex.:{' '}
+                  <em>presencas_2026-02.xlsx</em>) ou gere o relatório limpo oficial em PDF com
+                  cabeçalho da clínica, total de atendimentos e filtros aplicados.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-[#E9E1D2]">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Como utilizar o módulo passo a passo:
+              </h4>
+
+              <div className="space-y-3 text-xs text-gray-700">
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    <strong>Acessar o Menu:</strong> No menu lateral, clique em{' '}
+                    <strong>"Presença / Confirmação"</strong> (rota <code>/presencas</code>).
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    <strong>Lançar Novo Atendimento:</strong> Clique no botão dourado{' '}
+                    <strong>"Lançar Presença"</strong>. Selecione o paciente no campo de busca,
+                    informe a data, o serviço (opção de detalhar o atendimento), o status (Presente,
+                    Confirmado, Justificado ou Cancelado) e observações complementares.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    <strong>Filtros e Contagens:</strong> Utilize a barra de filtros para cruzar
+                    datas (início e fim), paciente, área/serviço e profissional atendente. Os
+                    contadores no topo atualizam em tempo real, informando o total de atendimentos e
+                    pessoas atendidas.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    4
+                  </div>
+                  <div>
+                    <strong>Modos de Visualização:</strong> Alterne entre{' '}
+                    <em>"Lista Cronológica"</em>, <em>"Por Profissional"</em> e{' '}
+                    <em>"Por Paciente"</em> para verificar o acumulado de sessões por profissional
+                    ou por aluno.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    5
+                  </div>
+                  <div>
+                    <strong>Auditoria e Notificações:</strong> Criação, edição e exclusão de
+                    lançamentos são registradas com rastreabilidade nos logs de governança e
+                    notificadas aos administradores do sistema.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 9: PERGUNTAS FREQUENTES (FAQ) */}
         <TabsContent value="faq" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>

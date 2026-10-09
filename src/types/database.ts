@@ -826,7 +826,28 @@ export type ClinicalUpdateAction =
   | 'evolucao_corretiva'
   | 'excluir'
 
-export type ClinicalUpdateEntityType = 'avaliacao' | 'prontuario' | 'evolucao'
+export type ClinicalUpdateEntityType = 'avaliacao' | 'prontuario' | 'evolucao' | 'presenca'
+
+export type StatusPresenca = 'Presente' | 'Confirmado' | 'Justificado' | 'Cancelado'
+
+export interface PresencaRecord {
+  id: string
+  paciente_id: string
+  profissional_id: string
+  data_atendimento: string // ISO date/datetime (YYYY-MM-DD ou YYYY-MM-DD HH:mm:ss)
+  area_servico: string // ex: Fisioterapia, Personal, Nutrição, Médico, Pilates, etc.
+  detalhe_servico?: string // detalhamento opcional do serviço
+  observacoes?: string
+  status?: StatusPresenca
+  paciente_nome?: string
+  profissional_nome?: string
+  created: string
+  updated: string
+  expand?: {
+    paciente_id?: PacienteRecord
+    profissional_id?: UserRecord
+  }
+}
 
 export interface ClinicalUpdateLogRecord {
   id: string
