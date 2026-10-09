@@ -288,8 +288,12 @@ export function parseAvaliacaoWorkbook(
     return null
   }
 
-  // 1. ANAMNESE
-  const anamneseSheet = findSheet(['ANAMNESE', 'Anamnese', 'ANAMNESE CLINICA'])
+  // 1. ANAMNESE (se não encontrar aba com nome explícito "ANAMNESE", faz fallback para a primeira aba da pasta)
+  const anamneseSheet =
+    findSheet(['ANAMNESE', 'Anamnese', 'ANAMNESE CLINICA', 'Ficha', 'Avaliação', 'Avaliacao']) ||
+    (sheetNames.length > 0 && workbook.Sheets[sheetNames[0]]
+      ? workbook.Sheets[sheetNames[0]]
+      : null)
   const parsedAnamnese = parseAnamneseSheet(anamneseSheet)
 
   // 2. EXAME FÍSICO
@@ -358,19 +362,64 @@ export function parseAvaliacaoWorkbook(
   let fallbackNome = parsedAnamnese.nome || ''
   let fallbackDataNasc = parsedAnamnese.dataNascimento
 
-  // Se o nome não veio da Anamnese, tenta extrair do próprio nome do arquivo
+  // Fallback 1: Varredura de emergência em TODAS as abas por rótulos de nome caso a Anamnese não tenha achado
+  if (!fallbackNome) {
+    for (const sName of sheetNames) {
+      const s = workbook.Sheets[sName]
+      if (!s) continue
+      const sRows: any[][] = XLSX.utils.sheet_to_json(s, { header: 1, defval: '' })
+      for (let rI = 0; rI < Math.min(25, sRows.length); rI++) {
+        const row = sRows[rI] || []
+        for (let cI = 0; cI < Math.min(8, row.length); cI++) {
+          const cell = String(row[cI] || '').trim()
+          if (!cell) continue
+          const normC = normalizeLabel(cell)
+          if (
+            normC === 'nome' ||
+            normC === 'nome completo' ||
+            normC === 'paciente' ||
+            normC.startsWith('nome:') ||
+            normC.startsWith('nome completo')
+          ) {
+            // Tenta valor na mesma célula após ':'
+            if (cell.includes(':')) {
+              const after = cell.substring(cell.indexOf(':') + 1).trim()
+              if (after && after.length > 2) {
+                fallbackNome = after
+                break
+              }
+            }
+            // Célula à direita
+            for (let cNext = cI + 1; cNext < row.length; cNext++) {
+              const v = String(row[cNext] || '').trim()
+              if (v && v.length > 2 && !v.endsWith(':')) {
+                fallbackNome = v
+                break
+              }
+            }
+            if (fallbackNome) break
+          }
+        }
+        if (fallbackNome) break
+      }
+      if (fallbackNome) break
+    }
+  }
+
+  // Fallback 2: Se o nome ainda não veio, tenta extrair do próprio nome do arquivo
+  // Ex: "AVALIACAO_Rodrigo Dombrowski.xlsx" -> "Rodrigo Dombrowski"
   // Ex: "avaliacao-eduardo-magalhaes-sarmento-afonso-905b2.xlsx" -> "Eduardo Magalhaes Sarmento Afonso"
   if (!fallbackNome && fileName) {
     const cleanFile = fileName.replace(/\.xlsx?$/i, '')
     // Remove hash final se houver (ex: "-905b2")
     const semHash = cleanFile.replace(/[-_][a-f0-9]{4,10}$/i, '')
-    // Remove prefixos comuns ("avaliacao-", "prontuario-", "ficha-")
-    const semPrefixo = semHash.replace(/^(avaliacao|prontuario|ficha|paciente)[-_]/i, '')
-    if (semPrefixo && semPrefixo.length > 3) {
+    // Remove prefixos comuns ("avaliacao-", "prontuario-", "ficha-", "avaliacao_")
+    const semPrefixo = semHash.replace(/^(avaliacao|prontuario|ficha|paciente)[-_ ]/i, '')
+    if (semPrefixo && semPrefixo.length > 2) {
       fallbackNome = semPrefixo
-        .split(/[-_]/)
+        .split(/[-_ ]+/)
         .filter(Boolean)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ')
     }
   }
@@ -561,10 +610,237 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
     alergias: 'alergias',
   }
 
+  // Função auxiliar de extração de valor para uma célula de rótulo em (rIdx, cIdx)
+  const extractValueForLabel = (rIdx: number, cIdx: number, rawCellText: string): string => {
+    // 1. Se o rótulo contém ':' com texto em seguida na mesma célula
+    if (rawCellText.includes(':')) {
+      const splitIdx = rawCellText.indexOf(':')
+      const after = rawCellText.substring(splitIdx + 1).trim()
+      if (after) return after
+    }
+    // 1b. Se o rótulo contém quebra de linha com texto na 2ª linha da mesma célula
+    if (rawCellText.includes('\n')) {
+      const lines = rawCellText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+      if (lines.length > 1) {
+        return lines.slice(1).join(' ')
+      }
+    }
+
+    const row = rows[rIdx] || []
+
+    // 2. Célula à direita na mesma linha (varre da coluna seguinte até o fim da linha)
+    for (let c = cIdx + 1; c < row.length; c++) {
+      if (row[c] !== undefined && row[c] !== null) {
+        const val = String(row[c]).trim()
+        if (val !== '') return val
+      }
+    }
+
+    // 3. Linha abaixo (mesma coluna ou colunas vizinhas, comum em células mescladas verticais)
+    for (let downR = rIdx + 1; downR <= Math.min(rIdx + 2, rows.length - 1); downR++) {
+      const nextRow = rows[downR] || []
+      // Tenta mesma coluna do rótulo
+      if (nextRow[cIdx] !== undefined && nextRow[cIdx] !== null) {
+        const v = String(nextRow[cIdx]).trim()
+        if (v && !v.endsWith(':') && v.length < 150) {
+          const normV = normalizeLabel(v)
+          const isAnotherLabel = [
+            'nome',
+            'cpf',
+            'idade',
+            'dn',
+            'peso',
+            'altura',
+            'endereco',
+            'contato',
+            'profissao',
+            'queixa',
+          ].some((k) => normV.startsWith(k))
+          if (!isAnotherLabel) return v
+        }
+      }
+      // Tenta coluna à direita na linha abaixo
+      for (let c = cIdx + 1; c < Math.min(cIdx + 4, nextRow.length); c++) {
+        if (nextRow[c] !== undefined && nextRow[c] !== null) {
+          const v = String(nextRow[c]).trim()
+          if (v) return v
+        }
+      }
+    }
+
+    return ''
+  }
+
   // Percorre as linhas
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     if (!row || row.length === 0) continue
+
+    // Varre as colunas iniciais da linha à procura de rótulos conhecidos
+    // (muitas planilhas têm duas colunas de rótulo:valor lado a lado, ex: col 0 Nome | col 1 Fulano | col 3 Idade | col 4 35)
+    for (let cIdx = 0; cIdx < Math.min(10, row.length); cIdx++) {
+      if (row[cIdx] === undefined || row[cIdx] === null) continue
+      const cellRaw = String(row[cIdx]).trim()
+      if (!cellRaw) continue
+
+      // Extrai rótulo limpo sem ':'
+      let cellLabel = cellRaw
+      if (cellRaw.includes(':')) {
+        cellLabel = cellRaw.substring(0, cellRaw.indexOf(':')).trim()
+      } else if (cellRaw.includes('\n')) {
+        cellLabel = cellRaw.split('\n')[0].trim()
+      }
+      const normLabel = normalizeLabel(cellLabel || cellRaw)
+
+      // Identificação Cadastral Primária
+      if (
+        !result.nome &&
+        (normLabel === 'nome' ||
+          normLabel === 'nome completo' ||
+          normLabel === 'nome do paciente' ||
+          normLabel === 'paciente' ||
+          normLabel.startsWith('nome:') ||
+          normLabel.startsWith('nome completo') ||
+          normLabel.startsWith('nome '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.nome = val
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.cpf &&
+        (normLabel === 'cpf' || normLabel.startsWith('cpf:') || normLabel.startsWith('cpf '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.cpf = normalizeCPF(val)
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.dataNascimento &&
+        (normLabel === 'dn' ||
+          normLabel === 'd n' ||
+          normLabel === 'data nasc' ||
+          normLabel === 'data de nascimento' ||
+          normLabel === 'data nascimento' ||
+          normLabel === 'nascimento' ||
+          normLabel.startsWith('dn:') ||
+          normLabel.startsWith('d n') ||
+          normLabel.includes('data de nascimento') ||
+          normLabel.includes('data nascimento'))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          const dt = parseExcelDate(val)
+          result.dataNascimento = dt.iso || parseBirthDateToISO(val)
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.idade &&
+        (normLabel === 'idade' ||
+          normLabel === 'idade anos' ||
+          normLabel.startsWith('idade:') ||
+          normLabel.startsWith('idade '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.idade = val
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.peso &&
+        (normLabel === 'peso' || normLabel.startsWith('peso:') || normLabel.startsWith('peso '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.peso = val.replace(',', '.')
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.altura &&
+        (normLabel === 'altura' ||
+          normLabel.startsWith('altura:') ||
+          normLabel.startsWith('altura '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.altura = val.replace(',', '.')
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.endereco &&
+        (normLabel === 'endereco' ||
+          normLabel === 'endereco completo' ||
+          normLabel.startsWith('endereco:') ||
+          normLabel.startsWith('endereco '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.endereco = val
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.contato &&
+        (normLabel === 'contato' ||
+          normLabel === 'telefone' ||
+          normLabel === 'celular' ||
+          normLabel === 'whatsapp' ||
+          normLabel.startsWith('contato:') ||
+          normLabel.startsWith('contato ') ||
+          normLabel.startsWith('telefone:') ||
+          normLabel.startsWith('telefone ') ||
+          normLabel.includes('telefone') ||
+          normLabel.includes('celular'))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.contato = val
+          currentTargetCategory = null
+          continue
+        }
+      }
+
+      if (
+        !result.profissao &&
+        (normLabel === 'profissao' ||
+          normLabel === 'ocupacao' ||
+          normLabel === 'trabalho' ||
+          normLabel.startsWith('profissao:') ||
+          normLabel.startsWith('profissao '))
+      ) {
+        const val = extractValueForLabel(i, cIdx, cellRaw)
+        if (val) {
+          result.profissao = val
+          currentTargetCategory = null
+          continue
+        }
+      }
+    }
 
     // Encontra a primeira célula não vazia como rótulo candidato (normalmente col 0, mas tolera indentação)
     let labelColIdx = -1
@@ -584,14 +860,12 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
       const splitIdx = col0Raw.indexOf(':')
       const possibleLabel = col0Raw.substring(0, splitIdx).trim()
       const possibleVal = col0Raw.substring(splitIdx + 1).trim()
-      // Se a parte após os dois pontos tiver conteúdo substantivo, usamos como valor
       if (possibleVal) {
         cleanedLabel = possibleLabel
         embeddedVal = possibleVal
       }
     }
 
-    // Valor pode estar na célula ao lado (a partir de labelColIdx + 1), ou no embeddedVal, ou na linha de baixo (se célula mesclada vertical)
     let valRaw = embeddedVal
     if (!valRaw) {
       for (let c = labelColIdx + 1; c < row.length; c++) {
@@ -604,7 +878,7 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
 
     const normLabel = normalizeLabel(cleanedLabel || col0Raw)
 
-    // Se ainda não encontrou valor ao lado, mas o rótulo é conhecido (ex: Nome, Idade, Queixa), checa se o valor está na linha imediatamente abaixo (célula vertical mesclada)
+    // Se ainda não encontrou valor ao lado, checa linha de baixo
     if (!valRaw && i + 1 < rows.length) {
       const nextRow = rows[i + 1]
       if (nextRow) {
@@ -612,7 +886,6 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
           nextRow[labelColIdx !== -1 ? labelColIdx : 0] !== undefined
             ? String(nextRow[labelColIdx !== -1 ? labelColIdx : 0]).trim()
             : ''
-        // Se a linha de baixo não é um novo rótulo conhecido
         const normNext = normalizeLabel(nextCol0)
         const isNextLabel = [
           'nome',
@@ -650,7 +923,6 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
       continue
     }
 
-    // Se col0 tem texto mas não é um rótulo conhecido, pode ser um sub-rótulo ou continuação
     // 1. Data da avaliação
     if (normLabel.includes('data da avaliacao') || normLabel.startsWith('data avaliacao')) {
       const dt = parseExcelDate(valRaw || col0Raw)
@@ -659,30 +931,33 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
       continue
     }
 
-    // 2. Identificação cadastral
+    // 2. Identificação cadastral (caso ainda não tenha sido preenchido pelo loop inicial)
     if (
-      normLabel === 'nome' ||
-      normLabel === 'nome completo' ||
-      normLabel === 'nome do paciente' ||
-      normLabel === 'paciente' ||
-      normLabel.startsWith('nome:') ||
-      normLabel.startsWith('nome ')
+      !result.nome &&
+      (normLabel === 'nome' ||
+        normLabel === 'nome completo' ||
+        normLabel === 'nome do paciente' ||
+        normLabel === 'paciente' ||
+        normLabel.startsWith('nome:') ||
+        normLabel.startsWith('nome completo') ||
+        normLabel.startsWith('nome '))
     ) {
       result.nome = valRaw
       currentTargetCategory = null
       continue
     }
     if (
-      normLabel === 'dn' ||
-      normLabel === 'd n' ||
-      normLabel === 'data nasc' ||
-      normLabel === 'data de nascimento' ||
-      normLabel === 'data nascimento' ||
-      normLabel === 'nascimento' ||
-      normLabel.startsWith('dn:') ||
-      normLabel.startsWith('d n') ||
-      normLabel.includes('data de nascimento') ||
-      normLabel.includes('data nascimento')
+      !result.dataNascimento &&
+      (normLabel === 'dn' ||
+        normLabel === 'd n' ||
+        normLabel === 'data nasc' ||
+        normLabel === 'data de nascimento' ||
+        normLabel === 'data nascimento' ||
+        normLabel === 'nascimento' ||
+        normLabel.startsWith('dn:') ||
+        normLabel.startsWith('d n') ||
+        normLabel.includes('data de nascimento') ||
+        normLabel.includes('data nascimento'))
     ) {
       const dt = parseExcelDate(valRaw)
       result.dataNascimento = dt.iso || parseBirthDateToISO(valRaw)
@@ -690,66 +965,75 @@ function parseAnamneseSheet(sheet: XLSX.WorkSheet | null): ParsedAnamneseData {
       continue
     }
     if (
-      normLabel === 'idade' ||
-      normLabel === 'idade anos' ||
-      normLabel.startsWith('idade:') ||
-      normLabel.startsWith('idade ')
+      !result.idade &&
+      (normLabel === 'idade' ||
+        normLabel === 'idade anos' ||
+        normLabel.startsWith('idade:') ||
+        normLabel.startsWith('idade '))
     ) {
       result.idade = valRaw
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'peso' || normLabel.startsWith('peso:') || normLabel.startsWith('peso ')) {
+    if (
+      !result.peso &&
+      (normLabel === 'peso' || normLabel.startsWith('peso:') || normLabel.startsWith('peso '))
+    ) {
       result.peso = valRaw.replace(',', '.')
       currentTargetCategory = null
       continue
     }
     if (
-      normLabel === 'altura' ||
-      normLabel.startsWith('altura:') ||
-      normLabel.startsWith('altura ')
+      !result.altura &&
+      (normLabel === 'altura' || normLabel.startsWith('altura:') || normLabel.startsWith('altura '))
     ) {
       result.altura = valRaw.replace(',', '.')
       currentTargetCategory = null
       continue
     }
-    if (normLabel === 'cpf' || normLabel.startsWith('cpf:') || normLabel.startsWith('cpf ')) {
+    if (
+      !result.cpf &&
+      (normLabel === 'cpf' || normLabel.startsWith('cpf:') || normLabel.startsWith('cpf '))
+    ) {
       result.cpf = normalizeCPF(valRaw)
       currentTargetCategory = null
       continue
     }
     if (
-      normLabel === 'endereco' ||
-      normLabel === 'endereco completo' ||
-      normLabel.startsWith('endereco:') ||
-      normLabel.startsWith('endereco ')
+      !result.endereco &&
+      (normLabel === 'endereco' ||
+        normLabel === 'endereco completo' ||
+        normLabel.startsWith('endereco:') ||
+        normLabel.startsWith('endereco '))
     ) {
       result.endereco = valRaw
       currentTargetCategory = null
       continue
     }
     if (
-      normLabel === 'contato' ||
-      normLabel === 'telefone' ||
-      normLabel === 'celular' ||
-      normLabel === 'whatsapp' ||
-      normLabel.startsWith('contato:') ||
-      normLabel.startsWith('contato ') ||
-      normLabel.startsWith('telefone:') ||
-      normLabel.startsWith('telefone ') ||
-      normLabel.includes('telefone') ||
-      normLabel.includes('celular')
+      !result.contato &&
+      (normLabel === 'contato' ||
+        normLabel === 'telefone' ||
+        normLabel === 'celular' ||
+        normLabel === 'whatsapp' ||
+        normLabel.startsWith('contato:') ||
+        normLabel.startsWith('contato ') ||
+        normLabel.startsWith('telefone:') ||
+        normLabel.startsWith('telefone ') ||
+        normLabel.includes('telefone') ||
+        normLabel.includes('celular'))
     ) {
       result.contato = valRaw
       currentTargetCategory = null
       continue
     }
     if (
-      normLabel === 'profissao' ||
-      normLabel === 'ocupacao' ||
-      normLabel === 'trabalho' ||
-      normLabel.startsWith('profissao:') ||
-      normLabel.startsWith('profissao ')
+      !result.profissao &&
+      (normLabel === 'profissao' ||
+        normLabel === 'ocupacao' ||
+        normLabel === 'trabalho' ||
+        normLabel.startsWith('profissao:') ||
+        normLabel.startsWith('profissao '))
     ) {
       result.profissao = valRaw
       currentTargetCategory = null

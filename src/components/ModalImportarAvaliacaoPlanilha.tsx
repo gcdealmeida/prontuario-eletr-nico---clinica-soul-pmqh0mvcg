@@ -646,12 +646,23 @@ export function ModalImportarAvaliacaoPlanilha({
                 <TabsContent value="paciente" className="pt-4 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium text-gray-700">Nome Completo *</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium text-gray-700">Nome Completo *</Label>
+                        {parsedData.pacienteIdentificado.nome ? (
+                          <span className="text-[10px] text-emerald-700 font-medium">
+                            Encontrado na planilha: {parsedData.pacienteIdentificado.nome}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-amber-600 font-medium">
+                            Não encontrado no arquivo (digite abaixo)
+                          </span>
+                        )}
+                      </div>
                       <Input
                         value={editNome}
                         onChange={(e) => setEditNome(e.target.value)}
                         placeholder="Nome do paciente"
-                        className="h-9 rounded-xl text-xs"
+                        className="h-9 rounded-xl text-xs font-semibold"
                       />
                     </div>
                     <div className="space-y-1">

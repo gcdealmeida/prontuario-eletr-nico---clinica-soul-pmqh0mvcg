@@ -441,8 +441,25 @@ export function ModalImportarPacientes({
           return
         }
 
+        // Se a planilha possuir múltiplas abas típicas de avaliação clínica (ANAMNESE, EXAME FÍSICO, Evolução),
+        // alertar o usuário para utilizar o importador correto ("Importar Avaliação (Planilha)")
+        const lowerSheets = workbook.SheetNames.map((s) => s.toLowerCase())
+        const looksLikeAvaliacao =
+          lowerSheets.some((s) => s.includes('anamnese')) &&
+          lowerSheets.some((s) => s.includes('exame') || s.includes('evoluc'))
+
+        if (looksLikeAvaliacao) {
+          toast({
+            title: 'Planilha de Avaliação Detectada',
+            description:
+              'Este arquivo parece ser uma ficha/avaliação clínica individual. Utilize o botão "Importar Avaliação (Planilha)" para importar este modelo com abas.',
+            variant: 'destructive',
+          })
+          return
+        }
+
         const worksheet = workbook.Sheets[sheetName]
-        // Carregar como array de objetos
+        // Carregar como array de objetos (1 linha = 1 paciente)
         const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
           defval: '',
           raw: true,
@@ -563,12 +580,23 @@ export function ModalImportarPacientes({
         setImportCurrentText(`Processando linha ${i + 1} de ${total}...`)
 
         const rawNome = mapping.nome ? String(row[mapping.nome] || '').trim() : ''
-        if (!rawNome || rawNome.length < 2) {
+        // Proteção contra cabeçalhos/perguntas tratados acidentalmente como nomes
+        const looksLikeQuestionOrHeader =
+          rawNome.endsWith(':') ||
+          rawNome.endsWith('?') ||
+          rawNome.length > 80 ||
+          /^(ABERTURA SUGERIDA|MOTIVO DA PROCURA|ANAMNESE|EXAME|TRATAMENTOS|EXAMES COMPLEMENTARES)/i.test(
+            rawNome,
+          )
+
+        if (!rawNome || rawNome.length < 2 || looksLikeQuestionOrHeader) {
           errors++
           errorsList.push({
             line: lineNum,
             nome: rawNome || '(Vazio)',
-            reason: 'Nome inválido ou ausente',
+            reason: looksLikeQuestionOrHeader
+              ? 'Parece cabeçalho ou pergunta, não nome de paciente'
+              : 'Nome inválido ou ausente',
           })
           continue
         }
