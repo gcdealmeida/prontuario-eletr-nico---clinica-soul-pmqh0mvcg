@@ -1480,13 +1480,17 @@ export default function GuiaUso() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  1. Navegação Sempre por Mês
+                  1. Navegação Mensal e Período Livre
                 </span>
-                <h4 className="font-bold text-sm text-[#4A322A]">Visão Mensal com Setas</h4>
+                <h4 className="font-bold text-sm text-[#4A322A]">
+                  Por Mês ou Período Personalizado
+                </h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Todos navegam mês a mês (‹ Mês Anterior | [Mês/Ano] | Próximo Mês ›) com o botão
-                  rápido "Mês atual". O sistema isola automaticamente os atendimentos entre o dia 1
-                  e o último dia do mês selecionado, facilitando a conferência e o fechamento.
+                  Colaboradores contam com navegação ágil mês a mês (‹ Mês Anterior | [Mês/Ano] |
+                  Próximo Mês ›). Já os administradores contam com o seletor entre{' '}
+                  <strong>"Por Mês"</strong> e <strong>"Período Personalizado"</strong>, permitindo
+                  consultar qualquer intervalo digitado livremente (ex: 15/09/2026 até 14/10/2026)
+                  com validação de datas e atalho rápido "Mês atual".
                 </p>
               </div>
 
@@ -1496,10 +1500,11 @@ export default function GuiaUso() {
                 </span>
                 <h4 className="font-bold text-sm text-[#4A322A]">Painel Analítico e Exportações</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  O administrador visualiza os cards de estatísticas (Total no mês, Confirmados,
+                  O administrador visualiza os cards de estatísticas (Total no período, Confirmados,
                   Pacientes únicos e Profissionais ativos), painel de filtros combináveis (paciente,
                   profissional, serviço, status), 3 modos de visualização (Lista, Por Profissional e
-                  Por Paciente) e exportação em Excel (<code>.xlsx</code>) e PDF/Imprimir.
+                  Por Paciente) e exportação em Excel (<code>.xlsx</code>) e PDF/Imprimir refletindo
+                  o intervalo exato selecionado.
                 </p>
               </div>
 
@@ -1529,8 +1534,13 @@ export default function GuiaUso() {
                   </span>
                   <ul className="text-gray-700 space-y-1.5 list-disc pl-4 leading-relaxed">
                     <li>
-                      <strong>Cards estatísticos mensais:</strong> Total do mês, confirmados,
-                      pacientes únicos atendidos e profissionais ativos.
+                      <strong>Cards estatísticos do período:</strong> Total do período, confirmados,
+                      pacientes únicos atendidos e profissionais ativos recalculados em tempo real.
+                    </li>
+                    <li>
+                      <strong>Busca por Período Livre:</strong> toggle entre "Por Mês" e "Período
+                      Personalizado" com dois campos de calendário (Data Inicial e Data Final),
+                      botão "Aplicar" e atalho para o mês atual.
                     </li>
                     <li>
                       <strong>Painel de filtros combináveis:</strong> busca textual, seleção de
@@ -1538,12 +1548,14 @@ export default function GuiaUso() {
                     </li>
                     <li>
                       <strong>3 Visualizações:</strong> Lista Cronológica geral, agrupamento Por
-                      Profissional e agrupamento Por Paciente.
+                      Profissional e agrupamento Por Paciente — todas respeitando o período
+                      filtrado.
                     </li>
                     <li>
-                      <strong>Exportação e Relatório:</strong> botão "Exportar Excel (.xlsx)" com
-                      nome sugestivo do mês (ex: <code>presencas_fevereiro-2026.xlsx</code>) e botão
-                      "Imprimir / PDF" formatado com cabeçalho oficial SOUL.
+                      <strong>Exportação e Relatório Inteligentes:</strong> exportação em Excel (
+                      <code>.xlsx</code>) com nome refletindo o período exato (ex:{' '}
+                      <code>presencas_15-09-2026_a_14-10-2026.xlsx</code> ou por mês) e
+                      impressão/PDF com cabeçalho oficial SOUL indicando o intervalo pesquisado.
                     </li>
                     <li>
                       <strong>Lançamento flexível:</strong> pode atribuir presenças para si ou em
@@ -1603,9 +1615,10 @@ export default function GuiaUso() {
                     2
                   </div>
                   <div>
-                    <strong>Navegar no Mês Desejado:</strong> Utilize as setas no seletor mensal
-                    (ex.: "Fevereiro de 2026") para alternar o período ou clique em "Mês atual" para
-                    retornar instantaneamente.
+                    <strong>Navegar no Mês ou Escolher Período Personalizado:</strong> Utilize o
+                    seletor mensal com setas (ex.: "Fevereiro de 2026") ou, se for administrador,
+                    alterne para <strong>"Período Personalizado"</strong> e digite o intervalo
+                    desejado (ex: 15/09/2026 a 14/10/2026) clicando em "Aplicar".
                   </div>
                 </div>
 

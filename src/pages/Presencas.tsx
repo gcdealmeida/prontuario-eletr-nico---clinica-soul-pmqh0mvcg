@@ -145,13 +145,47 @@ export default function Presencas() {
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
 
+  // Modo de período para Admin: 'mes' ou 'custom'
+  const [periodoModo, setPeriodoModo] = useState<'mes' | 'custom'>('mes')
+
+  // Intervalo personalizado ativo (aplicado)
+  const [customRange, setCustomRange] = useState<{ inicio: string; fim: string }>(() => {
+    const now = new Date()
+    const mesIndex = now.getMonth()
+    const ano = now.getFullYear()
+    const mesNum = String(mesIndex + 1).padStart(2, '0')
+    const ultimoDia = new Date(ano, mesIndex + 1, 0).getDate()
+    const ultimoDiaNum = String(ultimoDia).padStart(2, '0')
+    return {
+      inicio: `${ano}-${mesNum}-01`,
+      fim: `${ano}-${mesNum}-${ultimoDiaNum}`,
+    }
+  })
+
+  // Campos temporários dos inputs de data customizada antes de clicar "Aplicar"
+  const [tempDataInicio, setTempDataInicio] = useState<string>(() => {
+    const now = new Date()
+    const mesNum = String(now.getMonth() + 1).padStart(2, '0')
+    return `${now.getFullYear()}-${mesNum}-01`
+  })
+  const [tempDataFim, setTempDataFim] = useState<string>(() => {
+    const now = new Date()
+    const ano = now.getFullYear()
+    const mesIndex = now.getMonth()
+    const mesNum = String(mesIndex + 1).padStart(2, '0')
+    const ultimoDia = new Date(ano, mesIndex + 1, 0).getDate()
+    const ultimoDiaNum = String(ultimoDia).padStart(2, '0')
+    return `${ano}-${mesNum}-${ultimoDiaNum}`
+  })
+  const [dataError, setDataError] = useState<string>('')
+
   // Dados carregados do backend
   const [presencas, setPresencas] = useState<PresencaRecord[]>([])
   const [pacientes, setPacientes] = useState<PacienteRecord[]>([])
   const [profissionais, setProfissionais] = useState<UserRecord[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Filtros complementares dentro do mês (para Admin)
+  // Filtros complementares dentro do período (para Admin)
   const [selectedPacienteId, setSelectedPacienteId] = useState('Todos')
   const [selectedProfissionalId, setSelectedProfissionalId] = useState('Todos')
   const [selectedArea, setSelectedArea] = useState('Todos')
@@ -187,6 +221,26 @@ export default function Presencas() {
   // Intervalo do mês selecionado
   const monthRange = useMemo(() => getMesRange(currentMonth), [currentMonth])
 
+  // Intervalo ativo considerando o modo (se não for admin, é sempre mensal)
+  const activeRange = useMemo(() => {
+    if (!isAdmin || periodoModo === 'mes') {
+      return {
+        inicio: monthRange.inicio,
+        fim: monthRange.fim,
+        isCustom: false,
+        label: `${monthRange.mesNome} de ${monthRange.ano}`,
+        subLabel: `${formatDataPTBR(monthRange.inicio)} até ${formatDataPTBR(monthRange.fim)}`,
+      }
+    }
+    return {
+      inicio: customRange.inicio,
+      fim: customRange.fim,
+      isCustom: true,
+      label: `${formatDataPTBR(customRange.inicio)} até ${formatDataPTBR(customRange.fim)}`,
+      subLabel: `Período personalizado`,
+    }
+  }, [isAdmin, periodoModo, monthRange, customRange])
+
   // Navegar mês
   const handlePrevMonth = () => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
@@ -208,7 +262,55 @@ export default function Presencas() {
     )
   }, [currentMonth])
 
-  // Carregar dados sempre com escopo do mês selecionado
+  // Aplicar período personalizado
+  const handleAplicarPeriodoCustom = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    setDataError('')
+
+    if (!tempDataInicio || !tempDataFim) {
+      setDataError('Preencha as datas inicial e final.')
+      return
+    }
+
+    if (tempDataFim < tempDataInicio) {
+      setDataError('A data final não pode ser anterior à data inicial.')
+      return
+    }
+
+    setCustomRange({
+      inicio: tempDataInicio,
+      fim: tempDataFim,
+    })
+
+    toast({
+      title: 'Período aplicado!',
+      description: `Filtrando atendimentos de ${formatDataPTBR(tempDataInicio)} a ${formatDataPTBR(tempDataFim)}.`,
+    })
+  }
+
+  // Atalho para voltar ao mês atual no seletor customizado
+  const handleAtalhoMesAtualCustom = () => {
+    const now = new Date()
+    const ano = now.getFullYear()
+    const mesIndex = now.getMonth()
+    const mesNum = String(mesIndex + 1).padStart(2, '0')
+    const ultimoDia = new Date(ano, mesIndex + 1, 0).getDate()
+    const ultimoDiaNum = String(ultimoDia).padStart(2, '0')
+    const inicio = `${ano}-${mesNum}-01`
+    const fim = `${ano}-${mesNum}-${ultimoDiaNum}`
+
+    setTempDataInicio(inicio)
+    setTempDataFim(fim)
+    setDataError('')
+    setCustomRange({ inicio, fim })
+
+    toast({
+      title: 'Mês atual aplicado',
+      description: `Intervalo ajustado para ${formatDataPTBR(inicio)} até ${formatDataPTBR(fim)}.`,
+    })
+  }
+
+  // Carregar dados respeitando o período ativo
   const carregarDados = async () => {
     try {
       setLoading(true)
@@ -216,8 +318,8 @@ export default function Presencas() {
         getAllPacientes(),
         isAdmin ? getAllUsers() : Promise.resolve([]),
         getAllPresencas({
-          dataInicio: monthRange.inicio,
-          dataFim: monthRange.fim,
+          dataInicio: activeRange.inicio,
+          dataFim: activeRange.fim,
         }),
       ])
       setPacientes(pacs)
@@ -237,7 +339,7 @@ export default function Presencas() {
 
   useEffect(() => {
     carregarDados()
-  }, [isAdmin, monthRange.inicio, monthRange.fim])
+  }, [isAdmin, activeRange.inicio, activeRange.fim])
 
   // Inscrição em tempo real na coleção de presenças
   useRealtime('presencas', () => {
@@ -252,9 +354,9 @@ export default function Presencas() {
         return false
       }
 
-      // Restrições de mês (confirmação estrita dentro do mês selecionado)
+      // Restrições de data (confirmação estrita dentro do período ativo)
       const itemDate = item.data_atendimento ? item.data_atendimento.split(' ')[0] : ''
-      if (itemDate && (itemDate < monthRange.inicio || itemDate > monthRange.fim)) {
+      if (itemDate && (itemDate < activeRange.inicio || itemDate > activeRange.fim)) {
         return false
       }
 
@@ -317,8 +419,8 @@ export default function Presencas() {
     presencas,
     isAdmin,
     user?.id,
-    monthRange.inicio,
-    monthRange.fim,
+    activeRange.inicio,
+    activeRange.fim,
     selectedPacienteId,
     selectedProfissionalId,
     selectedArea,
@@ -389,12 +491,17 @@ export default function Presencas() {
     setFormPacienteId('')
     setFormPacienteBusca('')
 
-    // Se o mês selecionado é o mês atual, preenche com a data de hoje;
-    // se estiver navegando em outro mês, preenche com o primeiro dia do mês selecionado
+    // Data padrão para novo lançamento: hoje se estiver dentro do período ativo, ou o início do período
     const now = new Date()
-    const isNow =
-      now.getFullYear() === currentMonth.getFullYear() && now.getMonth() === currentMonth.getMonth()
-    const defaultDate = isNow ? now.toISOString().split('T')[0] : monthRange.inicio
+    const todayISO = now.toISOString().split('T')[0]
+    let defaultDate = todayISO
+    if (activeRange.inicio && activeRange.fim) {
+      if (todayISO >= activeRange.inicio && todayISO <= activeRange.fim) {
+        defaultDate = todayISO
+      } else {
+        defaultDate = activeRange.inicio
+      }
+    }
 
     setFormDataAtendimento(defaultDate)
     setFormAreaServico(
@@ -590,7 +697,7 @@ export default function Presencas() {
       if (presencasFiltradas.length === 0) {
         toast({
           title: 'Sem lançamentos',
-          description: `Nenhum atendimento encontrado para ${formatMesAno(currentMonth)}.`,
+          description: `Nenhum atendimento encontrado para ${activeRange.label}.`,
           variant: 'destructive',
         })
         return
@@ -639,16 +746,25 @@ export default function Presencas() {
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Presenças e Confirmações')
 
-      // Nome sugestivo com o mês selecionado ex.: "presencas_fevereiro-2026.xlsx"
-      const mesSlug = MESES_SLUG[currentMonth.getMonth()]
-      const anoNum = currentMonth.getFullYear()
-      const fileName = `presencas_${mesSlug}-${anoNum}.xlsx`
+      // Nome do arquivo:
+      // Se for personalizado: presencas_DD-MM-YYYY_a_DD-MM-YYYY.xlsx
+      // Se for por mês: presencas_mes-ano.xlsx
+      let fileName = ''
+      if (activeRange.isCustom) {
+        const [anoI, mesI, diaI] = activeRange.inicio.split('-')
+        const [anoF, mesF, diaF] = activeRange.fim.split('-')
+        fileName = `presencas_${diaI}-${mesI}-${anoI}_a_${diaF}-${mesF}-${anoF}.xlsx`
+      } else {
+        const mesSlug = MESES_SLUG[currentMonth.getMonth()]
+        const anoNum = currentMonth.getFullYear()
+        fileName = `presencas_${mesSlug}-${anoNum}.xlsx`
+      }
 
       XLSX.writeFile(workbook, fileName)
 
       toast({
         title: 'Planilha exportada com sucesso!',
-        description: `Arquivo ${fileName} gerado com ${presencasFiltradas.length} lançamento(s) de ${monthRange.mesNome}/${anoNum}.`,
+        description: `Arquivo ${fileName} gerado com ${presencasFiltradas.length} lançamento(s) de ${activeRange.label}.`,
       })
     } catch (err: any) {
       console.error('Erro ao exportar XLSX:', err)
@@ -749,9 +865,16 @@ export default function Presencas() {
             <strong>Emissão:</strong> {new Date().toLocaleDateString('pt-BR')} às{' '}
             {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span>
-            <strong>Mês de Referência:</strong> {formatMesAno(currentMonth)}
-          </span>
+          {activeRange.isCustom ? (
+            <span>
+              <strong>Período:</strong> {formatDataPTBR(activeRange.inicio)} a{' '}
+              {formatDataPTBR(activeRange.fim)}
+            </span>
+          ) : (
+            <span>
+              <strong>Mês de Referência:</strong> {formatMesAno(currentMonth)}
+            </span>
+          )}
           {selectedArea !== 'Todos' && (
             <span>
               <strong>Serviço:</strong> {selectedArea}
@@ -785,8 +908,8 @@ export default function Presencas() {
                 Presença / Confirmação
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                Controle mensal de atendimentos da clínica, estatísticas de quantidade, filtros
-                combinados e exportações.
+                Controle de atendimentos da clínica, estatísticas de quantidade, busca por mês ou
+                período personalizado e exportações.
               </p>
             </div>
 
@@ -821,26 +944,134 @@ export default function Presencas() {
             </div>
           </div>
 
-          {/* NAVEGAÇÃO MENSAL (Admin) */}
-          <div className="print:hidden">{renderNavegacaoMensal()}</div>
+          {/* SELETOR DE MODO DE PERÍODO & NAVEGAÇÃO (Admin) */}
+          <div className="space-y-3 print:hidden">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <Tabs
+                value={periodoModo}
+                onValueChange={(val) => setPeriodoModo(val as 'mes' | 'custom')}
+                className="w-full sm:w-auto"
+              >
+                <TabsList className="bg-[#FAF7F1] border border-[#E9E1D2] rounded-2xl p-1 h-auto flex">
+                  <TabsTrigger
+                    value="mes"
+                    className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-1.5 px-3.5 transition-all"
+                  >
+                    Por Mês
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="custom"
+                    className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-1.5 px-3.5 transition-all"
+                  >
+                    Período Personalizado
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-          {/* CARDS DE RESUMO E CONTADORES DO MÊS (Admin) */}
+              {activeRange.isCustom && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FAF4EA] border border-[#E3C89A] text-xs font-semibold text-[#8C6527]">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>
+                    Período ativo: {formatDataPTBR(activeRange.inicio)} até{' '}
+                    {formatDataPTBR(activeRange.fim)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* MODO 1: NAVEGAÇÃO POR MÊS */}
+            {periodoModo === 'mes' ? (
+              renderNavegacaoMensal()
+            ) : (
+              /* MODO 2: PERÍODO PERSONALIZADO */
+              <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs space-y-3">
+                <form
+                  onSubmit={handleAplicarPeriodoCustom}
+                  className="flex flex-col md:flex-row md:items-end justify-between gap-3"
+                >
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 flex-1">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs font-semibold text-[#4A322A]">
+                        Data Inicial <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        type="date"
+                        value={tempDataInicio}
+                        onChange={(e) => {
+                          setTempDataInicio(e.target.value)
+                          setDataError('')
+                        }}
+                        className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs font-semibold text-[#4A322A]">
+                        Data Final <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        type="date"
+                        value={tempDataFim}
+                        min={tempDataInicio || undefined}
+                        onChange={(e) => {
+                          setTempDataFim(e.target.value)
+                          setDataError('')
+                        }}
+                        className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                      <Button
+                        type="submit"
+                        className="bg-gradient-to-r from-[#C9A46A] to-[#B88E52] hover:brightness-105 text-[#33221C] font-bold rounded-xl h-9 px-4 text-xs shadow-xs"
+                      >
+                        Aplicar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAtalhoMesAtualCustom}
+                        className="border-[#D4B278] text-[#8C6527] hover:bg-[#FAF4EA] rounded-xl h-9 px-3 text-xs font-semibold"
+                        title="Redefinir para o mês atual"
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1.5" />
+                        Mês atual
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-[#73574A] font-medium hidden lg:block self-center">
+                    Total de <strong>{presencasFiltradas.length}</strong> atendimento(s) no período
+                  </div>
+                </form>
+
+                {dataError && (
+                  <p className="text-xs font-semibold text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                    {dataError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* CARDS DE RESUMO E CONTADORES DO PERÍODO (Admin) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
-            {/* Total no Mês */}
+            {/* Total no Período */}
             <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex items-center gap-3.5">
               <div className="h-11 w-11 rounded-xl bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A]/50 flex items-center justify-center shrink-0">
                 <CalendarCheck2 className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-                  Total no Mês
+                  {activeRange.isCustom ? 'Total no Período' : 'Total no Mês'}
                 </p>
                 <p className="text-2xl font-serif font-bold text-[#4A322A]">
                   {presencasFiltradas.length}
                 </p>
-                <p className="text-[11px] text-[#8C6527] truncate">
-                  {monthRange.mesNome} de {monthRange.ano}
-                </p>
+                <p className="text-[11px] text-[#8C6527] truncate">{activeRange.label}</p>
               </div>
             </div>
 
@@ -876,7 +1107,7 @@ export default function Presencas() {
                 <p className="text-2xl font-serif font-bold text-[#B87355]">
                   {agrupamentoPorPaciente.length}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate">Pessoas atendidas no mês</p>
+                <p className="text-[11px] text-gray-500 truncate">Pessoas atendidas</p>
               </div>
             </div>
 
@@ -892,18 +1123,18 @@ export default function Presencas() {
                 <p className="text-2xl font-serif font-bold text-[#3B82F6]">
                   {agrupamentoPorProfissional.length}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate">Equipe ativa no mês</p>
+                <p className="text-[11px] text-gray-500 truncate">Equipe ativa</p>
               </div>
             </div>
           </div>
 
-          {/* BARRA DE FILTROS COMBINÁVEIS DENTRO DO MÊS (Admin) */}
+          {/* BARRA DE FILTROS COMBINÁVEIS DENTRO DO PERÍODO (Admin) */}
           <div className="bg-white rounded-3xl p-5 border border-[#E9E1D2] shadow-xs space-y-4 print:hidden">
             <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#E9E1D2]/60 pb-3">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-[#8C6527]" />
                 <h3 className="font-serif font-bold text-sm text-[#4A322A]">
-                  Filtros Complementares do Mês
+                  Filtros Complementares
                 </h3>
                 <span className="text-xs text-gray-400">|</span>
                 <span className="text-xs text-[#73574A]">
@@ -1055,7 +1286,7 @@ export default function Presencas() {
 
             <div className="text-xs text-[#73574A] font-medium">
               Exibindo <strong>{presencasFiltradas.length}</strong> registro(s) em{' '}
-              {monthRange.mesNome}/{monthRange.ano}
+              {activeRange.label}
             </div>
           </div>
 
@@ -1064,18 +1295,18 @@ export default function Presencas() {
             <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-[#E9E1D2]">
               <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
               <p className="text-xs text-[#73574A] font-medium">
-                Carregando lançamentos de {formatMesAno(currentMonth)}...
+                Carregando lançamentos de {activeRange.label}...
               </p>
             </div>
           ) : presencasFiltradas.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-3xl border border-[#E9E1D2] space-y-3">
               <CalendarCheck2 className="h-10 w-10 text-[#C9A46A]/60 mx-auto" />
               <h3 className="font-serif font-bold text-base text-[#4A322A]">
-                Nenhum atendimento em {formatMesAno(currentMonth)}
+                Nenhum atendimento em {activeRange.label}
               </h3>
               <p className="text-xs text-gray-500 max-w-md mx-auto">
-                Não há registros de presença correspondentes para este mês com os filtros aplicados.
-                Altere os filtros ou registre um novo atendimento.
+                Não há registros de presença correspondentes para este período com os filtros
+                aplicados. Altere os filtros ou registre um novo atendimento.
               </p>
               <Button
                 onClick={handleOpenNewModal}
@@ -1083,7 +1314,7 @@ export default function Presencas() {
                 className="mt-2 bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-semibold text-xs rounded-xl h-9"
               >
                 <Plus className="h-4 w-4 mr-1.5" />
-                Lançar Presença em {monthRange.mesNome}
+                Lançar Presença
               </Button>
             </div>
           ) : (
@@ -1217,7 +1448,7 @@ export default function Presencas() {
                               {grupo.nome}
                             </h4>
                             <p className="text-[11px] text-gray-500">
-                              Atendimentos no mês de {monthRange.mesNome}
+                              Atendimentos em {activeRange.label}
                             </p>
                           </div>
                         </div>
@@ -1312,7 +1543,7 @@ export default function Presencas() {
                               {grupo.nome}
                             </h4>
                             <p className="text-[11px] text-gray-500">
-                              Histórico de atendimentos em {monthRange.mesNome}
+                              Histórico de atendimentos em {activeRange.label}
                             </p>
                           </div>
                         </div>
