@@ -543,10 +543,15 @@ export default function AvaliacaoDetalhe() {
                     </span>
                   </div>
 
-                  {evo.subjetivo && (
+                  {(evo.subjetivo || typeof evo.eva_dor === 'number') && (
                     <div>
                       <strong className="text-gray-700">Subjetivo (S): </strong>
-                      <span className="text-gray-800">{evo.subjetivo}</span>
+                      {typeof evo.eva_dor === 'number' && (
+                        <span className="font-bold text-[#8C6527] mr-1.5">
+                          [EVA: {evo.eva_dor}/10]
+                        </span>
+                      )}
+                      <span className="text-gray-800">{evo.subjetivo || '—'}</span>
                     </div>
                   )}
 

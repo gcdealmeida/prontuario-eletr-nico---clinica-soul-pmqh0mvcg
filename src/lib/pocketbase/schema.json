@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-13T10:45:27.709Z",
+  "generatedAt": "2026-10-13T11:21:02.525Z",
   "collections": [
     {
       "name": "users",
@@ -1586,6 +1586,12 @@
           "required": false,
           "system": false,
           "selectValues": ["Rotina", "Corretiva"]
+        },
+        {
+          "name": "eva_dor",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

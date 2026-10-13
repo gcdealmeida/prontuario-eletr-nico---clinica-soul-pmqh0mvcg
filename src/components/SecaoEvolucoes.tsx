@@ -67,6 +67,8 @@ import type { EvolucaoRecord, Especialidade, StatusEvolucao } from '@/types/data
 import { ESPECIALIDADE_COLORS, formatDataPTBR, formatDataHoraPTBR } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
+import { ReguaEva, EvaBadge } from '@/components/ReguaEva'
+import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
 
 interface SecaoEvolucoesProps {
   pacienteId: string
@@ -116,6 +118,9 @@ export function SecaoEvolucoes({
   const [plano, setPlano] = useState('')
   const [condutaProcedimentos, setCondutaProcedimentos] = useState('')
 
+  // EVA (Escala Visual Analógica de Dor)
+  const [evaDor, setEvaDor] = useState<number | null>(null)
+
   // Evolução rápida
   const [textoLivre, setTextoLivre] = useState('')
 
@@ -144,6 +149,15 @@ export function SecaoEvolucoes({
     carregarEvolucoes()
   })
 
+  // Encontra a última evolução do paciente que tenha EVA preenchida para referência e pré-carga
+  const ultimaEvolucaoComEva = evolucoes.find((e) => typeof e.eva_dor === 'number')
+  const referenciaUltimaEva = ultimaEvolucaoComEva
+    ? {
+        valor: ultimaEvolucaoComEva.eva_dor as number,
+        data: formatDataPTBR(ultimaEvolucaoComEva.data_evolucao || ultimaEvolucaoComEva.created),
+      }
+    : null
+
   const resetForm = () => {
     setEditingId(null)
     setTipoEvolucao('Rotina')
@@ -159,6 +173,8 @@ export function SecaoEvolucoes({
     setPlano('')
     setCondutaProcedimentos('')
     setTextoLivre('')
+    // Pré-carrega o valor da última EVA registrada (se houver) para agilizar o atendimento
+    setEvaDor(referenciaUltimaEva ? referenciaUltimaEva.valor : null)
   }
 
   const handleOpenNova = () => {
@@ -195,6 +211,7 @@ export function SecaoEvolucoes({
     setPlano(evo.plano || '')
     setCondutaProcedimentos(evo.conduta_procedimentos || '')
     setTextoLivre(evo.texto_livre || '')
+    setEvaDor(typeof evo.eva_dor === 'number' ? evo.eva_dor : null)
 
     if (evo.texto_livre && !evo.subjetivo && !evo.objetivo && !evo.avaliacao_clinica) {
       setFormTipo('rapida')
@@ -218,6 +235,7 @@ export function SecaoEvolucoes({
         'SOUL Clínica',
     )
     setFormStatus('Finalizada')
+    setEvaDor(typeof evoAnterior.eva_dor === 'number' ? evoAnterior.eva_dor : null)
 
     const refInfo = evoAnterior.numero_registro
       ? `Registro ${evoAnterior.numero_registro}`
@@ -236,7 +254,6 @@ export function SecaoEvolucoes({
       setPlano(evoAnterior.plano || '')
       setCondutaProcedimentos(evoAnterior.conduta_procedimentos || '')
     }
-
     setModalOpen(true)
   }
 
@@ -285,6 +302,7 @@ export function SecaoEvolucoes({
         plano: plano.trim() || undefined,
         conduta_procedimentos: condutaProcedimentos.trim() || undefined,
         texto_livre: textoLivre.trim() || undefined,
+        eva_dor: typeof evaDor === 'number' ? evaDor : null,
         status: formStatus,
         tipo_evolucao: tipoEvolucao,
         evolucao_referencia_id: evolucaoReferenciaId || undefined,
@@ -417,6 +435,11 @@ export function SecaoEvolucoes({
         </div>
       </div>
 
+      {/* Mini-Gráfico de Trajetória da Dor (EVA ao longo das sessões) */}
+      {!loading && evolucoes.some((e) => typeof e.eva_dor === 'number') && (
+        <TrajetoriaEvaGrafico evolucoes={evolucoes} className="print:hidden" />
+      )}
+
       {/* Conteúdo da Timeline de Evoluções */}
       {loading ? (
         <div className="py-16 flex flex-col items-center justify-center gap-2">
@@ -508,6 +531,11 @@ export function SecaoEvolucoes({
                             <span className="font-mono text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200/60">
                               {evo.numero_registro}
                             </span>
+                          )}
+
+                          {/* Badge de EVA da dor se houver */}
+                          {typeof evo.eva_dor === 'number' && (
+                            <EvaBadge valor={evo.eva_dor} tamanho="sm" />
                           )}
 
                           {isVinculadaEstaAvaliacao && (
@@ -654,19 +682,34 @@ export function SecaoEvolucoes({
                     {isExpanded && (
                       <div className="p-4 sm:p-6 space-y-4 bg-gray-50/40 rounded-b-2xl border-t border-gray-100">
                         {/* Modelo SOAP em 4 blocos */}
-                        {(evo.subjetivo || evo.objetivo || evo.avaliacao_clinica || evo.plano) && (
+                        {(evo.subjetivo ||
+                          evo.objetivo ||
+                          evo.avaliacao_clinica ||
+                          evo.plano ||
+                          typeof evo.eva_dor === 'number') && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                            {/* S - Subjetivo */}
+                            {/* S - Subjetivo com destaque de EVA */}
                             <div className="bg-white p-3.5 rounded-xl border border-gray-200/80 shadow-2xs">
-                              <div className="flex items-center gap-2 mb-1.5">
-                                <span className="h-5 w-5 rounded-md bg-blue-100 text-blue-800 font-bold text-[11px] flex items-center justify-center shrink-0">
-                                  S
-                                </span>
-                                <span className="text-xs font-bold text-gray-900">
-                                  Subjetivo (Relato do Paciente)
-                                </span>
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-5 w-5 rounded-md bg-blue-100 text-blue-800 font-bold text-[11px] flex items-center justify-center shrink-0">
+                                    S
+                                  </span>
+                                  <span className="text-xs font-bold text-gray-900">
+                                    Subjetivo (Relato do Paciente)
+                                  </span>
+                                </div>
+                                {typeof evo.eva_dor === 'number' && (
+                                  <EvaBadge valor={evo.eva_dor} tamanho="sm" />
+                                )}
                               </div>
                               <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {typeof evo.eva_dor === 'number' &&
+                                  !evo.subjetivo?.includes('EVA') && (
+                                    <span className="font-semibold text-[#8C6527] block mb-1">
+                                      Nível de Dor: EVA {evo.eva_dor}/10
+                                    </span>
+                                  )}
                                 {evo.subjetivo || '—'}
                               </p>
                             </div>
@@ -898,6 +941,15 @@ export function SecaoEvolucoes({
               />
             </div>
 
+            {/* Régua de EVA de Dor (0 a 10) no padrão SOUL */}
+            <div className="pt-1">
+              <ReguaEva
+                value={evaDor}
+                onChange={setEvaDor}
+                referenciaAnterior={referenciaUltimaEva}
+              />
+            </div>
+
             {/* Alternador de Formato: SOAP vs Evolução Rápida */}
             <div className="flex items-center justify-between pt-1 border-t border-gray-100">
               <span className="text-xs font-bold text-gray-800">Formato da Evolução:</span>
@@ -947,7 +999,11 @@ export function SecaoEvolucoes({
                     rows={2}
                     value={subjetivo}
                     onChange={(e) => setSubjetivo(e.target.value)}
-                    placeholder="Ex: Paciente relata diminuição da dor no ombro direito (EVA 3/10). Conseguiu dormir sem analgésico..."
+                    placeholder={
+                      typeof evaDor === 'number'
+                        ? `[EVA ${evaDor}/10 selecionada na régua acima] Ex: Paciente relata melhora das dores ao acordar...`
+                        : 'Ex: Paciente relata diminuição da dor no ombro direito. Conseguiu dormir sem analgésico...'
+                    }
                     className="rounded-xl border-gray-200 text-xs sm:text-sm"
                   />
                 </div>

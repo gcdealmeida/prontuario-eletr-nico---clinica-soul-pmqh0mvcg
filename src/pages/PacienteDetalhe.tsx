@@ -55,6 +55,8 @@ import { useToast } from '@/hooks/use-toast'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
 import { FileSpreadsheet } from 'lucide-react'
+import { EvaBadge } from '@/components/ReguaEva'
+import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
 
 export default function PacienteDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -701,6 +703,10 @@ export default function PacienteDetalhe() {
               </div>
             </div>
 
+            {evolucoesPaciente.some((e) => typeof e.eva_dor === 'number') && (
+              <TrajetoriaEvaGrafico evolucoes={evolucoesPaciente} className="mb-4" />
+            )}
+
             {evolucoesPaciente.length === 0 ? (
               <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
                 <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
@@ -745,6 +751,10 @@ export default function PacienteDetalhe() {
                             <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                               {evo.numero_registro}
                             </span>
+                          )}
+
+                          {typeof evo.eva_dor === 'number' && (
+                            <EvaBadge valor={evo.eva_dor} tamanho="sm" />
                           )}
 
                           <span className="text-xs font-semibold text-gray-700">

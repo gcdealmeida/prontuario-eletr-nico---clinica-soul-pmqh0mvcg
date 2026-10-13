@@ -29,6 +29,9 @@ export interface EvolucaoRecord {
   texto_livre?: string
   status: StatusEvolucao
 
+  // Escala Visual Analógica de dor (0 a 10)
+  eva_dor?: number | null
+
   // Documento Fechado e Assinatura Digital SOUL
   numero_registro?: string
   assinado_em?: string

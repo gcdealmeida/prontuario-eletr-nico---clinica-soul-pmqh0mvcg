@@ -885,8 +885,19 @@ export default function GuiaUso() {
                     Clique em <strong>"Nova Evolução"</strong> para abrir o modal clínico
                     padronizado (mesmo padrão dos principais softwares como Amplimed, Ninsaúde e
                     iClinic):
-                    <br />• <strong>S (Subjetivo):</strong> relato do paciente, nível de dor (EVA),
-                    resposta aos exercícios domiciliares.
+                    <br />• <strong>Régua de EVA da Dor (0 a 10):</strong> logo acima do bloco
+                    Subjetivo, selecione o nível de dor relatado na sessão com cores padronizadas da
+                    SOUL (verde/azul para 0–3 Sem dor/Leve, âmbar 4–6 Moderada, vermelho 7–10
+                    Intensa). Para agilizar seu processo clínico diário, o sistema
+                    <strong>
+                      {' '}
+                      pré-carrega automaticamente o último valor de EVA registrado
+                    </strong>{' '}
+                    para aquele paciente e exibe a data como referência, bastando 1 clique para
+                    manter ou ajustar.
+                    <br />• <strong>S (Subjetivo):</strong> relato do paciente, queixas do dia e
+                    resposta aos exercícios domiciliares (o valor da EVA fica registrado e
+                    associado).
                     <br />• <strong>O (Objetivo):</strong> mensurações, goniometria do dia, testes
                     físicos executados, palpação.
                     <br />• <strong>A (Avaliação):</strong> análise clínica do profissional e
@@ -1019,13 +1030,17 @@ export default function GuiaUso() {
                     Sincronização com o Perfil do Paciente e Impressão / PDF
                   </h5>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    • <strong>Perfil do Paciente:</strong> Todas as evoluções aparecem organizadas
-                    na aba "Evoluções" do paciente e na Timeline com as cores de cada especialidade,
-                    com o selo de documento fechado e assinatura digital.
+                    • <strong>Perfil do Paciente e Gráfico de Trajetória da Dor:</strong> Todas as
+                    evoluções aparecem organizadas na aba "Evoluções" do paciente e na Timeline com
+                    as cores de cada especialidade, selo de documento fechado, assinatura digital e
+                    o chip colorido da <strong>EVA (ex: EVA 3/10 • Leve)</strong>. Além disso, um{' '}
+                    <strong>gráfico de linha interativo da Trajetória da Dor</strong> exibe o delta
+                    de melhora entre a primeira e a última sessão avaliada.
                     <br />• <strong>Impressão / PDF:</strong> O prontuário oficial preserva o
                     cabeçalho oficial SOUL com o logotipo em alta definição, layout A4, linha de
-                    assinatura e anexo completo de todas as evoluções clínicas assinadas com seus
-                    respectivos identificadores e carimbos de auditoria.
+                    assinatura, valor exato da EVA destacada no bloco Subjetivo (
+                    <code>[EVA: X/10]</code>) e anexo completo de todas as evoluções clínicas
+                    assinadas com seus respectivos identificadores e carimbos de auditoria.
                   </p>
                 </div>
               </div>
