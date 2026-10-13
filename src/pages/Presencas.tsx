@@ -66,20 +66,10 @@ import {
   type PresencaPayload,
 } from '@/services/presencas'
 import type { PresencaRecord, PacienteRecord, UserRecord, StatusPresenca } from '@/types/database'
-import { formatDataPTBR } from '@/lib/constants'
+import { formatDataPTBR, SERVICOS_PRESENCA_PADRAO } from '@/lib/constants'
 
-// Opções padrão de áreas/serviços SOUL
-const SERVICOS_SUGERIDOS = [
-  'Fisioterapia',
-  'Personal',
-  'Nutrição',
-  'Médico',
-  'Pilates',
-  'Reabilitação',
-  'Liberação Miofascial',
-  'Avaliação Física',
-  'Retorno / Consulta',
-]
+// Opções padrão de áreas/serviços SOUL (13 opções oficiais da clínica)
+const SERVICOS_SUGERIDOS: readonly string[] = SERVICOS_PRESENCA_PADRAO
 
 const STATUS_OPCOES: StatusPresenca[] = ['Presente', 'Confirmado', 'Justificado', 'Cancelado']
 
@@ -211,7 +201,7 @@ export default function Presencas() {
   const [formDataAtendimento, setFormDataAtendimento] = useState(
     () => new Date().toISOString().split('T')[0],
   )
-  const [formAreaServico, setFormAreaServico] = useState('Fisioterapia')
+  const [formAreaServico, setFormAreaServico] = useState<string>(SERVICOS_PRESENCA_PADRAO[0])
   const [formAreaPersonalizada, setFormAreaPersonalizada] = useState('')
   const [formDetalheServico, setFormDetalheServico] = useState('')
   const [formProfissionalId, setFormProfissionalId] = useState('')
@@ -504,11 +494,15 @@ export default function Presencas() {
     }
 
     setFormDataAtendimento(defaultDate)
-    setFormAreaServico(
-      user?.especialidade && SERVICOS_SUGERIDOS.includes(user.especialidade)
-        ? user.especialidade
-        : 'Fisioterapia',
-    )
+    // Se o usuário logado tiver uma especialidade que corresponda diretamente a um dos serviços, usa ela; senão o 1º da lista padrão
+    let defaultServico: string = SERVICOS_PRESENCA_PADRAO[0]
+    if (user?.especialidade) {
+      const match = SERVICOS_SUGERIDOS.find(
+        (s) => s.toLowerCase() === user.especialidade?.toLowerCase(),
+      )
+      if (match) defaultServico = match
+    }
+    setFormAreaServico(defaultServico)
     setFormAreaPersonalizada('')
     setFormDetalheServico('')
     // Profissional padrão: o próprio usuário logado

@@ -116,3 +116,25 @@ export function getInitials(name?: string) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
+
+/**
+ * Áreas ou Serviços oficiais da Clínica SOUL para o processo de Presença / Confirmação de Atendimentos.
+ * Substitui por completo a lista antiga por decisão clínica.
+ */
+export const SERVICOS_PRESENCA_PADRAO = [
+  'Assessoria Esportiva',
+  'Assessoria Fisioterapia',
+  'Avaliação Física e Funcional',
+  'Avaliação Inicial',
+  'Massagem Terapêutica',
+  'Nutricionista',
+  'Personal Individual',
+  'Personal em Grupo',
+  'Pilates Performance',
+  'Reavaliação',
+  'Sessão Fisioterapia',
+  'Sessão Osteopatia',
+  'Sessão Spa & Recovery',
+] as const
+
+export type ServicoPresencaPadrao = (typeof SERVICOS_PRESENCA_PADRAO)[number]

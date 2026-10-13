@@ -835,7 +835,7 @@ export interface PresencaRecord {
   paciente_id: string
   profissional_id: string
   data_atendimento: string // ISO date/datetime (YYYY-MM-DD ou YYYY-MM-DD HH:mm:ss)
-  area_servico: string // ex: Fisioterapia, Personal, Nutrição, Médico, Pilates, etc.
+  area_servico: string // ex: Sessão Fisioterapia, Personal Individual, Assessoria Esportiva, etc.
   detalhe_servico?: string // detalhamento opcional do serviço
   observacoes?: string
   status?: StatusPresenca
