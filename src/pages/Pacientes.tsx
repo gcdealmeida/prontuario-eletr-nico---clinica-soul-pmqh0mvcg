@@ -50,6 +50,7 @@ import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
 import { ModalImportarPacientes } from '@/components/ModalImportarPacientes'
 import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
+import { PacienteAcoesRapidas } from '@/components/PacienteAcoesRapidas'
 import { useAuth } from '@/contexts/AuthContext'
 import { Link as LinkIcon, Sparkles, FileSpreadsheet } from 'lucide-react'
 
@@ -420,6 +421,7 @@ export default function Pacientes() {
                     <th className="py-3.5 px-4">Telefone</th>
                     <th className="py-3.5 px-4">Cadastro</th>
                     <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4 text-center">Acesso Rápido</th>
                     <th className="py-3.5 px-4 pr-6 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -473,6 +475,16 @@ export default function Pacientes() {
                         >
                           {p.status === 'Pré-cadastro' ? '⚡ Pré-cadastro' : p.status}
                         </Badge>
+                      </td>
+
+                      {/* Acesso Rápido 1-clique: Avaliação, Prontuário, Evolução */}
+                      <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <PacienteAcoesRapidas
+                          pacienteId={p.id}
+                          pacienteNome={p.nome}
+                          compact={true}
+                          className="justify-center"
+                        />
                       </td>
 
                       <td
@@ -566,6 +578,17 @@ export default function Pacientes() {
                     >
                       {p.status === 'Pré-cadastro' ? '⚡ Pré-cadastro' : p.status}
                     </Badge>
+                  </div>
+
+                  {/* Acesso Rápido Mobile: Atalhos diretos em 1 clique */}
+                  <div
+                    className="pt-2 pb-1 border-t border-gray-100 flex items-center justify-between gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                      Acesso Rápido:
+                    </span>
+                    <PacienteAcoesRapidas pacienteId={p.id} pacienteNome={p.nome} compact={true} />
                   </div>
 
                   {p.status === 'Pré-cadastro' && (

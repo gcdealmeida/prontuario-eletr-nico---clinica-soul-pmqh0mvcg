@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   FileText,
   Plus,
@@ -12,6 +12,9 @@ import {
   Clock,
   Layers,
   Loader2,
+  Activity,
+  Stethoscope,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,13 +22,15 @@ import { Badge } from '@/components/ui/badge'
 import { getAllAvaliacoes } from '@/services/avaliacoes'
 import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
 import type { Especialidade } from '@/types/database'
+import { PacienteAcoesRapidas } from '@/components/PacienteAcoesRapidas'
 
 export default function Prontuarios() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [avaliacoes, setAvaliacoes] = useState<any[]>([])
   const [selectedEspecialidade, setSelectedEspecialidade] = useState<string>('Todos')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('busca') || '')
 
   const fetchAvaliacoes = async () => {
     try {
@@ -123,16 +128,35 @@ export default function Prontuarios() {
         ))}
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="search"
-          placeholder="Buscar prontuário por paciente ou queixa..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 h-10 rounded-xl border-gray-200 bg-white shadow-2xs text-xs sm:text-sm"
-        />
+      {/* Search Bar em Destaque com Atalho Rápido */}
+      <div className="bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-xl">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C6527]/70" />
+          <Input
+            type="search"
+            placeholder="Buscar paciente pelo nome, queixa clínica, diagnóstico ou objetivo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 pr-9 h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white text-xs sm:text-sm"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+              title="Limpar busca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-[#73574A] font-medium">
+          <span>Total visível:</span>
+          <span className="font-bold text-[#33221C] bg-[#FAF5EE] px-2.5 py-1 rounded-lg border border-[#E3C89A]/50">
+            {filteredAvaliacoes.length} de {countAll} prontuários
+          </span>
+        </div>
       </div>
 
       {/* List / Cards */}
@@ -200,7 +224,48 @@ export default function Prontuarios() {
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                {/* Atalhos Rápidos por Paciente na própria linha/card de prontuário */}
+                {item.paciente_id && (
+                  <div
+                    className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      Atalhos:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(
+                            `/prontuarios/${item.id}?esp=${encodeURIComponent(esp)}&tab=evolucoes`,
+                          )
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 transition-colors"
+                        title="Ir direto para as sessões de evolução deste paciente"
+                      >
+                        <Activity className="h-3 w-3 text-emerald-600" />
+                        Evolução
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/pacientes/${item.paciente_id}`)
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-[11px] font-semibold border border-gray-200 transition-colors"
+                        title="Ver histórico e perfil completo do paciente"
+                      >
+                        <User className="h-3 w-3 text-gray-500" />
+                        Perfil
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>{formatDataPTBR(item.data_avaliacao || item.created)}</span>

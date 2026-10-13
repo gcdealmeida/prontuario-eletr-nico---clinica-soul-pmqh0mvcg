@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import { getConsultasHoje } from '@/services/consultas'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
+import { TopbarBuscaPaciente } from '@/components/TopbarBuscaPaciente'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getInitials, formatDataHoraPTBR } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -49,9 +50,6 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [novaConsultaOpen, setNovaConsultaOpen] = useState(false)
   const [consultasHojeCount, setConsultasHojeCount] = useState<number>(0)
-  const [globalSearch, setGlobalSearch] = useState('')
-  const [searchFocused, setSearchFocused] = useState(false)
-
   // Notificações in-app
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0)
@@ -131,13 +129,6 @@ export default function Layout() {
       : []),
     { name: 'Guia de Uso', path: '/guia', icon: BookOpen },
   ]
-
-  const handleGlobalSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (globalSearch.trim()) {
-      navigate(`/pacientes?busca=${encodeURIComponent(globalSearch.trim())}`)
-    }
-  }
 
   const getPageTitle = () => {
     const path = location.pathname
@@ -396,22 +387,8 @@ export default function Layout() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
-              {/* Search input (expand on focus) */}
-              <form onSubmit={handleGlobalSearchSubmit} className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C6527]/70 pointer-events-none" />
-                <Input
-                  type="search"
-                  placeholder="Buscar paciente, especialidade..."
-                  value={globalSearch}
-                  onChange={(e) => setGlobalSearch(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setSearchFocused(false)}
-                  className={cn(
-                    'pl-9 pr-3 h-9 text-xs sm:text-sm bg-white border-[#E9E1D2] rounded-xl transition-all duration-300 focus:bg-white focus:border-[#C9A46A] focus:ring-1 focus:ring-[#C9A46A]',
-                    searchFocused ? 'w-48 sm:w-72' : 'w-36 sm:w-56',
-                  )}
-                />
-              </form>
+              {/* Busca Global de Paciente com Dropdown Instantâneo & Atalhos Rápidos */}
+              <TopbarBuscaPaciente />
 
               {/* Notificações in-app (Sino com popover e contagem de atualizações clínicas + consultas) */}
               <Popover open={notifPopoverOpen} onOpenChange={setNotifPopoverOpen}>

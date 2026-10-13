@@ -34,6 +34,7 @@ import {
   Lock,
   FileSpreadsheet,
   CalendarCheck2,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -309,9 +310,24 @@ export default function GuiaUso() {
                 Como abrir uma Nova Avaliação
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Você pode iniciar uma avaliação clínica por qualquer um dos 3 caminhos abaixo,
-                conforme sua rotina:
+                Você pode iniciar uma avaliação clínica por qualquer um dos 4 caminhos abaixo,
+                incluindo os novos atalhos rápidos de 1 clique:
               </p>
+            </div>
+
+            {/* Destaque do Novo Acesso Rápido */}
+            <div className="p-4 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-start gap-3">
+              <Zap className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
+              <div className="text-xs text-gray-700 leading-relaxed">
+                <strong className="text-[#8C6527]">
+                  Novo Acesso Rápido em 1 Clique (Topbar & Listas):
+                </strong>{' '}
+                Em qualquer tela do sistema, digite pelo menos 2 letras do paciente na barra do topo
+                para abrir o dropdown instantâneo com os botões diretos de{' '}
+                <strong>Avaliação</strong>, <strong>Prontuário</strong> e <strong>Evolução</strong>.
+                Na tabela de Pacientes e na tela de Prontuários, cada registro agora possui os
+                mesmos atalhos dedicados.
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -585,14 +601,23 @@ export default function GuiaUso() {
                 <span>Fluxo 2</span>
               </div>
               <h3 className="text-xl font-serif font-bold text-[#4A322A]">
-                Como abrir um Prontuário Clínico
+                Como abrir um Prontuário Oficial e Visualizar o Documento
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Acesse o documento oficial detalhado de qualquer avaliação já realizada:
               </p>
             </div>
-
-            {/* Passos */}
+            {/* Dica de Acesso Rápido em 1 Clique */}
+            <div className="p-4 rounded-2xl bg-[#EFF6FF] border border-[#BFDBFE] flex items-start gap-3">
+              <Zap className="h-5 w-5 text-[#2563EB] shrink-0 mt-0.5" />
+              <div className="text-xs text-gray-700 leading-relaxed">
+                <strong className="text-[#1D4ED8]">Acesso Imediato por Nome:</strong> Na barra de
+                busca superior do topo ou na tabela de Pacientes, clique no botão{' '}
+                <strong>"Prontuário"</strong> de qualquer paciente para abrir a ficha oficial mais
+                recente ou a aba de prontuário clínico sem precisar navegar por múltiplas etapas.
+              </div>
+            </div>
+            {/* Passos */}{' '}
             <div className="space-y-4">
               <div className="flex gap-4">
                 <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
@@ -667,7 +692,6 @@ export default function GuiaUso() {
                 </div>
               </div>
             </div>
-
             {/* Dica de Impressão */}
             <div className="p-4 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-start gap-3">
               <Printer className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
@@ -814,6 +838,17 @@ export default function GuiaUso() {
                 Como registrar sessões diárias pelo modelo SOAP e programar tarefas e lembretes
                 automáticos na Agenda Clínica.
               </p>
+            </div>
+
+            {/* Dica de Acesso Rápido às Evoluções */}
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+              <Zap className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="text-xs text-emerald-950 leading-relaxed">
+                <strong className="text-emerald-900">Atalho Direto para Evolução:</strong> Para ir
+                direto para o registro ou consulta de sessões SOAP do paciente, basta clicar no
+                botão verde <strong>"Evolução"</strong> na listagem de Pacientes, nos cartões de
+                Prontuários ou no dropdown da busca global no topo do sistema.
+              </div>
             </div>
 
             {/* Passo a Passo Estilo Círculos Dourados */}

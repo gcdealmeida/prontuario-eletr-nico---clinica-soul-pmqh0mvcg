@@ -110,6 +110,22 @@ const App = () => (
               <Route path="/painel" element={<Dashboard />} />
               <Route path="/pacientes" element={<Pacientes />} />
               <Route path="/pacientes/:id" element={<PacienteDetalhe />} />
+              <Route
+                path="/pacientes/:id/avaliacao"
+                element={<Navigate to="..?tab=avaliacoes" replace relative="path" />}
+              />
+              <Route
+                path="/pacientes/:id/evolucoes"
+                element={<Navigate to="..?tab=evolucoes" replace relative="path" />}
+              />
+              <Route
+                path="/pacientes/:id/programas"
+                element={<Navigate to="..?tab=programas" replace relative="path" />}
+              />
+              <Route
+                path="/pacientes/:id/dados"
+                element={<Navigate to="..?tab=dados" replace relative="path" />}
+              />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/presencas" element={<Presencas />} />
               <Route path="/prontuarios" element={<Prontuarios />} />
@@ -129,7 +145,6 @@ const App = () => (
               <Route path="/guia" element={<GuiaUso />} />
             </Route>
           </Route>
-
           {/* Fallback 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>

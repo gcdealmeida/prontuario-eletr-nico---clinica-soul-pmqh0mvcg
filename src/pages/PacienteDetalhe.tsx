@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Calendar,
@@ -58,8 +58,12 @@ import { FileSpreadsheet } from 'lucide-react'
 
 export default function PacienteDetalhe() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { toast } = useToast()
+
+  const initialTab = searchParams.get('tab') || 'timeline'
+  const [activeTab, setActiveTab] = useState<string>(initialTab)
 
   const [loading, setLoading] = useState(true)
   const [paciente, setPaciente] = useState<PacienteRecord | null>(null)
@@ -178,6 +182,17 @@ export default function PacienteDetalhe() {
   useEffect(() => {
     loadData()
   }, [id])
+
+  // Sincroniza a aba quando a URL muda (ex: ?tab=evolucoes ou ?tab=avaliacoes)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (
+      tabParam &&
+      ['timeline', 'evolucoes', 'programas', 'avaliacoes', 'dados'].includes(tabParam)
+    ) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   // Realtime timeline e evolucoes
   useRealtime('timeline', () => {
@@ -531,7 +546,16 @@ export default function PacienteDetalhe() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="timeline" className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => {
+          setActiveTab(val)
+          const newParams = new URLSearchParams(searchParams)
+          newParams.set('tab', val)
+          setSearchParams(newParams, { replace: true })
+        }}
+        className="w-full"
+      >
         <TabsList className="bg-white border border-gray-200 rounded-2xl p-1 h-12 shadow-xs">
           <TabsTrigger
             value="timeline"
