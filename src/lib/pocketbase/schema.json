@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-13T11:21:02.525Z",
+  "generatedAt": "2026-10-13T11:30:07.350Z",
   "collections": [
     {
       "name": "users",
@@ -2629,6 +2629,95 @@
         "CREATE INDEX idx_presencas_data ON presencas (data_atendimento DESC)",
         "CREATE INDEX idx_presencas_prof_data ON presencas (profissional_id, data_atendimento DESC)",
         "CREATE INDEX idx_presencas_pac_data ON presencas (paciente_id, data_atendimento DESC)"
+      ]
+    },
+    {
+      "name": "relatorios_ia",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || autor_id = @request.auth.id || autor_id = '' || autor_id = null)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || autor_id = @request.auth.id || autor_id = '' || autor_id = null)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.autor_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || autor_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || autor_id = @request.auth.id)"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "avaliacao_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "especialidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico", "Geral"]
+        },
+        {
+          "name": "autor_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "autor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "necessidade",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "publico_alvo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_rel_ia_avaliacao ON relatorios_ia (avaliacao_id, created DESC)",
+        "CREATE INDEX idx_rel_ia_paciente ON relatorios_ia (paciente_id, created DESC)",
+        "CREATE INDEX idx_rel_ia_autor ON relatorios_ia (autor_id, created DESC)"
       ]
     }
   ]

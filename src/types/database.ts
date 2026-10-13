@@ -1002,3 +1002,22 @@ export interface ProgramaRegistroCargaRecord {
     exercicio_id?: ProgramaExercicioRecord
   }
 }
+
+export interface RelatorioIaRecord {
+  id: string
+  paciente_id: string
+  avaliacao_id: string
+  especialidade: Especialidade | 'Geral'
+  autor_id: string
+  autor_nome?: string
+  titulo: string
+  necessidade: string
+  conteudo: string
+  publico_alvo?: string
+  created: string
+  updated: string
+  expand?: {
+    paciente_id?: PacienteRecord
+    autor_id?: UserRecord
+  }
+}

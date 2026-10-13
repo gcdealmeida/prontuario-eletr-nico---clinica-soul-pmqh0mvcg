@@ -261,33 +261,41 @@ export default function GuiaUso() {
             4. Evoluções & Botão ALERTA
           </TabsTrigger>
           <TabsTrigger
+            value="relatorios-ia"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <Sparkles className="h-4 w-4 text-amber-300 animate-pulse" />
+            5. Relatórios Otimizados com IA
+          </TabsTrigger>
+          <TabsTrigger
             value="acessos-admin"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
             <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
-            5. Aprovando Novos Acessos (Admin)
+            6. Aprovando Novos Acessos (Admin)
           </TabsTrigger>
           <TabsTrigger
             value="programas"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
             <Dumbbell className="h-4 w-4 text-[#C9A46A]" />
-            6. Programas de Acompanhamento & Treinos A/B/C
+            7. Programas de Acompanhamento & Treinos A/B/C
           </TabsTrigger>
           <TabsTrigger
             value="importador-planilha"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
             <FileSpreadsheet className="h-4 w-4 text-[#C9A46A]" />
-            7. Importar Avaliação (.xlsx)
+            8. Importar Avaliação (.xlsx)
           </TabsTrigger>
           <TabsTrigger
             value="presencas"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
             <CalendarCheck2 className="h-4 w-4 text-[#C9A46A]" />
-            8. Presença / Confirmação
+            9. Presença / Confirmação
           </TabsTrigger>
+
           <TabsTrigger
             value="faq"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
@@ -1048,7 +1056,133 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 5: APROVANDO NOVOS ACESSOS (ADMIN) */}
+        {/* TAB 5: RELATÓRIOS OTIMIZADOS COM IA */}
+        <TabsContent value="relatorios-ia" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-600 fill-amber-500/20" />
+                <span>SOUL IA Nativa · Comunicação Interprofissional</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Emissão de Relatórios Otimizados com IA
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Como transformar os dados do prontuário em laudos, resumos para médicos, personal
+                trainers ou pacientes em segundos, orientados pela sua necessidade em linguagem
+                livre.
+              </p>
+            </div>
+
+            {/* Destaque do Botão RELATÓRIO IA */}
+            <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
+              <div className="text-xs text-[#73574A] leading-relaxed">
+                <strong className="text-[#4A322A]">Botão Dourado no Prontuário:</strong> Na tela de
+                visualização do prontuário (<code>/prontuarios/:id</code>), clique no botão{' '}
+                <strong>"RELATÓRIO IA"</strong> localizado no cabeçalho superior direito.
+              </div>
+            </div>
+
+            <div className="space-y-5 pt-2">
+              {/* Passo 1 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  1
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Descrever a Necessidade em Linguagem Livre
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    No campo de instrução, digite com suas palavras o objetivo do documento. Por
+                    exemplo:
+                    <br />•{' '}
+                    <em>
+                      "Relatório para o médico ortopedista resumindo a anamnese, os testes especiais
+                      positivos e a conduta proposta."
+                    </em>
+                    <br />•{' '}
+                    <em>
+                      "Parecer biomecânico para o personal trainer com amplitudes seguras e
+                      recomendações de carga."
+                    </em>
+                    <br />• <em>"Resumo didático e acolhedor para o paciente levar para casa."</em>
+                    <br />•{' '}
+                    <em>"Relatório pericial/jurídico cronológico com datas e dados objetivos."</em>
+                    <br />
+                    Você também pode clicar nos <strong>modelos rápidos sugeridos</strong> para
+                    preencher o prompt instantaneamente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 2 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  2
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Processamento com o Agente Clínico Especialista SOUL
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    O agente nativo da Skip Cloud (<code>relatorios-clinica-soul</code>) lê os dados
+                    reais da avaliação (anamnese, goniometria, dinamometria, testes especiais,
+                    cirtometria, composição corporal, metas e evoluções) e redige o relatório
+                    mantendo fidelidade absoluta aos fatos clínicos, ajustando o vocabulário para o
+                    destinatário indicado.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 3 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  3
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Revisão Editável, Cópia e Impressão / PDF A4 Timbrado
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    • <strong>Edição Livre:</strong> O texto gerado aparece em uma área editável
+                    para que você possa fazer qualquer ajuste fino antes do uso e salvar as
+                    alterações.
+                    <br />• <strong>Copiar:</strong> Envie o texto formatado para WhatsApp ou e-mail
+                    com 1 clique.
+                    <br />• <strong>Imprimir / PDF:</strong> O sistema abre a impressão configurada
+                    com cabeçalho oficial da Clínica SOUL, dados cadastrais do paciente, data e
+                    campo para assinatura do profissional responsável.
+                    <br />• <strong>Regenerar:</strong> Permite solicitar uma nova versão caso
+                    queira mudar a ênfase ou incluir outros pontos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Passo 4 */}
+              <div className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] text-[#33221C] font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+                  4
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-bold text-sm text-[#33221C]">
+                    Histórico Persistido e Auditoria Clínica
+                  </h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Cada relatório gerado fica salvo na coleção <code>relatorios_ia</code> vinculado
+                    ao prontuário. Na aba <strong>"Histórico"</strong> do modal, qualquer
+                    profissional autorizado pode reabrir, revisar e reimprimir relatórios
+                    anteriores. A emissão também gera log automático na trilha de auditoria clínica
+                    e notificação para a administração.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 6: APROVANDO NOVOS ACESSOS (ADMIN) */}
         <TabsContent value="acessos-admin" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>

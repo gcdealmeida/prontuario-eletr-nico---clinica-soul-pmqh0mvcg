@@ -26,7 +26,8 @@ import { VisualizacaoFisioterapia } from '@/components/fisioterapia/Visualizacao
 import { VisualizacaoPersonal } from '@/components/personal/VisualizacaoPersonal'
 import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
 import { ModalAlertaReavaliacao } from '@/components/ModalAlertaReavaliacao'
-import { ShieldCheck, Lock } from 'lucide-react'
+import { ModalRelatorioIa } from '@/components/ModalRelatorioIa'
+import { ShieldCheck, Lock, Sparkles } from 'lucide-react'
 
 export default function AvaliacaoDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -44,6 +45,9 @@ export default function AvaliacaoDetalhe() {
   // Modal Alerta
   const [modalAlertaOpen, setModalAlertaOpen] = useState(false)
   const [itemAlertaSugerido, setItemAlertaSugerido] = useState('')
+
+  // Modal Relatório IA
+  const [modalRelatorioIaOpen, setModalRelatorioIaOpen] = useState(false)
 
   useEffect(() => {
     if (tabParam && (tabParam === 'avaliacao' || tabParam === 'evolucoes')) {
@@ -132,6 +136,17 @@ export default function AvaliacaoDetalhe() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* BOTÃO IA PARA EMISSÃO DE RELATÓRIOS OTIMIZADOS EM DESTAQUE SOUL */}
+          <Button
+            size="sm"
+            onClick={() => setModalRelatorioIaOpen(true)}
+            className="bg-gradient-to-r from-[#8C6527] via-[#A87B32] to-[#C9A46A] hover:brightness-110 text-white font-bold rounded-xl h-9 px-4 text-xs flex items-center gap-2 shadow-md border border-amber-300/40 ring-2 ring-amber-400/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            title="Emitir relatório clínico otimizado com IA (médico, personal, paciente, jurídico)"
+          >
+            <Sparkles className="h-4 w-4 text-amber-200 animate-pulse" />
+            <span className="font-extrabold tracking-wide">RELATÓRIO IA</span>
+          </Button>
+
           {/* BOTÃO ALERTA DE REAVALIAÇÃO EM DESTAQUE SOUL */}
           <Button
             size="sm"
@@ -621,6 +636,19 @@ export default function AvaliacaoDetalhe() {
         especialidade={espParam}
         itemSugerido={itemAlertaSugerido}
         onSuccess={() => {}}
+      />
+
+      {/* MODAL DE EMISSÃO DE RELATÓRIO OTIMIZADO COM IA */}
+      <ModalRelatorioIa
+        open={modalRelatorioIaOpen}
+        onOpenChange={setModalRelatorioIaOpen}
+        pacienteId={avaliacao.paciente_id}
+        pacienteNome={pacNome}
+        pacienteCpf={pacCpf}
+        avaliacaoId={avaliacao.id}
+        especialidade={espParam}
+        dadosProntuario={avaliacao}
+        profissionalResponsavel={avaliacao.profissional_responsavel}
       />
     </div>
   )
