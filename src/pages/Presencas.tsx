@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   CalendarCheck2,
   Plus,
@@ -128,6 +129,8 @@ function getMesRange(date: Date): { inicio: string; fim: string; mesNome: string
 
 export default function Presencas() {
   const { user, isAdmin } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const lancarAutoAbertoRef = useRef(false)
 
   // Navegação mensal (compartilhada por todos)
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
@@ -500,6 +503,18 @@ export default function Presencas() {
     setSelectedStatus('Todos')
     setSearchTerm('')
   }
+
+  // Auto-abertura do modal de lançamento quando ?lancar=1 ou ?lancar=true
+  useEffect(() => {
+    const lancarParam = searchParams.get('lancar')
+    if ((lancarParam === '1' || lancarParam === 'true') && !lancarAutoAbertoRef.current) {
+      lancarAutoAbertoRef.current = true
+      handleOpenNewModal()
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('lancar')
+      setSearchParams(newParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   // Abertura do Modal de Novo Lançamento
   const handleOpenNewModal = () => {

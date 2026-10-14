@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Activity,
   Plus,
@@ -88,6 +89,8 @@ export function SecaoEvolucoes({
   onOpenAlerta,
 }: SecaoEvolucoesProps) {
   const { toast } = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const novaAutoAbertaRef = useRef(false)
 
   const [evolucoes, setEvolucoes] = useState<EvolucaoRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -181,6 +184,18 @@ export function SecaoEvolucoes({
     resetForm()
     setModalOpen(true)
   }
+
+  // Auto-abertura da nova evolução quando URL possui ?nova=1 ou ?nova=true e o carregamento terminou
+  useEffect(() => {
+    const novaParam = searchParams.get('nova')
+    if (!loading && (novaParam === '1' || novaParam === 'true') && !novaAutoAbertaRef.current) {
+      novaAutoAbertaRef.current = true
+      handleOpenNova()
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('nova')
+      setSearchParams(newParams, { replace: true })
+    }
+  }, [loading, searchParams, setSearchParams])
 
   const handleOpenEdit = (evo: EvolucaoRecord) => {
     if (evo.documento_fechado || evo.status === 'Finalizada') {

@@ -111,13 +111,13 @@ export const ModalAcessoRapidoEvolucao: React.FC<ModalAcessoRapidoEvolucaoProps>
     setNavigatingId(paciente.id)
     try {
       // Resolve rota inteligente (se tiver avaliação, vai para a aba de evoluções do prontuário; senão aba de evoluções do perfil)
-      const links = await getPacienteQuickLinks(paciente.id, user?.especialidade)
+      const links = await getPacienteQuickLinks(paciente.id, user?.especialidade, true)
       onOpenChange(false)
       navigate(links.evolucao.url)
     } catch {
-      // Fallback seguro: perfil do paciente na aba de evoluções
+      // Fallback seguro: perfil do paciente na aba de evoluções com flag para abrir nova evolução direto
       onOpenChange(false)
-      navigate(`/pacientes/${paciente.id}?tab=evolucoes`)
+      navigate(`/pacientes/${paciente.id}?tab=evolucoes&nova=1`)
     } finally {
       setNavigatingId(null)
     }

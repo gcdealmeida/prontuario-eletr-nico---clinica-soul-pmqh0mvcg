@@ -57,6 +57,7 @@ import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvalia
 import { FileSpreadsheet } from 'lucide-react'
 import { EvaBadge } from '@/components/ReguaEva'
 import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
+import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
 
 export default function PacienteDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -693,139 +694,16 @@ export default function PacienteDetalhe() {
 
         {/* TAB: EVOLUÇÕES DO PACIENTE */}
         <TabsContent value="evolucoes" className="pt-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Evoluções Clínicas Registradas</h3>
-                <p className="text-xs text-gray-400">
-                  Histórico de sessões SOAP e condutas dos atendimentos do paciente.
-                </p>
-              </div>
-            </div>
-
-            {evolucoesPaciente.some((e) => typeof e.eva_dor === 'number') && (
-              <TrajetoriaEvaGrafico evolucoes={evolucoesPaciente} className="mb-4" />
-            )}
-
-            {evolucoesPaciente.length === 0 ? (
-              <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
-                <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-600">
-                  Nenhuma evolução registrada para este paciente.
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Acesse qualquer prontuário deste paciente na aba Avaliações para registrar sessões
-                  de evolução.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {evolucoesPaciente.map((evo) => {
-                  const espStyle =
-                    ESPECIALIDADE_COLORS[evo.especialidade] || ESPECIALIDADE_COLORS.Fisioterapia
-                  return (
-                    <div
-                      key={evo.id}
-                      className="p-4 rounded-2xl border border-gray-100 hover:border-[#C9A46A]/50 bg-gray-50/40 hover:bg-white transition-all shadow-2xs"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${espStyle.badge}`}
-                          >
-                            {evo.especialidade}
-                          </span>
-
-                          {evo.documento_fechado || evo.status === 'Finalizada' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAF5EE] text-[#8C6527] border border-[#C9A46A]/40">
-                              <ShieldCheck className="h-3 w-3 text-[#8C6527]" />
-                              Assinado / Fechado
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                              Rascunho
-                            </span>
-                          )}
-
-                          {evo.numero_registro && (
-                            <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                              {evo.numero_registro}
-                            </span>
-                          )}
-
-                          {typeof evo.eva_dor === 'number' && (
-                            <EvaBadge valor={evo.eva_dor} tamanho="sm" />
-                          )}
-
-                          <span className="text-xs font-semibold text-gray-700">
-                            {formatDataHoraPTBR(
-                              evo.assinado_em || evo.data_evolucao || evo.created,
-                            )}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            • Profissional:{' '}
-                            <strong>{evo.assinado_por_nome || evo.profissional}</strong>
-                          </span>
-                        </div>
-
-                        {evo.avaliacao_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              navigate(
-                                `/prontuarios/${evo.avaliacao_id}?esp=${encodeURIComponent(
-                                  evo.especialidade,
-                                )}&tab=evolucoes`,
-                              )
-                            }
-                            className="text-xs text-[#8C6527] hover:text-[#4A322A] h-7 px-2"
-                          >
-                            Abrir no Prontuário →
-                          </Button>
-                        )}
-                      </div>
-
-                      {evo.conduta_procedimentos && (
-                        <div className="text-xs text-gray-800 font-medium mb-1">
-                          <span className="text-[#8C6527] font-bold">Conduta: </span>
-                          {evo.conduta_procedimentos}
-                        </div>
-                      )}
-
-                      {evo.avaliacao_clinica && (
-                        <div className="text-xs text-gray-600">
-                          <span className="font-semibold text-gray-700">Análise (A): </span>
-                          {evo.avaliacao_clinica}
-                        </div>
-                      )}
-
-                      {evo.texto_livre && !evo.conduta_procedimentos && (
-                        <div className="text-xs text-gray-700 whitespace-pre-wrap">
-                          {evo.texto_livre}
-                        </div>
-                      )}
-
-                      {/* Selo compacto de documento fechado se assinado */}
-                      {evo.documento_fechado && (
-                        <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-[#73574A]">
-                          <span className="flex items-center gap-1 font-medium">
-                            <ShieldCheck className="h-3 w-3 text-[#8C6527]" />
-                            Assinado digitalmente por {evo.assinado_por_nome ||
-                              evo.profissional} (
-                            {evo.assinado_por_especialidade || evo.especialidade})
-                          </span>
-                          <span className="text-gray-400 font-mono">
-                            {evo.assinado_em ? formatDataHoraPTBR(evo.assinado_em) : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+          <SecaoEvolucoes
+            pacienteId={paciente.id}
+            avaliacaoId=""
+            especialidade={
+              avaliacoes.fisio[0]?.especialidade ||
+              avaliacoes.personal[0]?.especialidade ||
+              'Fisioterapia'
+            }
+            pacienteNome={paciente.nome}
+          />
         </TabsContent>
 
         {/* TAB: PROGRAMAS DE TREINO */}

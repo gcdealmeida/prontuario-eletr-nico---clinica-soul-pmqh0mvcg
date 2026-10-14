@@ -28,8 +28,10 @@ const CACHE_TTL_MS = 15000 // 15 segundos
 export async function getPacienteQuickLinks(
   pacienteId: string,
   userEspecialidade?: string,
+  abrirNovaEvolucao?: boolean,
 ): Promise<PacienteQuickLinks> {
-  const cached = quickLinksCache.get(pacienteId)
+  // Não usa cache se for para abrir nova evolução diretamente para evitar conflito de flags
+  const cached = !abrirNovaEvolucao ? quickLinksCache.get(pacienteId) : null
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data
   }
@@ -171,19 +173,22 @@ export async function getPacienteQuickLinks(
     // Se o paciente já tem evoluções e avaliação correspondente, abre a aba de evoluções do prontuário
     // Se tem avaliação, abre o prontuário na aba de evoluções (/prontuarios/:id?tab=evolucoes)
     // Se não tem avaliação, abre a aba Evoluções do perfil do paciente (/pacientes/:id?tab=evolucoes)
+    // Se abrirNovaEvolucao for true, anexa &nova=1 para abrir direto o formulário SOAP/registro
+    const novaParam = abrirNovaEvolucao ? '&nova=1' : ''
+
     const evolucaoTarget: QuickLinkTarget = latestAvaliacao
       ? {
           tipo: latestEvolucao ? 'existente' : 'novo',
           url: `/prontuarios/${latestAvaliacao.id}?esp=${encodeURIComponent(
             latestAvaliacao.especialidade,
-          )}&tab=evolucoes`,
+          )}&tab=evolucoes${novaParam}`,
           label: latestEvolucao ? 'Evoluções (Sessões)' : 'Nova Evolução',
           sublabel: latestEvolucao ? 'Ver / Registrar sessão' : 'Iniciar primeira sessão',
           especialidade: latestAvaliacao.especialidade,
         }
       : {
           tipo: 'aba',
-          url: `/pacientes/${pacienteId}?tab=evolucoes`,
+          url: `/pacientes/${pacienteId}?tab=evolucoes${novaParam}`,
           label: 'Evoluções',
           sublabel: 'Aba do histórico de sessões',
         }
@@ -195,10 +200,13 @@ export async function getPacienteQuickLinks(
       evolucao: evolucaoTarget,
     }
 
-    quickLinksCache.set(pacienteId, { data: result, timestamp: Date.now() })
+    if (!abrirNovaEvolucao) {
+      quickLinksCache.set(pacienteId, { data: result, timestamp: Date.now() })
+    }
     return result
   } catch (err) {
     console.warn('Erro ao obter quick links para paciente', pacienteId, err)
+    const novaParam = abrirNovaEvolucao ? '&nova=1' : ''
     // Fallback seguro usando as rotas do paciente
     return {
       pacienteId,
@@ -215,7 +223,7 @@ export async function getPacienteQuickLinks(
       },
       evolucao: {
         tipo: 'aba',
-        url: `/pacientes/${pacienteId}?tab=evolucoes`,
+        url: `/pacientes/${pacienteId}?tab=evolucoes${novaParam}`,
         label: 'Evoluções',
       },
     }

@@ -297,7 +297,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Botão A: Presença e Confirmação */}
         <div
-          onClick={() => navigate('/presencas')}
+          onClick={() => navigate('/presencas?lancar=1')}
           className="relative overflow-hidden group p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#FAF4EA] via-white to-[#F5EAD6] border-2 border-[#E3C89A] hover:border-[#C9A46A] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-4"
         >
           <div className="flex items-center gap-4 min-w-0">
@@ -327,7 +327,7 @@ export default function Dashboard() {
               size="sm"
               onClick={(e) => {
                 e.stopPropagation()
-                navigate('/presencas')
+                navigate('/presencas?lancar=1')
               }}
               className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs rounded-xl h-10 px-4 shadow-sm border border-[#DFBF8E]/60 flex items-center gap-1.5"
             >
@@ -654,7 +654,7 @@ export default function Dashboard() {
 
                 <div className="space-y-2.5">
                   <Button
-                    onClick={() => navigate('/presencas')}
+                    onClick={() => navigate('/presencas?lancar=1')}
                     className="w-full justify-start h-11 rounded-xl bg-gradient-to-r from-[#FAF4EA] to-[#F5EAD6] border border-[#E3C89A] hover:bg-[#F3E5CF] text-[#4A322A] font-bold text-xs shadow-2xs"
                   >
                     <CalendarCheck2 className="h-4 w-4 mr-2 text-[#8C6527]" />
