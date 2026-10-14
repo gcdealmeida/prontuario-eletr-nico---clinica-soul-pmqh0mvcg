@@ -183,7 +183,9 @@ export default function Presencas() {
   const [searchTerm, setSearchTerm] = useState('')
 
   // Visualização e agrupamento (Admin)
-  const [viewMode, setViewMode] = useState<'lista' | 'profissionais' | 'pacientes'>('lista')
+  const [viewMode, setViewMode] = useState<'lista' | 'profissionais' | 'pacientes' | 'servicos'>(
+    'lista',
+  )
 
   // Modais
   const [modalOpen, setModalOpen] = useState(false)
@@ -464,6 +466,30 @@ export default function Presencas() {
     return Array.from(map.entries())
       .map(([id, val]) => ({ id, ...val }))
       .sort((a, b) => b.count - a.count)
+  }, [isAdmin, presencasFiltradas])
+
+  // Contagens e Agrupamento por Serviço/Área (Base para cobrança e faturamento futuro)
+  const agrupamentoPorServico = useMemo(() => {
+    if (!isAdmin) return []
+    const map = new Map<
+      string,
+      { area: string; total: number; confirmados: number; itens: PresencaRecord[] }
+    >()
+
+    presencasFiltradas.forEach((p) => {
+      const area = p.area_servico || 'Outro'
+      if (!map.has(area)) {
+        map.set(area, { area, total: 0, confirmados: 0, itens: [] })
+      }
+      const entry = map.get(area)!
+      entry.total += 1
+      if (!p.status || p.status === 'Presente' || p.status === 'Confirmado') {
+        entry.confirmados += 1
+      }
+      entry.itens.push(p)
+    })
+
+    return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [isAdmin, presencasFiltradas])
 
   // Reset de filtros (Admin)
@@ -1275,6 +1301,12 @@ export default function Presencas() {
                 >
                   Por Paciente ({agrupamentoPorPaciente.length})
                 </TabsTrigger>
+                <TabsTrigger
+                  value="servicos"
+                  className="rounded-xl text-xs font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] py-2 px-3.5 transition-all"
+                >
+                  Por Serviço / Cobrança ({agrupamentoPorServico.length})
+                </TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -1615,6 +1647,89 @@ export default function Presencas() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* MODO 4: AGRUPAMENTO POR SERVIÇO / COBRANÇA FUTURA */}
+              {viewMode === 'servicos' && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] flex items-center justify-between text-xs text-[#73574A]">
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="h-4 w-4 text-[#8C6527]" />
+                      <span>
+                        <strong>Base contábil para cobrança futura:</strong> cada registro de
+                        presença contabiliza o serviço prestado, profissional e paciente.
+                      </span>
+                    </div>
+                    <span className="font-bold text-[#8C6527]">
+                      {agrupamentoPorServico.reduce((acc, s) => acc + s.confirmados, 0)} sessões
+                      efetivadas
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {agrupamentoPorServico.map((grupo) => (
+                      <div
+                        key={grupo.area}
+                        className="bg-white rounded-3xl border border-[#E9E1D2] shadow-xs overflow-hidden"
+                      >
+                        <div className="p-4 bg-[#FAF7F1] border-b border-[#E9E1D2] flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <h4 className="font-serif font-bold text-sm text-[#4A322A]">
+                              {grupo.area}
+                            </h4>
+                            <p className="text-[11px] text-gray-500">
+                              {grupo.confirmados} de {grupo.total} confirmados / presentes
+                            </p>
+                          </div>
+                          <Badge className="bg-[#FAF4EA] text-[#8C6527] border border-[#E3C89A] hover:bg-[#FAF4EA] text-xs font-bold px-3 py-1">
+                            {grupo.total} lançamento(s)
+                          </Badge>
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto divide-y divide-gray-100">
+                          {grupo.itens.map((item) => {
+                            const rawDate = item.data_atendimento
+                              ? item.data_atendimento.split(' ')[0]
+                              : ''
+                            const dataFmt = rawDate ? formatDataPTBR(rawDate) : '—'
+                            const pacNome =
+                              item.paciente_nome || item.expand?.paciente_id?.nome || 'Paciente'
+                            const profNome =
+                              item.profissional_nome ||
+                              item.expand?.profissional_id?.name ||
+                              item.expand?.profissional_id?.email ||
+                              'Profissional'
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="p-3 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors text-xs"
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-bold text-[#33221C] truncate">{pacNome}</p>
+                                  <p className="text-[11px] text-gray-500">
+                                    {dataFmt} · {profNome}
+                                    {item.detalhe_servico ? ` · ${item.detalhe_servico}` : ''}
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    item.status === 'Confirmado' || item.status === 'Presente'
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  }
+                                >
+                                  {item.status || 'Presente'}
+                                </Badge>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>

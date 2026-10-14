@@ -1976,6 +1976,33 @@ export default function GuiaUso() {
               </AccordionItem>
 
               <AccordionItem
+                value="faq-atalhos-pos-login"
+                className="border border-[#E9E1D2] rounded-2xl px-4 py-1"
+              >
+                <AccordionTrigger className="text-sm font-bold text-[#4A322A] hover:no-underline hover:text-[#8C6527]">
+                  Como funcionam os botões de acesso rápido "Presença e Confirmação" e "Evolução"?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-gray-600 leading-relaxed">
+                  Logo após fazer o login no Sistema SOUL, tanto no topo do Dashboard quanto na
+                  barra superior (Topbar), você encontra dois botões de acesso ultra-rápido:
+                  <br />• <strong>Presença e Confirmação:</strong> Leva diretamente à tela de
+                  lançamentos de atendimento diário (<code>/presencas</code>). Permite registrar em
+                  poucos segundos o paciente, área/serviço dentre os 13 oficiais da SOUL,
+                  profissional e status (Presente, Confirmado, Justificado, Cancelado). Esse
+                  registro alimenta automaticamente as contagens de atendimentos e serve como base
+                  contábil para cobrança futura no painel administrativo.
+                  <br />• <strong>Evolução Clínica:</strong> Permite buscar e selecionar qualquer
+                  paciente ativo para registrar a sessão de atendimento no modelo SOAP com régua EVA
+                  de 1 clique,{' '}
+                  <em>
+                    mesmo que o paciente ainda não possua avaliação prévia ou prontuário cadastrado
+                  </em>{' '}
+                  (o sistema redireciona automaticamente para a aba de evoluções do histórico do
+                  paciente). Também disponível no botão fixo do topo e na busca global.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem
                 value="faq-7-ics"
                 className="border border-[#E9E1D2] rounded-2xl px-4 py-1"
               >

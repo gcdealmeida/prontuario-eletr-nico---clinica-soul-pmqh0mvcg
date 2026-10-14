@@ -18,6 +18,8 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { ModalSincronizacaoIcs } from '@/components/ModalSincronizacaoIcs'
+import { ModalAcessoRapidoEvolucao } from '@/components/ModalAcessoRapidoEvolucao'
+import { CalendarCheck2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -51,6 +53,7 @@ export default function Dashboard() {
   const [minhasAvaliacoesCount, setMinhasAvaliacoesCount] = useState(0)
   const [meusPacientesRecentes, setMeusPacientesRecentes] = useState<PacienteRecord[]>([])
   const [sincronizacaoOpen, setSincronizacaoOpen] = useState(false)
+  const [modalEvolucaoOpen, setModalEvolucaoOpen] = useState(false)
 
   const loadAdminData = async () => {
     // 1. Pacientes ativos e recentes
@@ -285,6 +288,95 @@ export default function Dashboard() {
             <Plus className="h-4 w-4 text-[#33221C]" />
             Nova Avaliação
           </Button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* BOTÕES DE ACESSO RÁPIDO EM DESTAQUE (PÓS-LOGIN): PRESENÇA E EVOLUÇÃO      */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Botão A: Presença e Confirmação */}
+        <div
+          onClick={() => navigate('/presencas')}
+          className="relative overflow-hidden group p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#FAF4EA] via-white to-[#F5EAD6] border-2 border-[#E3C89A] hover:border-[#C9A46A] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-[#8C6527] to-[#B88E52] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+              <CalendarCheck2 className="h-7 w-7 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] bg-[#E3C89A]/50 px-2 py-0.5 rounded-md">
+                  Acesso Rápido Diário
+                </span>
+                <span className="text-[11px] text-[#73574A] font-medium hidden sm:inline">
+                  Base contábil / cobrança futura
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-serif font-bold text-[#4A322A] group-hover:text-[#8C6527] transition-colors mt-0.5">
+                Presença e Confirmação
+              </h2>
+              <p className="text-xs text-[#73574A] line-clamp-1 mt-0.5">
+                Lançar presença de hoje ou conferir atendimentos dos seus pacientes e alunos.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate('/presencas')
+              }}
+              className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs rounded-xl h-10 px-4 shadow-sm border border-[#DFBF8E]/60 flex items-center gap-1.5"
+            >
+              <span>Acessar</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Botão B: Evolução SOAP Rápida */}
+        <div
+          onClick={() => setModalEvolucaoOpen(true)}
+          className="relative overflow-hidden group p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/40 border-2 border-emerald-200 hover:border-emerald-400 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-emerald-700 to-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+              <Activity className="h-7 w-7 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                  Fluxo SOAP & EVA
+                </span>
+                <span className="text-[11px] text-emerald-700 font-medium hidden sm:inline">
+                  Com ou sem avaliação prévia
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-serif font-bold text-[#4A322A] group-hover:text-emerald-800 transition-colors mt-0.5">
+                Evolução Clínica
+              </h2>
+              <p className="text-xs text-[#73574A] line-clamp-1 mt-0.5">
+                Buscar paciente e registrar sessão de atendimento com régua EVA de 1 clique.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                setModalEvolucaoOpen(true)
+              }}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl h-10 px-4 shadow-sm border border-emerald-600 flex items-center gap-1.5"
+            >
+              <span>Evoluir</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -561,6 +653,22 @@ export default function Dashboard() {
                 </p>
 
                 <div className="space-y-2.5">
+                  <Button
+                    onClick={() => navigate('/presencas')}
+                    className="w-full justify-start h-11 rounded-xl bg-gradient-to-r from-[#FAF4EA] to-[#F5EAD6] border border-[#E3C89A] hover:bg-[#F3E5CF] text-[#4A322A] font-bold text-xs shadow-2xs"
+                  >
+                    <CalendarCheck2 className="h-4 w-4 mr-2 text-[#8C6527]" />
+                    Presença / Confirmação de Hoje
+                  </Button>
+
+                  <Button
+                    onClick={() => setModalEvolucaoOpen(true)}
+                    className="w-full justify-start h-11 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold text-xs shadow-2xs"
+                  >
+                    <Activity className="h-4 w-4 mr-2 text-emerald-700" />
+                    Nova Evolução Clínica (Sessão SOAP)
+                  </Button>
+
                   <Button
                     onClick={() => navigate('/prontuarios/novo')}
                     className="w-full justify-start h-11 rounded-xl bg-gradient-to-r from-[#C9A46A] to-[#B88E52] text-[#33221C] font-semibold text-xs shadow-xs"
@@ -1029,6 +1137,9 @@ export default function Dashboard() {
         onOpenChange={setSincronizacaoOpen}
         onSyncComplete={loadDashboardData}
       />
+
+      {/* Modal de Acesso Rápido a Evolução */}
+      <ModalAcessoRapidoEvolucao open={modalEvolucaoOpen} onOpenChange={setModalEvolucaoOpen} />
     </div>
   )
 }

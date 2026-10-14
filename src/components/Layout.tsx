@@ -27,6 +27,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getConsultasHoje } from '@/services/consultas'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { TopbarBuscaPaciente } from '@/components/TopbarBuscaPaciente'
+import { ModalAcessoRapidoEvolucao } from '@/components/ModalAcessoRapidoEvolucao'
+import { Activity } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getInitials, formatDataHoraPTBR } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -49,6 +51,7 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [novaConsultaOpen, setNovaConsultaOpen] = useState(false)
+  const [modalEvolucaoOpen, setModalEvolucaoOpen] = useState(false)
   const [consultasHojeCount, setConsultasHojeCount] = useState<number>(0)
   // Notificações in-app
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
@@ -386,9 +389,21 @@ export default function Layout() {
               </h1>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Busca Global de Paciente com Dropdown Instantâneo & Atalhos Rápidos */}
               <TopbarBuscaPaciente />
+
+              {/* Botão de Atalho Fixo Rápido de Evolução no Topbar */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setModalEvolucaoOpen(true)}
+                className="hidden xl:inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/90 text-emerald-800 text-xs font-bold transition-all shadow-2xs hover:scale-102 active:scale-98"
+                title="Acesso rápido: registrar ou consultar evolução do paciente"
+              >
+                <Activity className="h-4 w-4 text-emerald-600" />
+                <span>Evolução</span>
+              </Button>
 
               {/* Notificações in-app (Sino com popover e contagem de atualizações clínicas + consultas) */}
               <Popover open={notifPopoverOpen} onOpenChange={setNotifPopoverOpen}>
@@ -600,6 +615,9 @@ export default function Layout() {
           fetchConsultasCount()
         }}
       />
+
+      {/* Modal Global de Acesso Rápido a Evolução */}
+      <ModalAcessoRapidoEvolucao open={modalEvolucaoOpen} onOpenChange={setModalEvolucaoOpen} />
     </div>
   )
 }
