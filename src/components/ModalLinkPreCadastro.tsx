@@ -32,8 +32,8 @@ export function ModalLinkPreCadastro({ open, onOpenChange }: ModalLinkPreCadastr
 
   // Gerar URL pública completa usando window.location.origin garantindo porta/protocolo limpos
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  // Adiciona parâmetro de versão v=0.0.54 como cache-buster para scrapers do WhatsApp e redes sociais
-  const publicLink = `${origin}/pre-cadastro?v=0.0.54`
+  // Adiciona parâmetro de versão v=0.0.55 como cache-buster para scrapers do WhatsApp e redes sociais
+  const publicLink = `${origin}/pre-cadastro?v=0.0.55`
 
   const mensagemWhatsApp = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\n*Pré-Avaliação - Clínica Soul*\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha sua pré-avaliação no link abaixo:\n${publicLink}\n\nLeva apenas 2 minutos e seus dados chegam diretamente à nossa equipe clínica!`
 

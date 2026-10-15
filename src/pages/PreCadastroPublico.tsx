@@ -42,8 +42,9 @@ export default function PreCadastroPublico() {
     }
 
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const imageUrl = `${origin}/og-soul-pre-avaliacao-v2.svg?v=0.0.54`
+    const imageUrl = `${origin}/og-soul-pre-avaliacao-v2.png?v=0.0.55`
 
+    setMetaTag('meta[property="og:type"]', 'content', 'website')
     setMetaTag('meta[property="og:site_name"]', 'content', 'Clínica SOUL')
     setMetaTag('meta[property="og:title"]', 'content', 'Pré-Avaliação - Clínica Soul')
     setMetaTag(
@@ -53,7 +54,7 @@ export default function PreCadastroPublico() {
     )
     setMetaTag('meta[property="og:image"]', 'content', imageUrl)
     setMetaTag('meta[property="og:image:secure_url"]', 'content', imageUrl)
-    setMetaTag('meta[property="og:image:type"]', 'content', 'image/svg+xml')
+    setMetaTag('meta[property="og:image:type"]', 'content', 'image/png')
     setMetaTag('meta[property="og:image:width"]', 'content', '1200')
     setMetaTag('meta[property="og:image:height"]', 'content', '630')
     setMetaTag(
