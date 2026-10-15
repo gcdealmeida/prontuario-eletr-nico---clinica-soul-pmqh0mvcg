@@ -108,11 +108,76 @@ function converterTabelasMarkdownEmTexto(texto: string): string {
 }
 
 /**
+ * Limpa prefixos mecânicos de formulário e rótulos redundantes residuais:
+ * - "CAMPO: Nome: Fulano" -> "Fulano"
+ * - "CAMPO: Fulano" -> "Fulano"
+ * - "**CAMPO:** **Nome:** Fulano" -> "Fulano"
+ * - "Nome: Fulano" quando redundante / duplicado
+ * - "Achado: ...", "Achados: ...", "Conclusão: ..." em laudos de exames/RNM
+ */
+export function limparRotulosRedundantes(texto: string): string {
+  if (!texto) return ''
+
+  return texto
+    .split('\n')
+    .map((linha) => {
+      let l = linha
+
+      // 1. Limpar prefixos "CAMPO:" ou variações ("CAMPO: Nome:", "**CAMPO:**", "Campo:")
+      // Casos com markdown ou sem:
+      // ex: "CAMPO: Nome: Bernardo Maia" -> "Bernardo Maia"
+      // ex: "- CAMPO: Nome: Bernardo Maia" -> "- Bernardo Maia"
+      // ex: "• **CAMPO:** **Nome:** Bernardo Maia" -> "• Bernardo Maia"
+      l = l.replace(
+        /^(\s*(?:[-•*]\s*)?)(?:\*{0,2}CAMPO\s*:\*{0,2}\s*)(?:\*{0,2}Nome(?:\s+do\s+Paciente)?\s*:\*{0,2}\s*)?/i,
+        '$1',
+      )
+
+      // Se ainda sobrou "Nome: " logo após marcador de lista e antes de nome próprio no topo
+      l = l.replace(
+        /^(\s*(?:[-•*]\s*)?)(?:\*{0,2}Nome(?:\s+do\s+Paciente)?\s*:\*{0,2}\s*)(?:\*{0,2}Nome(?:\s+do\s+Paciente)?\s*:\*{0,2}\s*)/i,
+        '$1',
+      )
+
+      // Limpar "CAMPO:" isolado no meio da linha
+      l = l.replace(/\bCAMPO\s*:\s*(?:Nome\s*:\s*)?/gi, '')
+
+      // 2. Limpar prefixos mecânicos residuais de exames como "Achado:", "Achados:", "Achado 1:", "Conclusão:"
+      // Transforma "- Achado: rotura no menisco..." em "- Rotura no menisco..."
+      l = l.replace(
+        /^(\s*(?:[-•*]\s*)?)(?:\*{0,2}Achados?(?:\s+\d+)?\s*:\*{0,2}\s*)(.*)$/i,
+        (_match, prefix, resto) => {
+          const restoTrim = resto.trim()
+          if (!restoTrim) return ''
+          // Capitalizar a primeira letra do achado clínico
+          const capitalizado = restoTrim.charAt(0).toUpperCase() + restoTrim.slice(1)
+          return `${prefix}${capitalizado}`
+        },
+      )
+
+      // Transforma "- Conclusão: edema infrapatelar..." em "- Edema infrapatelar..."
+      l = l.replace(
+        /^(\s*(?:[-•*]\s*)?)(?:\*{0,2}Conclus[aã]o(?:\s+do\s+laudo)?\s*:\*{0,2}\s*)(.*)$/i,
+        (_match, prefix, resto) => {
+          const restoTrim = resto.trim()
+          if (!restoTrim) return ''
+          const capitalizado = restoTrim.charAt(0).toUpperCase() + restoTrim.slice(1)
+          return `${prefix}${capitalizado}`
+        },
+      )
+
+      return l
+    })
+    .join('\n')
+}
+
+/**
  * Normaliza o relatório recebido da IA ou carregado do banco:
  * 1. Converte tabelas Markdown para listas/tópicos legíveis sem pipes (|) ou separadores (---)
  * 2. Remove pipes soltos ou resquícios de formatação de tabela
- * 3. Garante que as 6 seções numeradas fiquem bem destacadas
- * 4. Limpa múltiplos saltos de linha redundantes
+ * 3. Limpa rótulos redundantes ("CAMPO:", "Nome:" duplicados, "Achado:" linha a linha)
+ * 4. Garante que as 6 seções numeradas fiquem bem destacadas
+ * 5. Limpa múltiplos saltos de linha redundantes
  */
 export function normalizarConteudoRelatorio(textoBruto: string): string {
   if (!textoBruto) return ''
@@ -143,7 +208,10 @@ export function normalizarConteudoRelatorio(textoBruto: string): string {
     })
     .join('\n')
 
-  // 3. Normalizar espaçamentos e quebras de linha excessivas (mais de 2 saltos consecutivos)
+  // 3. Limpar rótulos redundantes de formulário e prefixos tipo "CAMPO:", "Nome:" duplicado e "Achado:"
+  texto = limparRotulosRedundantes(texto)
+
+  // 4. Normalizar espaçamentos e quebras de linha excessivas (mais de 2 saltos consecutivos)
   texto = texto.replace(/\n{3,}/g, '\n\n')
 
   return texto.trim()

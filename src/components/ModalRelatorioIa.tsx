@@ -545,7 +545,9 @@ export function ModalRelatorioIa({
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[#5F544F]">
                 <div>
                   <strong className="text-[#6A402D]">Nome:</strong>{' '}
-                  <span className="text-[#1F1B18] font-medium">{pacienteNome}</span>
+                  <span className="text-[#1F1B18] font-medium">
+                    {pacienteNome.replace(/^CAMPO:\s*(?:Nome:\s*)?/i, '')}
+                  </span>
                   {pacienteCpf && (
                     <span className="text-gray-500 font-mono text-[8.5pt]">
                       {' '}
@@ -969,7 +971,9 @@ export function ModalRelatorioIa({
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[#5F544F]">
                             <div>
                               <strong className="text-[#6A402D]">Nome:</strong>{' '}
-                              <span className="text-[#1F1B18] font-medium">{pacienteNome}</span>
+                              <span className="text-[#1F1B18] font-medium">
+                                {pacienteNome.replace(/^CAMPO:\s*(?:Nome:\s*)?/i, '')}
+                              </span>
                               {pacienteCpf && (
                                 <span className="text-gray-400 font-mono">
                                   {' '}

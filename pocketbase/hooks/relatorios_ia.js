@@ -78,6 +78,13 @@ routerAdd(
       // 3. Montar o prompt rico integrando a necessidade e os dados reais
       const userName = auth.getString('name') || userEmail || 'Profissional SOUL'
 
+      // Higienizar dados do prontuário para o contexto do agente:
+      // Remove metadados internos de framework que poderiam vazar rótulos redundantes
+      const dadosProntuarioFiltrados = Object.assign({}, dadosProntuario)
+      delete dadosProntuarioFiltrados.collectionId
+      delete dadosProntuarioFiltrados.collectionName
+      delete dadosProntuarioFiltrados.expand
+
       const promptMensagem = `Gere um Relatório Clínico / Funcional no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
 
 INSTRUÇÃO / NECESSIDADE DO PROFISSIONAL:
@@ -86,20 +93,14 @@ INSTRUÇÃO / NECESSIDADE DO PROFISSIONAL:
 ${publicoAlvo ? `PÚBLICO-ALVO / DESTINATÁRIO: ${publicoAlvo}` : ''}
 ${tituloSugerido ? `TÍTULO / SUBTÍTULO SUGERIDO: ${tituloSugerido}` : ''}
 
-DADOS DA CLÍNICA & PROFISSIONAL RESPONSÁVEL:
+DADOS INSTITUCIONAIS (já presentes no cabeçalho do documento — NÃO DUPLICAR no corpo do texto):
 - Instituição: Clínica SOUL — Saúde e Bem Estar
-- Profissional Responsável: ${userName} (${especialidade})
-- Data da Avaliação/Emissão: ${new Date().toLocaleDateString('pt-BR')}
+- Profissional Emissor: ${userName} (${especialidade})
+- Paciente: ${pacienteNome}${pacienteCpf ? ` (CPF: ${pacienteCpf})` : ''}${pacienteNasc ? ` (Nascimento: ${pacienteNasc})` : ''}
+- Identificação da Avaliação: ${avaliacaoId}
 
-DADOS CADASTRAIS DO PACIENTE:
-- Nome Completo: ${pacienteNome}
-- CPF: ${pacienteCpf || 'Não informado'}
-- Data de Nascimento: ${pacienteNasc || 'Não informada'}
-- Especialidade: ${especialidade}
-- Prontuário / ID da Avaliação: ${avaliacaoId}
-
-DADOS REAIS DO PRONTUÁRIO / AVALIAÇÃO:
-${JSON.stringify(dadosProntuario, null, 2)}
+DADOS REAIS DO PRONTUÁRIO / AVALIAÇÃO CLÍNICA:
+${JSON.stringify(dadosProntuarioFiltrados, null, 2)}
 
 ESTRUTURA OBRIGATÓRIA — MODELO INSTITUCIONAL DA CLÍNICA SOUL:
 O relatório DEVE ser gerado com as seguintes 6 seções numeradas preenchidas a partir dos dados acima:
@@ -108,10 +109,10 @@ O relatório DEVE ser gerado com as seguintes 6 seções numeradas preenchidas a
 [Descrever de forma objetiva a finalidade deste documento segundo a necessidade informada.]
 
 2. HISTÓRICO E QUEIXA PRINCIPAL
-[Anamnese, evolução dos sintomas, histórico clínico, limitações funcionais e EVA.]
+[Anamnese, evolução dos sintomas, histórico clínico, limitações funcionais e EVA em redação clínica fluida.]
 
 3. AVALIAÇÃO CLÍNICA E FUNCIONAL
-[Inspeção, mobilidade/ADM, força/dinamometria, testes especiais por segmento, testes funcionais, composição/postura e exames.]
+[Inspeção, mobilidade/ADM, força/dinamometria, testes especiais por segmento, testes funcionais, postura e exames de imagem.]
 
 4. INTERPRETAÇÃO DOS ACHADOS
 [Relação clínica entre os achados, déficits, assimetrias, hipótese disfuncional e repercussões funcionais.]
@@ -120,12 +121,22 @@ O relatório DEVE ser gerado com as seguintes 6 seções numeradas preenchidas a
 [Objetivos terapêuticos, frequência, progressão, condutas recomendadas e critérios de reavaliação.]
 
 6. CONSIDERAÇÕES FINAIS
-[Conclusão clínica, orientações para o paciente/destinatário e próximos passos.]
+[Conclusão clínica fundamentada, orientações para o paciente/destinatário e próximos passos.]
 
-REGRA CRÍTICA DE FORMATAÇÃO:
-- É ESTRITAMENTE PROIBIDO GERAR TABELAS MARKDOWN (nunca use separadores "|---|---|", barras verticais ou traços em grade).
-- Todo e qualquer dado comparativo (ADM, dinamometria, lado D vs E, exames) DEVE ser formatado em TEXTO CORRIDO ou em LISTAS SIMPLES COM MARCADORES (ex: "- Ombro D: Flexão 170° | Ombro E: Flexão 180°").
-- Tom elegante, sóbrio e técnico. Sem floreios nem ícones decorativos. Baseie-se 100% nos dados reais do prontuário acima. Não invente dados ausentes.`
+DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
+1. SEM RÓTULOS REDUNDANTES DE FORMULÁRIO:
+   - É ESTRITAMENTE PROIBIDO incluir prefixos mecânicos de formulário tipo "CAMPO:", "Campo:", "Nome:", "Nome do Paciente:", "Idade:", "Diagnóstico:" antes de dados.
+   - Qualquer menção à pessoa no texto deve ser natural ("Bernardo Juncal Vitória Maia, 34 anos" e NUNCA "CAMPO: Nome: Bernardo...").
+   - O bloco cadastral do paciente já é exibido automaticamente no cabeçalho institucional timbrado — NÃO replique caixas ou listas de dados cadastrais no corpo das seções.
+
+2. DADOS DA RNM E EXAMES DE IMAGEM — SÍNTESE CLÍNICA CONCISA (NUNCA COLAGEM CRUA):
+   - Caso haja laudos de Ressonância Magnética (RNM), Tomografia, Raio-X ou Ultrassom no prontuário, produza uma SÍNTESE CLÍNICA CONCISA (2 a 5 frases) em texto corrido com os achados relevantes para a clínica/funcionalidade.
+   - É ESTRITAMENTE PROIBIDO colar o laudo cru linha a linha ou usar prefixos mecânicos tipo "Achado:", "Achados:", "Conclusão:", "Item 1:". Integre os achados com fluidez técnica (ex.: "A RNM do joelho direito evidencia rotura no menisco medial e edema infrapatelar lateral...").
+
+3. FORMATAÇÃO LIMPA SEM TABELAS MARKDOWN:
+   - É ESTRITAMENTE PROIBIDO GERAR TABELAS MARKDOWN (nunca use separadores "|---|---|", barras verticais ou traços em grade).
+   - Todo e qualquer dado comparativo (ADM, dinamometria, lado D vs E, exames) DEVE ser formatado em TEXTO CORRIDO ou em LISTAS SIMPLES COM MARCADORES (ex: "- Ombro D: Flexão 170° | Ombro E: Flexão 180°").
+   - Tom elegante, sóbrio e técnico. Sem floreios nem ícones decorativos. Baseie-se 100% nos dados reais do prontuário acima. Não invente dados ausentes.`
 
       // 4. Chamada síncrona ao agente nativo Skip Cloud
       let agentResult
