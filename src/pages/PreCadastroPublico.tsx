@@ -26,6 +26,41 @@ import { submitPreCadastro } from '@/services/pacientes'
 export default function PreCadastroPublico() {
   const { token } = useParams<{ token?: string }>()
 
+  // Garantir metatags e título da aba dinâmicos para a página pública de Pré-Cadastro da SOUL
+  React.useEffect(() => {
+    document.title = 'Pré Cadastro - Clínica Soul'
+
+    const setMetaTag = (selector: string, attr: string, value: string) => {
+      let tag = document.querySelector(selector)
+      if (!tag) {
+        tag = document.createElement('meta')
+        const [attrName] = selector.replace(/[[\]'"]/g, '').split('=')
+        tag.setAttribute(attrName, selector.split('=')[1]?.replace(/['"]/g, '') || '')
+        document.head.appendChild(tag)
+      }
+      tag.setAttribute(attr, value)
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const logoUrl = `${origin}/logo-soul.jpg`
+
+    setMetaTag('meta[property="og:title"]', 'content', 'Pré Cadastro - Clínica Soul')
+    setMetaTag(
+      'meta[property="og:description"]',
+      'content',
+      'Pré-Cadastro do Paciente na Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada. Preencha seus dados para abertura do seu prontuário.',
+    )
+    setMetaTag('meta[property="og:image"]', 'content', logoUrl)
+    setMetaTag('meta[property="og:url"]', 'content', `${origin}/pre-cadastro`)
+    setMetaTag('meta[name="twitter:title"]', 'content', 'Pré Cadastro - Clínica Soul')
+    setMetaTag(
+      'meta[name="twitter:description"]',
+      'content',
+      'Pré-Cadastro do Paciente na Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada.',
+    )
+    setMetaTag('meta[name="twitter:image"]', 'content', logoUrl)
+  }, [])
+
   // Form states
   const [nome, setNome] = useState('')
   const [dataNascimento, setDataNascimento] = useState('')

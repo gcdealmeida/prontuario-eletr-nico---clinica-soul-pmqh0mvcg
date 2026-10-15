@@ -34,7 +34,7 @@ export function ModalLinkPreCadastro({ open, onOpenChange }: ModalLinkPreCadastr
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const publicLink = `${origin}/pre-cadastro`
 
-  const mensagemWhatsApp = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha seu pré-cadastro no link abaixo:\n${publicLink}\n\nLeva apenas 2 minutos e nossa equipe já terá suas informações prontas para a sua consulta!`
+  const mensagemWhatsApp = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\n*Pré Cadastro - Clínica Soul*\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha seu pré-cadastro no link abaixo:\n${publicLink}\n\nLeva apenas 2 minutos e seus dados chegam diretamente à nossa equipe clínica!`
 
   const handleCopy = async () => {
     try {
