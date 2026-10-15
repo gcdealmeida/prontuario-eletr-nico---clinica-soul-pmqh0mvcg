@@ -26,9 +26,9 @@ import { submitPreCadastro } from '@/services/pacientes'
 export default function PreCadastroPublico() {
   const { token } = useParams<{ token?: string }>()
 
-  // Garantir metatags e título da aba dinâmicos para a página pública de Pré-Cadastro da SOUL
+  // Garantir metatags e título da aba dinâmicos para a página pública de Pré-Avaliação da SOUL
   React.useEffect(() => {
-    document.title = 'Pré Cadastro - Clínica Soul'
+    document.title = 'Pré-Avaliação - Clínica Soul'
 
     const setMetaTag = (selector: string, attr: string, value: string) => {
       let tag = document.querySelector(selector)
@@ -42,23 +42,24 @@ export default function PreCadastroPublico() {
     }
 
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const logoUrl = `${origin}/logo-soul.jpg`
+    const imageUrl = `${origin}/og-image.png`
 
-    setMetaTag('meta[property="og:title"]', 'content', 'Pré Cadastro - Clínica Soul')
+    setMetaTag('meta[property="og:title"]', 'content', 'Pré-Avaliação - Clínica Soul')
     setMetaTag(
       'meta[property="og:description"]',
       'content',
-      'Pré-Cadastro do Paciente na Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada. Preencha seus dados para abertura do seu prontuário.',
+      'Pré-Avaliação na Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada. Preencha seus dados para abertura do seu prontuário.',
     )
-    setMetaTag('meta[property="og:image"]', 'content', logoUrl)
+    setMetaTag('meta[property="og:image"]', 'content', imageUrl)
+    setMetaTag('meta[property="og:image:secure_url"]', 'content', imageUrl)
     setMetaTag('meta[property="og:url"]', 'content', `${origin}/pre-cadastro`)
-    setMetaTag('meta[name="twitter:title"]', 'content', 'Pré Cadastro - Clínica Soul')
+    setMetaTag('meta[name="twitter:title"]', 'content', 'Pré-Avaliação - Clínica Soul')
     setMetaTag(
       'meta[name="twitter:description"]',
       'content',
-      'Pré-Cadastro do Paciente na Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada.',
+      'Pré-Avaliação na Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada. Preencha seus dados para abertura do seu prontuário.',
     )
-    setMetaTag('meta[name="twitter:image"]', 'content', logoUrl)
+    setMetaTag('meta[name="twitter:image"]', 'content', imageUrl)
   }, [])
 
   // Form states
@@ -174,7 +175,7 @@ export default function PreCadastroPublico() {
             <LogoSOUL variant="full" size="lg" theme="light" />
             <div className="max-w-lg space-y-1.5">
               <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#33221C] tracking-tight">
-                Pré-Cadastro do Paciente
+                Pré-Avaliação do Paciente
               </h1>
               <p className="text-sm text-[#73574A] font-light leading-relaxed">
                 Preencha seus dados cadastrais e principais motivos da consulta. Suas respostas
@@ -192,7 +193,7 @@ export default function PreCadastroPublico() {
 
               <div className="space-y-2 max-w-md mx-auto">
                 <h2 className="text-2xl font-serif font-bold text-[#33221C]">
-                  Recebemos seu pré-cadastro!
+                  Recebemos sua pré-avaliação!
                 </h2>
                 <p className="text-sm text-[#73574A] leading-relaxed">
                   Agradecemos a confiança na Clínica SOUL. Seus dados já foram registrados em nosso
@@ -237,7 +238,7 @@ export default function PreCadastroPublico() {
                   variant="outline"
                   className="rounded-xl border-[#E9E1D2] text-[#73574A] hover:bg-[#FAF5EE] text-xs"
                 >
-                  Enviar outro pré-cadastro
+                  Enviar outra pré-avaliação
                 </Button>
               </div>
             </div>
@@ -518,11 +519,11 @@ export default function PreCadastroPublico() {
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin text-[#33221C]" />
-                      Gravando pré-cadastro...
+                      Gravando pré-avaliação...
                     </>
                   ) : (
                     <>
-                      Enviar Pré-Cadastro
+                      Enviar Pré-Avaliação
                       <ArrowRight className="h-4 w-4 text-[#33221C]" />
                     </>
                   )}

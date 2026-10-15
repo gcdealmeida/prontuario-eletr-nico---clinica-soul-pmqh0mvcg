@@ -34,7 +34,7 @@ export function ModalLinkPreCadastro({ open, onOpenChange }: ModalLinkPreCadastr
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const publicLink = `${origin}/pre-cadastro`
 
-  const mensagemWhatsApp = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\n*Pré Cadastro - Clínica Soul*\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha seu pré-cadastro no link abaixo:\n${publicLink}\n\nLeva apenas 2 minutos e seus dados chegam diretamente à nossa equipe clínica!`
+  const mensagemWhatsApp = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\n*Pré-Avaliação - Clínica Soul*\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha sua pré-avaliação no link abaixo:\n${publicLink}\n\nLeva apenas 2 minutos e seus dados chegam diretamente à nossa equipe clínica!`
 
   const handleCopy = async () => {
     try {
@@ -69,11 +69,11 @@ export function ModalLinkPreCadastro({ open, onOpenChange }: ModalLinkPreCadastr
             </span>
             <div>
               <DialogTitle className="text-xl font-bold text-gray-900">
-                Link de Pré-Cadastro do Paciente
+                Link de Pré-Avaliação - Clínica Soul
               </DialogTitle>
               <DialogDescription className="text-xs text-[#73574A]">
                 Compartilhe com o paciente para que ele mesmo preencha dados cadastrais e anamnese
-                prévia.
+                prévia para a sua pré-avaliação na Clínica SOUL.
               </DialogDescription>
             </div>
           </div>
@@ -91,10 +91,13 @@ export function ModalLinkPreCadastro({ open, onOpenChange }: ModalLinkPreCadastr
                 O paciente responde na página pública da SOUL (sem precisar de login ou senha).
               </li>
               <li>
-                O cadastro chega automaticamente na lista de pacientes com o badge{' '}
+                As respostas chegam automaticamente na lista de pacientes com o status{' '}
                 <strong className="text-[#8C6527]">"Pré-cadastro"</strong>.
               </li>
-              <li>Ao abrir o prontuário, as respostas já estarão disponíveis para a anamnese.</li>
+              <li>
+                Ao abrir o prontuário, as respostas já estarão disponíveis para a anamnese e
+                avaliação clínica.
+              </li>
             </ol>
           </div>
 

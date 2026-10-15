@@ -91,12 +91,12 @@
   <!-- Right Side: Content & Actions -->
   <g transform="translate(560, 135)">
     <!-- Badge -->
-    <rect x="0" y="0" width="235" height="36" rx="18" fill="#FAF5EE" stroke="#E3C89A" stroke-width="1.5" />
-    <text x="117" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#8C6527" text-anchor="middle" letter-spacing="1.5">ATENDIMENTO CLÍNICO</text>
+    <rect x="0" y="0" width="250" height="36" rx="18" fill="#FAF5EE" stroke="#E3C89A" stroke-width="1.5" />
+    <text x="125" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#8C6527" text-anchor="middle" letter-spacing="1.5">PRÉ-AVALIAÇÃO CLÍNICA</text>
 
     <!-- Main Heading -->
     <text x="0" y="105" font-family="'Cormorant Garamond', Georgia, 'Times New Roman', serif" font-size="56" font-weight="700" fill="#33221C" letter-spacing="0.5">
-      Pré-Cadastro
+      Pré-Avaliação
     </text>
     <text x="0" y="165" font-family="'Cormorant Garamond', Georgia, 'Times New Roman', serif" font-size="50" font-weight="600" fill="#8C6527" letter-spacing="1">
       Clínica SOUL
@@ -110,10 +110,10 @@
       Saúde, Bem-Estar e Fisioterapia Integrada
     </text>
     <text x="0" y="275" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="400" fill="#73574A">
-      Preencha seus dados cadastrais e histórico de saúde com rapidez.
+      Preencha seus dados para abertura do seu prontuário clínico.
     </text>
     <text x="0" y="305" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="400" fill="#73574A">
-      Suas respostas agilizam a preparação da sua primeira consulta!
+      Suas respostas chegam diretamente à nossa equipe clínica!
     </text>
 
     <!-- Highlights -->

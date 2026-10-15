@@ -310,7 +310,7 @@ export default function Pacientes() {
             className="rounded-xl h-10 px-3.5 text-xs font-semibold border-[#C9A46A]/60 bg-[#FAF5EE] text-[#8C6527] hover:bg-[#F3EAD9] flex items-center gap-2 shadow-2xs"
           >
             <LinkIcon className="h-4 w-4 text-[#8C6527]" />
-            Pré-Cadastro via Link
+            Pré-Avaliação via Link
           </Button>
 
           <Button
