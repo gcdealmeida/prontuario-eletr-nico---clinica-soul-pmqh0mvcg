@@ -42,8 +42,9 @@ export default function PreCadastroPublico() {
     }
 
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const imageUrl = `${origin}/og-image.png`
+    const imageUrl = `${origin}/og-soul-pre-avaliacao-v2.svg?v=0.0.54`
 
+    setMetaTag('meta[property="og:site_name"]', 'content', 'Clínica SOUL')
     setMetaTag('meta[property="og:title"]', 'content', 'Pré-Avaliação - Clínica Soul')
     setMetaTag(
       'meta[property="og:description"]',
@@ -52,7 +53,16 @@ export default function PreCadastroPublico() {
     )
     setMetaTag('meta[property="og:image"]', 'content', imageUrl)
     setMetaTag('meta[property="og:image:secure_url"]', 'content', imageUrl)
+    setMetaTag('meta[property="og:image:type"]', 'content', 'image/svg+xml')
+    setMetaTag('meta[property="og:image:width"]', 'content', '1200')
+    setMetaTag('meta[property="og:image:height"]', 'content', '630')
+    setMetaTag(
+      'meta[property="og:image:alt"]',
+      'content',
+      'Pré-Avaliação Clínica SOUL — Saúde e Bem-Estar',
+    )
     setMetaTag('meta[property="og:url"]', 'content', `${origin}/pre-cadastro`)
+    setMetaTag('meta[name="twitter:card"]', 'content', 'summary_large_image')
     setMetaTag('meta[name="twitter:title"]', 'content', 'Pré-Avaliação - Clínica Soul')
     setMetaTag(
       'meta[name="twitter:description"]',
