@@ -104,30 +104,84 @@ ${JSON.stringify(dadosProntuario, null, 2)}
 Por favor, elabore um documento completo, claro, formal e elegante. Não responda em JSON, forneça o texto final pronto em Markdown para que o profissional possa revisar, assinar e imprimir.`
 
       // 4. Chamada síncrona ao agente nativo Skip Cloud
-      const agentResult = $ai.agent('relatorios-clinica-soul').chat({
-        user_id: userId,
-        message: promptMensagem,
-      })
+      let agentResult
+      try {
+        agentResult = $ai.agent('relatorios-clinica-soul').chat({
+          user_id: userId,
+          message: promptMensagem,
+        })
+      } catch (errAi) {
+        console.log('Erro ao consultar o agente de relatórios IA:', errAi)
+        return e.json(503, {
+          error:
+            'Não foi possível gerar o relatório com a inteligência artificial no momento. Seus dados de avaliação continuam intactos. Tente novamente em instantes.',
+        })
+      }
 
       const conteudoGerado = agentResult?.content || ''
 
       if (!conteudoGerado) {
-        return e.json(500, { error: 'O assistente de relatórios não retornou conteúdo' })
+        return e.json(502, {
+          error:
+            'O assistente de IA não retornou o texto do relatório. Seus dados de avaliação continuam salvos e intactos.',
+        })
       }
 
-      // 5. Persistir na collection relatorios_ia
-      const colRelatorios = $app.findCollectionByNameOrId('relatorios_ia')
-      const relRec = new Record(colRelatorios)
-      relRec.set('paciente_id', pacienteId)
-      relRec.set('avaliacao_id', avaliacaoId)
-      relRec.set('especialidade', especialidade)
-      relRec.set('autor_id', userId)
-      relRec.set('autor_nome', userName)
-      relRec.set('titulo', tituloSugerido)
-      relRec.set('necessidade', necessidade)
-      relRec.set('publico_alvo', publicoAlvo)
-      relRec.set('conteudo', conteudoGerado)
-      $app.save(relRec)
+      // 5. Persistir na collection relatorios_ia com fallback defensivo
+      let relRec = null
+      let avisoSalvamento = ''
+      try {
+        const colRelatorios = $app.findCollectionByNameOrId('relatorios_ia')
+        relRec = new Record(colRelatorios)
+        relRec.set('paciente_id', pacienteId)
+        relRec.set('avaliacao_id', avaliacaoId)
+        relRec.set('especialidade', especialidade)
+        relRec.set('autor_id', userId)
+        relRec.set('autor_nome', userName)
+        relRec.set('titulo', tituloSugerido.slice(0, 5000))
+        relRec.set('necessidade', necessidade)
+        relRec.set('publico_alvo', publicoAlvo)
+        relRec.set('conteudo', conteudoGerado)
+        $app.save(relRec)
+      } catch (errSave) {
+        console.log('Tentativa 1 ao salvar relatório gerado falhou:', errSave)
+        // Tentativa de recuperação defensiva: caso algum campo ainda esteja esbarrando em limite anterior
+        try {
+          const colRelatorios = $app.findCollectionByNameOrId('relatorios_ia')
+          relRec = new Record(colRelatorios)
+          relRec.set('paciente_id', pacienteId)
+          relRec.set('avaliacao_id', avaliacaoId)
+          relRec.set('especialidade', especialidade)
+          relRec.set('autor_id', userId)
+          relRec.set('autor_nome', userName)
+          relRec.set('titulo', tituloSugerido.slice(0, 200))
+          relRec.set('necessidade', necessidade.slice(0, 4900))
+          relRec.set('publico_alvo', (publicoAlvo || '').slice(0, 500))
+          relRec.set('conteudo', conteudoGerado.slice(0, 4900))
+          $app.save(relRec)
+          avisoSalvamento =
+            'Relatório salvo no histórico com versão truncada para compatibilidade. O texto completo gerado está disponível abaixo.'
+        } catch (errSave2) {
+          console.log('Tentativa defensiva de salvar relatório no banco falhou:', errSave2)
+          // NUNCA retornar 500 se a IA já gerou o relatório com sucesso!
+          // Devolve o conteúdo gerado para que o profissional não perca o trabalho.
+          return e.json(200, {
+            id: 'temp_' + Date.now(),
+            paciente_id: pacienteId,
+            avaliacao_id: avaliacaoId,
+            especialidade: especialidade,
+            titulo: tituloSugerido,
+            necessidade: necessidade,
+            conteudo: conteudoGerado,
+            autor_id: userId,
+            autor_nome: userName,
+            created: new Date().toISOString(),
+            falha_historico: true,
+            aviso:
+              'Relatório gerado com sucesso pela IA! Houve uma instabilidade pontual ao salvar no histórico permanente, mas seu texto completo está disponível abaixo — copie ou imprima agora.',
+          })
+        }
+      }
 
       // 6. Auditoria clínica (clinical_update_logs) e notificações para administradores
       try {
@@ -194,20 +248,29 @@ Por favor, elabore um documento completo, claro, formal e elegante. Não respond
         autor_id: userId,
         autor_nome: userName,
         created: relRec.getString('created'),
+        aviso: avisoSalvamento || undefined,
       })
     } catch (err) {
       console.log('Erro no endpoint relatorios/gerar-ia:', err)
-      if (err instanceof SkipAiConfigError) {
-        return e.json(503, { error: 'Serviço de IA indisponível temporariamente' })
+      if (typeof SkipAiConfigError !== 'undefined' && err instanceof SkipAiConfigError) {
+        return e.json(503, {
+          error:
+            'Serviço de IA indisponível temporariamente. Seus dados de avaliação continuam intactos.',
+        })
       }
-      if (err instanceof SkipAiAgentsError) {
+      if (typeof SkipAiAgentsError !== 'undefined' && err instanceof SkipAiAgentsError) {
         const status = err.status || 500
-        return e.json(status, {
-          error: status >= 500 ? 'Falha no processamento do agente de relatórios' : err.message,
+        return e.json(status >= 500 ? 503 : status, {
+          error:
+            status >= 500
+              ? 'Falha no processamento do agente de relatórios. Seus dados de avaliação continuam intactos.'
+              : err.message,
         })
       }
       return e.json(500, {
-        error: err?.message || 'Falha ao processar relatório com IA',
+        error:
+          'Não foi possível concluir a emissão do relatório. Seus dados de avaliação continuam intactos. Detalhe: ' +
+          (err?.message || 'Erro interno inesperado'),
       })
     }
   },

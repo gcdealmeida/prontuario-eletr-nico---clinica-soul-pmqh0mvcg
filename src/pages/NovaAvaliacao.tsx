@@ -653,17 +653,46 @@ export default function NovaAvaliacao() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Top back */}
-      <div>
+      {/* Top back & banner de segurança se cair na tela sem intenção */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/prontuarios')}
-          className="text-xs text-gray-500 hover:text-gray-900 -ml-2 rounded-xl"
+          className="text-xs text-gray-500 hover:text-gray-900 -ml-2 rounded-xl self-start"
         >
           <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar para Prontuários
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/pacientes')}
+          className="text-xs text-[#8C6527] hover:text-[#704F1D] hover:bg-[#FAF5EE] rounded-xl self-start sm:self-auto"
+        >
+          Ir para Lista de Pacientes
+        </Button>
       </div>
+
+      {/* Aviso suave para acalmar o profissional se caiu aqui por engano */}
+      {!editId && step === 1 && (
+        <div className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E9E1D2] text-xs text-gray-600 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+            <span>
+              Suas avaliações salvas e rascunhos anteriores continuam 100% preservados e seguros.
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => navigate('/pacientes')}
+            className="text-xs text-[#8C6527] p-0 h-auto font-bold underline shrink-0"
+          >
+            Ver pacientes
+          </Button>
+        </div>
+      )}
 
       {/* STEP 1: Seleção de Paciente & Especialidade */}
       {step === 1 && (

@@ -22,6 +22,8 @@ export interface GerarRelatorioIaResponse {
   autor_id: string
   autor_nome: string
   created: string
+  falha_historico?: boolean
+  aviso?: string
 }
 
 /**

@@ -72,6 +72,7 @@ export function ModalRelatorioIa({
   const [titulo, setTitulo] = useState('Relatório Clínico Otimizado')
   const [publicoAlvo, setPublicoAlvo] = useState('')
   const [gerando, setGerando] = useState(false)
+  const [erroGeracao, setErroGeracao] = useState<string | null>(null)
   const [relatorioAtual, setRelatorioAtual] = useState<GerarRelatorioIaResponse | null>(null)
   const [conteudoEditavel, setConteudoEditavel] = useState('')
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
@@ -149,6 +150,7 @@ export function ModalRelatorioIa({
     }
 
     setGerando(true)
+    setErroGeracao(null)
     try {
       const res = await gerarRelatorioIa({
         paciente_id: pacienteId,
@@ -162,19 +164,31 @@ export function ModalRelatorioIa({
 
       setRelatorioAtual(res)
       setConteudoEditavel(res.conteudo)
-      toast({
-        title: '✨ Relatório gerado com sucesso!',
-        description: 'Você pode revisar o texto, copiar ou imprimir em folha A4 timbrada.',
-      })
+
+      if (res.falha_historico || res.aviso) {
+        toast({
+          title: '✨ Relatório gerado com sucesso!',
+          description:
+            res.aviso ||
+            'Relatório pronto para leitura, cópia e impressão. Sua avaliação segue 100% intacta.',
+        })
+      } else {
+        toast({
+          title: '✨ Relatório gerado com sucesso!',
+          description: 'Você pode revisar o texto, copiar ou imprimir em folha A4 timbrada.',
+        })
+      }
       // Recarregar histórico em segundo plano
       carregarHistorico()
     } catch (err: any) {
       console.error('Erro ao gerar relatório com IA:', err)
+      const msgErro =
+        err?.message ||
+        'Falha ao gerar o relatório. Tente novamente — sua avaliação está salva e intacta.'
+      setErroGeracao(msgErro)
       toast({
-        title: 'Não foi possível gerar o relatório',
-        description:
-          err?.message ||
-          'O assistente de relatórios está temporariamente indisponível. Verifique os dados e tente novamente.',
+        title: 'Falha ao gerar o relatório',
+        description: 'Tente novamente — sua avaliação está salva.',
         variant: 'destructive',
       })
     } finally {
@@ -216,7 +230,8 @@ export function ModalRelatorioIa({
       carregarHistorico()
     } catch (err: any) {
       toast({
-        title: 'Erro ao salvar alterações',
+        title:
+          'Não foi possível salvar as alterações do relatório. Seus dados de avaliação continuam intactos.',
         description: err?.message || 'Tente novamente.',
         variant: 'destructive',
       })
@@ -458,6 +473,21 @@ export function ModalRelatorioIa({
                     />
                   </div>
                 </div>
+
+                {/* Alerta de erro defensivo: usuário continua no modal, sem perder contexto nem redirecionar */}
+                {erroGeracao && (
+                  <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in-50">
+                    <AlertCircle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-bold text-[#8C6527]">
+                        Falha ao gerar o relatório. Tente novamente — sua avaliação está salva.
+                      </p>
+                      <p className="text-gray-600 text-[11px] leading-relaxed">
+                        Nenhum dado do prontuário foi alterado ou perdido. {erroGeracao}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Botão de Ação para Gerar com IA */}
                 <div className="pt-2 flex justify-end">

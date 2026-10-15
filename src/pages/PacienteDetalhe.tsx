@@ -847,16 +847,37 @@ export default function PacienteDetalhe() {
                 )}
               </div>
 
-              <Button
-                onClick={() =>
-                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
-                }
-                variant="outline"
-                size="sm"
-                className="mt-4 rounded-xl text-xs font-semibold text-blue-600 border-blue-200 hover:bg-blue-50 w-full"
-              >
-                + Nova Avaliação de Fisioterapia
-              </Button>
+              {(() => {
+                const rascunhoFisio = avaliacoes.fisio.find((a) => a.status === 'Rascunho')
+                return (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {rascunhoFisio && (
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoFisio.id}&especialidade=Fisioterapia`,
+                          )
+                        }
+                        className="rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white w-full shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <span>✏️ Continuar Rascunho</span>
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        navigate(
+                          `/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`,
+                        )
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-semibold text-blue-600 border-blue-200 hover:bg-blue-50 w-full"
+                    >
+                      + Nova Avaliação de Fisioterapia
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Personal Trainer */}
@@ -912,16 +933,35 @@ export default function PacienteDetalhe() {
                 )}
               </div>
 
-              <Button
-                onClick={() =>
-                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Personal`)
-                }
-                variant="outline"
-                size="sm"
-                className="mt-4 rounded-xl text-xs font-semibold text-orange-600 border-orange-200 hover:bg-orange-50 w-full"
-              >
-                + Nova Avaliação de Personal
-              </Button>
+              {(() => {
+                const rascunhoPersonal = avaliacoes.personal.find((a) => a.status === 'Rascunho')
+                return (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {rascunhoPersonal && (
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoPersonal.id}&especialidade=Personal`,
+                          )
+                        }
+                        className="rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white w-full shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <span>✏️ Continuar Rascunho</span>
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Personal`)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-semibold text-orange-600 border-orange-200 hover:bg-orange-50 w-full"
+                    >
+                      + Nova Avaliação de Personal
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Nutrição */}
@@ -974,16 +1014,35 @@ export default function PacienteDetalhe() {
                 )}
               </div>
 
-              <Button
-                onClick={() =>
-                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Nutrição`)
-                }
-                variant="outline"
-                size="sm"
-                className="mt-4 rounded-xl text-xs font-semibold text-green-600 border-green-200 hover:bg-green-50 w-full"
-              >
-                + Nova Avaliação de Nutrição
-              </Button>
+              {(() => {
+                const rascunhoNutri = avaliacoes.nutri.find((a) => a.status === 'Rascunho')
+                return (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {rascunhoNutri && (
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoNutri.id}&especialidade=Nutrição`,
+                          )
+                        }
+                        className="rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white w-full shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <span>✏️ Continuar Rascunho</span>
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Nutrição`)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-semibold text-green-600 border-green-200 hover:bg-green-50 w-full"
+                    >
+                      + Nova Avaliação de Nutrição
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Médico */}
@@ -1037,16 +1096,35 @@ export default function PacienteDetalhe() {
                 )}
               </div>
 
-              <Button
-                onClick={() =>
-                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Médico`)
-                }
-                variant="outline"
-                size="sm"
-                className="mt-4 rounded-xl text-xs font-semibold text-purple-600 border-purple-200 hover:bg-purple-50 w-full"
-              >
-                + Nova Avaliação Médica
-              </Button>
+              {(() => {
+                const rascunhoMedico = avaliacoes.medico.find((a) => a.status === 'Rascunho')
+                return (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {rascunhoMedico && (
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoMedico.id}&especialidade=Médico`,
+                          )
+                        }
+                        className="rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white w-full shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <span>✏️ Continuar Rascunho</span>
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Médico`)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 rounded-xl text-xs font-semibold text-purple-600 border-purple-200 hover:bg-purple-50 w-full"
+                    >
+                      + Nova Avaliação Médica
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </TabsContent>
