@@ -96,32 +96,36 @@
   }
 
   @media print {
-    /* Quando o modal de relatório IA estiver ativo para impressão, esconde o restante da tela para evitar qualquer sobreposição */
+    /* ============================================================== */
+    /* IMPRESSÃO DO RELATÓRIO CLÍNICO IA (Modelo Institucional SOUL)  */
+    /* ============================================================== */
+    /* Quando a classe 'imprimindo-relatorio-ia' estiver ativa no body:
+       - Oculta completamente a aplicação base (#root)
+       - Oculta qualquer portal, modal ou overlay desnecessário
+       - Exibe com exclusividade absoluta o container dedicado #container-impressao-relatorio-ia
+    */
     body.imprimindo-relatorio-ia #root {
       display: none !important;
     }
 
-    body.imprimindo-relatorio-ia [data-radix-portal] {
+    /* Ocultar o modal dialog do Radix e seus overlays ao imprimir o relatório */
+    body.imprimindo-relatorio-ia [role='dialog'],
+    body.imprimindo-relatorio-ia [data-radix-portal],
+    body.imprimindo-relatorio-ia [data-radix-dialog-overlay],
+    body.imprimindo-relatorio-ia .fixed.inset-0.bg-black\/80 {
+      display: none !important;
+    }
+
+    body.imprimindo-relatorio-ia #container-impressao-relatorio-ia {
       display: block !important;
       position: static !important;
-    }
-
-    body.imprimindo-relatorio-ia [data-radix-portal] [role='dialog'] {
-      position: static !important;
-      transform: none !important;
-      max-width: 100% !important;
-      max-height: none !important;
-      padding: 0 !important;
+      width: 100% !important;
       margin: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
+      padding: 0 !important;
       background: white !important;
-      overflow: visible !important;
     }
 
-    /* Ocultar botões de fechar e overlays escuros do Radix na impressão */
-    [data-radix-dialog-overlay],
-    .fixed.inset-0.bg-black\/80,
+    /* Ocultar botões de fechar e overlays residuais */
     body.imprimindo-relatorio-ia button[aria-label='Close'],
     body.imprimindo-relatorio-ia .sr-only {
       display: none !important;
@@ -136,6 +140,11 @@
     .page-break-inside-avoid {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
+    }
+
+    .page-break-before {
+      break-before: page !important;
+      page-break-before: always !important;
     }
   }
 

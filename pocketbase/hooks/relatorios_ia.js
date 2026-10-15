@@ -122,7 +122,10 @@ O relatório DEVE ser gerado com as seguintes 6 seções numeradas preenchidas a
 6. CONSIDERAÇÕES FINAIS
 [Conclusão clínica, orientações para o paciente/destinatário e próximos passos.]
 
-Diretrizes: Tom elegante, sóbrio e técnico. Sem floreios nem ícones decorativos. Baseie-se 100% nos dados reais do prontuário acima. Não invente dados ausentes. Entregue o texto em Markdown com as seções numeradas destacadas.`
+REGRA CRÍTICA DE FORMATAÇÃO:
+- É ESTRITAMENTE PROIBIDO GERAR TABELAS MARKDOWN (nunca use separadores "|---|---|", barras verticais ou traços em grade).
+- Todo e qualquer dado comparativo (ADM, dinamometria, lado D vs E, exames) DEVE ser formatado em TEXTO CORRIDO ou em LISTAS SIMPLES COM MARCADORES (ex: "- Ombro D: Flexão 170° | Ombro E: Flexão 180°").
+- Tom elegante, sóbrio e técnico. Sem floreios nem ícones decorativos. Baseie-se 100% nos dados reais do prontuário acima. Não invente dados ausentes.`
 
       // 4. Chamada síncrona ao agente nativo Skip Cloud
       let agentResult
