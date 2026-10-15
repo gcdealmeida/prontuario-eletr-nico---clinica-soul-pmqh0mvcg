@@ -1124,14 +1124,30 @@ export default function GuiaUso() {
                 </div>
                 <div className="space-y-1">
                   <h5 className="font-bold text-sm text-[#33221C]">
-                    Processamento com o Agente Clínico Especialista SOUL
+                    Estrutura Oficial das 6 Seções Numeradas
                   </h5>
                   <p className="text-xs text-gray-600 leading-relaxed">
                     O agente nativo da Skip Cloud (<code>relatorios-clinica-soul</code>) lê os dados
-                    reais da avaliação (anamnese, goniometria, dinamometria, testes especiais,
-                    cirtometria, composição corporal, metas e evoluções) e redige o relatório
-                    mantendo fidelidade absoluta aos fatos clínicos, ajustando o vocabulário para o
-                    destinatário indicado.
+                    reais da avaliação e redige o documento organizado rigorosamente no{' '}
+                    <strong>Modelo Institucional de Documentos da Clínica SOUL</strong> nas 6 seções
+                    oficiais:
+                    <br />
+                    <strong>1. OBJETIVO DO RELATÓRIO</strong> · Finalidade e contexto do documento.
+                    <br />
+                    <strong>2. HISTÓRICO E QUEIXA PRINCIPAL</strong> · Anamnese, cronologia,
+                    sintomas e dor (EVA).
+                    <br />
+                    <strong>3. AVALIAÇÃO CLÍNICA E FUNCIONAL</strong> · ADM, dinamometria, testes
+                    especiais, postura e dados instrumentais.
+                    <br />
+                    <strong>4. INTERPRETAÇÃO DOS ACHADOS</strong> · Relação clínica, déficits,
+                    assimetrias e hipótese funcional.
+                    <br />
+                    <strong>5. CONDUTA / PLANO DE TRATAMENTO</strong> · Objetivos, recursos,
+                    frequência e metas de reavaliação.
+                    <br />
+                    <strong>6. CONSIDERAÇÕES FINAIS</strong> · Conclusão clínica, orientações e
+                    próximos passos.
                   </p>
                 </div>
               </div>
@@ -1143,19 +1159,22 @@ export default function GuiaUso() {
                 </div>
                 <div className="space-y-1">
                   <h5 className="font-bold text-sm text-[#33221C]">
-                    Revisão Editável, Cópia e Impressão / PDF A4 Timbrado
+                    Padrão Visual Institucional e Impressão A4 sem Sobreposição
                   </h5>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    • <strong>Edição Livre:</strong> O texto gerado aparece em uma área editável
-                    para que você possa fazer qualquer ajuste fino antes do uso e salvar as
-                    alterações.
-                    <br />• <strong>Copiar:</strong> Envie o texto formatado para WhatsApp ou e-mail
-                    com 1 clique.
-                    <br />• <strong>Imprimir / PDF:</strong> O sistema abre a impressão configurada
-                    com cabeçalho oficial da Clínica SOUL, dados cadastrais do paciente, data e
-                    campo para assinatura do profissional responsável.
-                    <br />• <strong>Regenerar:</strong> Permite solicitar uma nova versão caso
-                    queira mudar a ênfase ou incluir outros pontos.
+                    • <strong>Identidade Visual Oficial:</strong> Paleta Marrom SOUL (#6A402D),
+                    Dourado Champagne (#D5AE6F), Bege Claro (#F7F2EC) no bloco PACIENTE, títulos em
+                    Cormorant Garamond e seções em Montserrat caixa alta.
+                    <br />• <strong>Visualização e Edição Livre:</strong> Alterne entre a
+                    visualização oficial diagramada ou o editor de texto para fazer ajustes manuais
+                    antes do envio.
+                    <br />• <strong>Impressão / PDF A4 Perfeito:</strong> O CSS de impressão foi
+                    otimizado para eliminar qualquer sobreposição visual. O documento sai limpo, em
+                    folha A4 com logo no topo com respiro, linha dourada divisória, dados do
+                    paciente, seções numeradas, bloco de assinatura e rodapé padrão da Clínica SOUL.
+                    <br />• <strong>Copiar e Regenerar:</strong> Copie o texto puro para
+                    WhatsApp/e-mail com um clique ou solicite nova redação da IA caso queira
+                    enfatizar outros pontos.
                   </p>
                 </div>
               </div>

@@ -78,30 +78,51 @@ routerAdd(
       // 3. Montar o prompt rico integrando a necessidade e os dados reais
       const userName = auth.getString('name') || userEmail || 'Profissional SOUL'
 
-      const promptMensagem = `Gere um Relatório Clínico Otimizado conforme a seguinte instrução:
+      const promptMensagem = `Gere um Relatório Clínico / Funcional no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
 
 INSTRUÇÃO / NECESSIDADE DO PROFISSIONAL:
 "${necessidade}"
 
 ${publicoAlvo ? `PÚBLICO-ALVO / DESTINATÁRIO: ${publicoAlvo}` : ''}
-${tituloSugerido ? `TÍTULO SUGERIDO: ${tituloSugerido}` : ''}
+${tituloSugerido ? `TÍTULO / SUBTÍTULO SUGERIDO: ${tituloSugerido}` : ''}
 
-DADOS DA CLÍNICA & EMISSOR:
-- Clínica: Clínica SOUL (Saúde e Bem-Estar)
-- Profissional Emissor: ${userName} (${especialidade})
-- Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}
+DADOS DA CLÍNICA & PROFISSIONAL RESPONSÁVEL:
+- Instituição: Clínica SOUL — Saúde e Bem Estar
+- Profissional Responsável: ${userName} (${especialidade})
+- Data da Avaliação/Emissão: ${new Date().toLocaleDateString('pt-BR')}
 
-DADOS DO PACIENTE:
+DADOS CADASTRAIS DO PACIENTE:
 - Nome Completo: ${pacienteNome}
 - CPF: ${pacienteCpf || 'Não informado'}
 - Data de Nascimento: ${pacienteNasc || 'Não informada'}
-- Especialidade da Avaliação: ${especialidade}
-- ID do Prontuário: ${avaliacaoId}
+- Especialidade: ${especialidade}
+- Prontuário / ID da Avaliação: ${avaliacaoId}
 
 DADOS REAIS DO PRONTUÁRIO / AVALIAÇÃO:
 ${JSON.stringify(dadosProntuario, null, 2)}
 
-Por favor, elabore um documento completo, claro, formal e elegante. Não responda em JSON, forneça o texto final pronto em Markdown para que o profissional possa revisar, assinar e imprimir.`
+ESTRUTURA OBRIGATÓRIA — MODELO INSTITUCIONAL DA CLÍNICA SOUL:
+O relatório DEVE ser gerado com as seguintes 6 seções numeradas preenchidas a partir dos dados acima:
+
+1. OBJETIVO DO RELATÓRIO
+[Descrever de forma objetiva a finalidade deste documento segundo a necessidade informada.]
+
+2. HISTÓRICO E QUEIXA PRINCIPAL
+[Anamnese, evolução dos sintomas, histórico clínico, limitações funcionais e EVA.]
+
+3. AVALIAÇÃO CLÍNICA E FUNCIONAL
+[Inspeção, mobilidade/ADM, força/dinamometria, testes especiais por segmento, testes funcionais, composição/postura e exames.]
+
+4. INTERPRETAÇÃO DOS ACHADOS
+[Relação clínica entre os achados, déficits, assimetrias, hipótese disfuncional e repercussões funcionais.]
+
+5. CONDUTA / PLANO DE TRATAMENTO
+[Objetivos terapêuticos, frequência, progressão, condutas recomendadas e critérios de reavaliação.]
+
+6. CONSIDERAÇÕES FINAIS
+[Conclusão clínica, orientações para o paciente/destinatário e próximos passos.]
+
+Diretrizes: Tom elegante, sóbrio e técnico. Sem floreios nem ícones decorativos. Baseie-se 100% nos dados reais do prontuário acima. Não invente dados ausentes. Entregue o texto em Markdown com as seções numeradas destacadas.`
 
       // 4. Chamada síncrona ao agente nativo Skip Cloud
       let agentResult

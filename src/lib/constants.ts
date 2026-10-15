@@ -9,6 +9,13 @@ export const SOUL_PALETTE = {
   copperLight: '#D6957B',
   cream: '#FAF7F1',
   linen: '#F4EFE6',
+  // Paleta Institucional Oficial Clínica SOUL (Modelo de Documentos)
+  marromSoul: '#6A402D',
+  douradoChampagne: '#D5AE6F',
+  bronzeRose: '#B86545',
+  begeClaro: '#F7F2EC',
+  cinzaQuente: '#5F544F',
+  branco: '#FFFFFF',
 } as const
 
 export const ESPECIALIDADE_COLORS = {
