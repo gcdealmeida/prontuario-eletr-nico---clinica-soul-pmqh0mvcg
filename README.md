@@ -1,6 +1,6 @@
-# Projeto Criado com o Skip
+# Sistema de Prontuário Eletrônico — Clínica SOUL
 
-Este projeto foi criado de ponta a ponta com o [Skip](https://goskip.dev).
+Sistema oficial de prontuário eletrônico, avaliações multidisciplinares (Fisioterapia & Personal Trainer) e pré-cadastro de pacientes da Clínica SOUL.
 
 ## 🚀 Stack Tecnológica
 

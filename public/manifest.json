@@ -1,0 +1,21 @@
+{
+  "name": "Clínica SOUL — Saúde e Bem-Estar",
+  "short_name": "Clínica SOUL",
+  "description": "Pré-Avaliação e Prontuário da Clínica SOUL — Saúde, Bem-Estar e Fisioterapia Integrada.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FCF9F3",
+  "theme_color": "#FAF4EA",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/logo-soul.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

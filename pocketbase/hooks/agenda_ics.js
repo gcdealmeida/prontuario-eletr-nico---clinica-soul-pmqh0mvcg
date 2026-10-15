@@ -141,7 +141,7 @@ routerAdd('GET', '/calendar/{token}/agenda.ics', (e) => {
       }
 
       lines.push('BEGIN:VEVENT')
-      lines.push(`UID:soul-consulta-${cId}@sistema-soul.goskip.dev`)
+      lines.push(`UID:soul-consulta-${cId}@clinicasoul.com.br`)
       lines.push(`DTSTAMP:${nowUtcStr}`)
       lines.push(`DTSTART:${startIcs}`)
       lines.push(`DTEND:${endIcs}`)
