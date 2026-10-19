@@ -74,6 +74,14 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { ReguaEva, EvaBadge } from '@/components/ReguaEva'
 import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
+import {
+  salvarRascunhoLocal,
+  carregarRascunhoLocal,
+  limparRascunhoLocal,
+  type RascunhoLocalItem,
+} from '@/services/rascunhoLocal'
+import { useNavigationBlocker } from '@/hooks/use-navigation-blocker'
+import { ModalAlertaSaida } from '@/components/ModalAlertaSaida'
 
 interface SecaoEvolucoesProps {
   pacienteId: string
@@ -131,6 +139,122 @@ export function SecaoEvolucoes({
   // Evolução rápida
   const [textoLivre, setTextoLivre] = useState('')
 
+  // Controle de rascunho local e proteção contra perda de dados na evolução
+  const [isModalDirty, setIsModalDirty] = useState(false)
+  const [rascunhoEvolucaoEncontrado, setRascunhoEvolucaoEncontrado] =
+    useState<RascunhoLocalItem | null>(null)
+  const [modalLeaveConfirmOpen, setModalLeaveConfirmOpen] = useState(false)
+  const isSuccessfullySavedRef = useRef(false)
+
+  // Guarda de navegação interna da página caso modal esteja aberto com dados digitados
+  const shouldBlockPage = modalOpen && isModalDirty && !isSuccessfullySavedRef.current && !saving
+  const { isBlocked, confirmLeave, cancelLeave } = useNavigationBlocker({
+    when: shouldBlockPage,
+    message:
+      'Você possui uma evolução clínica preenchida e ainda não salva. Se você sair agora, os dados não salvos poderão ser perdidos. Deseja realmente sair?',
+  })
+
+  // Checar se há rascunho local quando modal abre para nova evolução (não em edição de ID existente)
+  useEffect(() => {
+    if (!modalOpen || editingId || !pacienteId) {
+      setRascunhoEvolucaoEncontrado(null)
+      return
+    }
+
+    const rascunho = carregarRascunhoLocal('evolucao', pacienteId, formEspecialidade)
+    if (rascunho && rascunho.data) {
+      const d = rascunho.data
+      const temConteudo = Boolean(
+        d.subjetivo ||
+        d.objetivo ||
+        d.avaliacaoClinica ||
+        d.plano ||
+        d.condutaProcedimentos ||
+        d.textoLivre,
+      )
+      if (temConteudo) {
+        setRascunhoEvolucaoEncontrado(rascunho)
+      } else {
+        setRascunhoEvolucaoEncontrado(null)
+      }
+    }
+  }, [modalOpen, editingId, pacienteId, formEspecialidade])
+
+  // Autosave a cada ~20 segundos do formulário SOAP de evolução enquanto aberto e sujo
+  useEffect(() => {
+    if (!modalOpen || !isModalDirty || !pacienteId || isSuccessfullySavedRef.current) return
+
+    const interval = setInterval(() => {
+      const payloadDraft = {
+        formTipo,
+        formEspecialidade,
+        formData,
+        formProfissional,
+        subjetivo,
+        objetivo,
+        avaliacaoClinica,
+        plano,
+        condutaProcedimentos,
+        textoLivre,
+        evaDor,
+      }
+      salvarRascunhoLocal('evolucao', pacienteId, formEspecialidade, payloadDraft, {
+        pacienteNome,
+        especialidade: formEspecialidade,
+      })
+    }, 20000)
+
+    return () => clearInterval(interval)
+  }, [
+    modalOpen,
+    isModalDirty,
+    pacienteId,
+    formEspecialidade,
+    formTipo,
+    formData,
+    formProfissional,
+    subjetivo,
+    objetivo,
+    avaliacaoClinica,
+    plano,
+    condutaProcedimentos,
+    textoLivre,
+    evaDor,
+    pacienteNome,
+  ])
+
+  const restaurarRascunhoEvolucao = () => {
+    if (!rascunhoEvolucaoEncontrado) return
+    const d = rascunhoEvolucaoEncontrado.data
+    if (d.formTipo) setFormTipo(d.formTipo)
+    if (d.formData) setFormData(d.formData)
+    if (d.formProfissional) setFormProfissional(d.formProfissional)
+    if (d.subjetivo !== undefined) setSubjetivo(d.subjetivo)
+    if (d.objetivo !== undefined) setObjetivo(d.objetivo)
+    if (d.avaliacaoClinica !== undefined) setAvaliacaoClinica(d.avaliacaoClinica)
+    if (d.plano !== undefined) setPlano(d.plano)
+    if (d.condutaProcedimentos !== undefined) setCondutaProcedimentos(d.condutaProcedimentos)
+    if (d.textoLivre !== undefined) setTextoLivre(d.textoLivre)
+    if (typeof d.evaDor === 'number') setEvaDor(d.evaDor)
+
+    setIsModalDirty(true)
+    toast({
+      title: 'Rascunho de evolução restaurado!',
+      description: `Conteúdo de ${formatDataHoraPTBR(rascunhoEvolucaoEncontrado.meta.updatedAt)} restaurado.`,
+    })
+    setRascunhoEvolucaoEncontrado(null)
+  }
+
+  const descartarRascunhoEvolucao = () => {
+    if (!pacienteId) return
+    limparRascunhoLocal('evolucao', pacienteId, formEspecialidade)
+    setRascunhoEvolucaoEncontrado(null)
+    toast({
+      title: 'Rascunho descartado',
+      description: 'O rascunho anterior de evolução foi removido.',
+    })
+  }
+
   const carregarEvolucoes = async () => {
     if (!pacienteId) return
     try {
@@ -180,6 +304,9 @@ export function SecaoEvolucoes({
     setPlano('')
     setCondutaProcedimentos('')
     setTextoLivre('')
+    setIsModalDirty(false)
+    isSuccessfullySavedRef.current = false
+    setRascunhoEvolucaoEncontrado(null)
     // Pré-carrega o valor da última EVA registrada (se houver) para agilizar o atendimento
     setEvaDor(referenciaUltimaEva ? referenciaUltimaEva.valor : null)
   }
@@ -330,6 +457,9 @@ export function SecaoEvolucoes({
       let evolucaoSalva: EvolucaoRecord | null = null
       if (editingId) {
         evolucaoSalva = await updateEvolucao(editingId, payload)
+        isSuccessfullySavedRef.current = true
+        setIsModalDirty(false)
+        limparRascunhoLocal('evolucao', pacienteId, formEspecialidade)
         toast({
           title:
             formStatus === 'Finalizada' ? 'Evolução Assinada com Sucesso!' : 'Rascunho Atualizado',
@@ -343,6 +473,9 @@ export function SecaoEvolucoes({
           addToTimeline: formStatus === 'Finalizada',
           assinarImediatamente: formStatus === 'Finalizada',
         })
+        isSuccessfullySavedRef.current = true
+        setIsModalDirty(false)
+        limparRascunhoLocal('evolucao', pacienteId, formEspecialidade)
         toast({
           title:
             formStatus === 'Finalizada'
@@ -433,6 +566,32 @@ export function SecaoEvolucoes({
 
   return (
     <div className="space-y-6">
+      {/* Modal de confirmação ao tentar sair da rota com evolução suja */}
+      <ModalAlertaSaida
+        open={isBlocked}
+        title="Evolução clínica não salva"
+        description="Você possui dados preenchidos nesta sessão que ainda não foram gravados no servidor. Se sair agora, o que digitou poderá ser perdido. Deseja realmente sair desta tela?"
+        confirmText="Sim, sair sem salvar"
+        cancelText="Continuar editando"
+        onConfirm={confirmLeave}
+        onCancel={cancelLeave}
+      />
+
+      {/* Modal de confirmação ao tentar fechar o modal de evolução com dados preenchidos */}
+      <ModalAlertaSaida
+        open={modalLeaveConfirmOpen}
+        title="Descartar evolução em andamento?"
+        description="Você possui anotações preenchidas nesta evolução. Se fechar a janela agora sem salvar, as alterações não salvas serão perdidas."
+        confirmText="Sim, fechar sem salvar"
+        cancelText="Continuar preenchendo"
+        onConfirm={() => {
+          setModalLeaveConfirmOpen(false)
+          setModalOpen(false)
+          resetForm()
+        }}
+        onCancel={() => setModalLeaveConfirmOpen(false)}
+      />
+
       {/* Topo da Aba Evoluções */}
       <div className="bg-[#FAF5EE] rounded-3xl p-6 sm:p-7 border border-[#E9E1D2] flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div className="space-y-1">
@@ -905,7 +1064,21 @@ export function SecaoEvolucoes({
       )}
 
       {/* MODAL CRIAR / EDITAR EVOLUÇÃO */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog
+        open={modalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (isModalDirty && !isSuccessfullySavedRef.current) {
+              setModalLeaveConfirmOpen(true)
+            } else {
+              setModalOpen(false)
+              resetForm()
+            }
+          } else {
+            setModalOpen(true)
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-7 border border-[#E9E1D2] bg-white shadow-xl">
           <DialogHeader className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-[#8C6527] font-semibold">
@@ -922,6 +1095,39 @@ export function SecaoEvolucoes({
             </DialogDescription>
           </DialogHeader>
 
+          {/* Banner de restauração de rascunho de evolução se encontrado */}
+          {rascunhoEvolucaoEncontrado && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>
+                  Rascunho não salvo de{' '}
+                  <strong>{formatDataHoraPTBR(rascunhoEvolucaoEncontrado.meta.updatedAt)}</strong>{' '}
+                  encontrado.
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={descartarRascunhoEvolucao}
+                  className="h-7 px-2.5 text-[11px] rounded-lg border-amber-200"
+                >
+                  Descartar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={restaurarRascunhoEvolucao}
+                  className="h-7 px-3 text-[11px] font-bold rounded-lg bg-[#8C6527] text-white hover:bg-[#704F1D] flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" /> Restaurar
+                </Button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmitForm} className="space-y-4 pt-2">
             {/* Metadados da Sessão */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
@@ -931,9 +1137,12 @@ export function SecaoEvolucoes({
                   type="datetime-local"
                   required
                   value={formData}
-                  onChange={(e) => setFormData(e.target.value)}
+                  onChange={(e) => {
+                    setIsModalDirty(true)
+                    setFormData(e.target.value)
+                  }}
                   className="h-9 rounded-xl border-gray-200 text-xs"
-                />
+                />{' '}
               </div>
 
               <div className="space-y-1">
@@ -978,7 +1187,10 @@ export function SecaoEvolucoes({
               <Input
                 required
                 value={formProfissional}
-                onChange={(e) => setFormProfissional(e.target.value)}
+                onChange={(e) => {
+                  setIsModalDirty(true)
+                  setFormProfissional(e.target.value)
+                }}
                 placeholder="Ex: Dr. Roberto / Fisio Beatriz / Coach Lucas"
                 className="h-9 rounded-xl border-gray-200 text-xs"
               />
@@ -988,7 +1200,10 @@ export function SecaoEvolucoes({
             <div className="pt-1">
               <ReguaEva
                 value={evaDor}
-                onChange={setEvaDor}
+                onChange={(val) => {
+                  setIsModalDirty(true)
+                  setEvaDor(val)
+                }}
                 referenciaAnterior={referenciaUltimaEva}
               />
             </div>
@@ -1041,7 +1256,10 @@ export function SecaoEvolucoes({
                   <Textarea
                     rows={2}
                     value={subjetivo}
-                    onChange={(e) => setSubjetivo(e.target.value)}
+                    onChange={(e) => {
+                      setIsModalDirty(true)
+                      setSubjetivo(e.target.value)
+                    }}
                     placeholder={
                       typeof evaDor === 'number'
                         ? `[EVA ${evaDor}/10 selecionada na régua acima] Ex: Paciente relata melhora das dores ao acordar...`
@@ -1067,7 +1285,10 @@ export function SecaoEvolucoes({
                   <Textarea
                     rows={2}
                     value={objetivo}
-                    onChange={(e) => setObjetivo(e.target.value)}
+                    onChange={(e) => {
+                      setIsModalDirty(true)
+                      setObjetivo(e.target.value)
+                    }}
                     placeholder="Ex: Flexão de ombro atingiu 150° (ganho de 15°). Teste de Neer negativo hoje. Dinamometria: 22 kgf..."
                     className="rounded-xl border-gray-200 text-xs sm:text-sm"
                   />
@@ -1089,7 +1310,10 @@ export function SecaoEvolucoes({
                   <Textarea
                     rows={2}
                     value={avaliacaoClinica}
-                    onChange={(e) => setAvaliacaoClinica(e.target.value)}
+                    onChange={(e) => {
+                      setIsModalDirty(true)
+                      setAvaliacaoClinica(e.target.value)
+                    }}
                     placeholder="Ex: Boa evolução do arco de movimento sem compensação escapular. Resposta favorável à terapia manual..."
                     className="rounded-xl border-gray-200 text-xs sm:text-sm"
                   />
@@ -1111,7 +1335,10 @@ export function SecaoEvolucoes({
                   <Textarea
                     rows={2}
                     value={plano}
-                    onChange={(e) => setPlano(e.target.value)}
+                    onChange={(e) => {
+                      setIsModalDirty(true)
+                      setPlano(e.target.value)
+                    }}
                     placeholder="Ex: Iniciar fortalecimento excêntrico com elástico amarelo na próxima sessão. Manter gelo pós-treino..."
                     className="rounded-xl border-gray-200 text-xs sm:text-sm"
                   />
@@ -1128,7 +1355,10 @@ export function SecaoEvolucoes({
                   <Textarea
                     rows={2}
                     value={condutaProcedimentos}
-                    onChange={(e) => setCondutaProcedimentos(e.target.value)}
+                    onChange={(e) => {
+                      setIsModalDirty(true)
+                      setCondutaProcedimentos(e.target.value)
+                    }}
                     placeholder="Ex: Terapia manual glenoumeral grau III (10 min) + Fortalecimento manguito com theraband verde 3x12 + Crioterapia..."
                     className="rounded-xl border-[#E9E1D2] text-xs sm:text-sm focus-visible:ring-[#C9A46A]"
                   />
@@ -1145,7 +1375,10 @@ export function SecaoEvolucoes({
                 <Textarea
                   rows={7}
                   value={textoLivre}
-                  onChange={(e) => setTextoLivre(e.target.value)}
+                  onChange={(e) => {
+                    setIsModalDirty(true)
+                    setTextoLivre(e.target.value)
+                  }}
                   placeholder="Descreva o atendimento completo: relato do paciente, condutas realizadas na sessão, resposta fisiológica e orientações..."
                   className="rounded-xl border-gray-200 text-xs sm:text-sm"
                 />
@@ -1171,7 +1404,14 @@ export function SecaoEvolucoes({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setModalOpen(false)}
+                onClick={() => {
+                  if (isModalDirty && !isSuccessfullySavedRef.current) {
+                    setModalLeaveConfirmOpen(true)
+                  } else {
+                    setModalOpen(false)
+                    resetForm()
+                  }
+                }}
                 className="rounded-xl h-10 text-xs text-gray-500 hover:text-gray-800"
               >
                 Cancelar

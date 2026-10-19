@@ -30,6 +30,8 @@ interface FormFisioterapiaProps {
   submitting: boolean
   paciente?: PacienteRecord
   existingRecordId?: string
+  etapaAtual?: number
+  onEtapaChange?: (etapa: number) => void
 }
 
 export const ETAPAS_FISIO = [
@@ -64,19 +66,30 @@ export const FormFisioterapia: React.FC<FormFisioterapiaProps> = ({
   submitting,
   paciente,
   existingRecordId,
+  etapaAtual: controlledEtapa,
+  onEtapaChange,
 }) => {
-  const [etapaAtual, setEtapaAtual] = React.useState(1)
+  const [internalEtapa, setInternalEtapa] = React.useState(1)
+  const etapaAtual = controlledEtapa !== undefined ? controlledEtapa : internalEtapa
+
+  const setEtapa = (novaEtapa: number) => {
+    if (onEtapaChange) {
+      onEtapaChange(novaEtapa)
+    } else {
+      setInternalEtapa(novaEtapa)
+    }
+  }
 
   const handleNext = () => {
     if (etapaAtual < 7) {
-      setEtapaAtual(etapaAtual + 1)
+      setEtapa(etapaAtual + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
   const handlePrev = () => {
     if (etapaAtual > 1) {
-      setEtapaAtual(etapaAtual - 1)
+      setEtapa(etapaAtual - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
@@ -117,7 +130,7 @@ export const FormFisioterapia: React.FC<FormFisioterapiaProps> = ({
               <button
                 key={step.id}
                 type="button"
-                onClick={() => setEtapaAtual(step.id)}
+                onClick={() => setEtapa(step.id)}
                 className={`p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all text-center ${
                   isActive
                     ? 'bg-[#1E2530] text-white shadow-xs'

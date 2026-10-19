@@ -32,6 +32,8 @@ interface FormPersonalProps {
   submitting: boolean
   paciente?: PacienteRecord
   existingRecordId?: string
+  etapaAtual?: number
+  onEtapaChange?: (etapa: number) => void
 }
 
 export const ETAPAS_PERSONAL = [
@@ -52,23 +54,33 @@ export const FormPersonal: React.FC<FormPersonalProps> = ({
   submitting,
   paciente,
   existingRecordId,
+  etapaAtual: controlledEtapa,
+  onEtapaChange,
 }) => {
-  const [etapaAtual, setEtapaAtual] = useState(1)
+  const [internalEtapa, setInternalEtapa] = React.useState(1)
+  const etapaAtual = controlledEtapa !== undefined ? controlledEtapa : internalEtapa
+
+  const setEtapa = (novaEtapa: number) => {
+    if (onEtapaChange) {
+      onEtapaChange(novaEtapa)
+    } else {
+      setInternalEtapa(novaEtapa)
+    }
+  }
 
   const handleNext = () => {
     if (etapaAtual < 8) {
-      setEtapaAtual(etapaAtual + 1)
+      setEtapa(etapaAtual + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
   const handlePrev = () => {
     if (etapaAtual > 1) {
-      setEtapaAtual(etapaAtual - 1)
+      setEtapa(etapaAtual - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
-
   return (
     <div className="space-y-6">
       {/* Stepper Navigation Visual Padrão SOUL */}
@@ -105,7 +117,7 @@ export const FormPersonal: React.FC<FormPersonalProps> = ({
               <button
                 key={step.id}
                 type="button"
-                onClick={() => setEtapaAtual(step.id)}
+                onClick={() => setEtapa(step.id)}
                 className={`p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all text-center ${
                   isActive
                     ? 'bg-[#1E2530] text-white shadow-xs'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   HeartPulse,
@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Save,
   Loader2,
+  AlertCircle,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,10 +41,18 @@ import {
   garantirPresencaAutomatica,
   mapearEspecialidadeParaServicoPresenca,
 } from '@/services/presencas'
+import {
+  salvarRascunhoLocal,
+  carregarRascunhoLocal,
+  limparRascunhoLocal,
+  type RascunhoLocalItem,
+} from '@/services/rascunhoLocal'
+import { useNavigationBlocker } from '@/hooks/use-navigation-blocker'
+import { ModalAlertaSaida } from '@/components/ModalAlertaSaida'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import type { PacienteRecord, Especialidade, StatusAvaliacao } from '@/types/database'
-import { ESPECIALIDADE_COLORS } from '@/lib/constants'
+import { ESPECIALIDADE_COLORS, formatDataHoraPTBR } from '@/lib/constants'
 import { FormFisioterapia } from '@/components/fisioterapia/FormFisioterapia'
 import { FormPersonal } from '@/components/personal/FormPersonal'
 
@@ -63,8 +74,16 @@ export default function NovaAvaliacao() {
   )
 
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+  const [etapaFisio, setEtapaFisio] = useState(1)
+  const [etapaPersonal, setEtapaPersonal] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [loadingInitial, setLoadingInitial] = useState(false)
+
+  // Controle de rascunho local e restauração
+  const [rascunhoEncontrado, setRascunhoEncontrado] = useState<RascunhoLocalItem | null>(null)
+  const [isFormDirty, setIsFormDirty] = useState(false)
+  const [ultimoSalvoLocal, setUltimoSalvoLocal] = useState<Date | null>(null)
+  const isSuccessfullySavedRef = useRef(false)
 
   // Form State genérico
   const [formData, setFormData] = useState<Record<string, any>>({
@@ -141,7 +160,83 @@ export default function NovaAvaliacao() {
     }
   }, [editId, preEspecialidade])
 
+  // Guarda de navegação quando houver dados preenchidos não salvos
+  const shouldBlockNavigation = isFormDirty && !isSuccessfullySavedRef.current && !submitting
+  const { isBlocked, confirmLeave, cancelLeave } = useNavigationBlocker({
+    when: shouldBlockNavigation,
+    message:
+      'Você possui uma avaliação preenchida que ainda não foi salva no servidor. Se sair agora, seus dados não salvos poderão ser perdidos. Deseja realmente sair?',
+  })
+
+  // Checar se há rascunho local disponível ao definir paciente e especialidade
+  useEffect(() => {
+    if (!selectedPacienteId || editId) {
+      setRascunhoEncontrado(null)
+      return
+    }
+
+    const rascunho = carregarRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
+
+    if (rascunho && rascunho.data) {
+      // Se tiver dados relevantes preenchidos
+      const temDados =
+        Object.keys(rascunho.data).length > 3 ||
+        Boolean(rascunho.data.queixa_principal || rascunho.data.anamnese_detalhada)
+      if (temDados) {
+        setRascunhoEncontrado(rascunho)
+      } else {
+        setRascunhoEncontrado(null)
+      }
+    } else {
+      setRascunhoEncontrado(null)
+    }
+  }, [selectedPacienteId, selectedEspecialidade, editId])
+
+  // Função para salvar rascunho local
+  const dispararSalvamentoLocal = (novoFormData: Record<string, any>, etapaNum?: number) => {
+    if (!selectedPacienteId || isSuccessfullySavedRef.current) return
+    const pacienteAtual = pacientes.find((p) => p.id === selectedPacienteId)
+    // Remove uploads de arquivos nativos do JSON (pois File não serializa em JSON)
+    const dadosParaSalvar = { ...novoFormData }
+    delete dadosParaSalvar._pending_exames_files
+    delete dadosParaSalvar._pending_dinamometro_files
+    delete dadosParaSalvar._pending_postura_files
+
+    salvarRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade, dadosParaSalvar, {
+      pacienteNome: pacienteAtual?.nome,
+      especialidade: selectedEspecialidade,
+      step,
+      sectionIndex:
+        selectedEspecialidade === 'Fisioterapia'
+          ? (etapaNum ?? etapaFisio)
+          : selectedEspecialidade === 'Personal'
+            ? (etapaNum ?? etapaPersonal)
+            : currentSectionIndex,
+    })
+    setUltimoSalvoLocal(new Date())
+  }
+
+  // Autosave a cada ~20 segundos quando o formulário estiver sujo
+  useEffect(() => {
+    if (!isFormDirty || !selectedPacienteId || isSuccessfullySavedRef.current) return
+
+    const interval = setInterval(() => {
+      dispararSalvamentoLocal(formData)
+    }, 20000)
+
+    return () => clearInterval(interval)
+  }, [
+    isFormDirty,
+    selectedPacienteId,
+    selectedEspecialidade,
+    formData,
+    etapaFisio,
+    etapaPersonal,
+    currentSectionIndex,
+  ])
+
   const handleFieldChange = (field: string, value: any) => {
+    setIsFormDirty(true)
     setFormData((prev) => {
       const updated = { ...prev, [field]: value }
       // Auto-compute IMC se peso e altura presentes
@@ -154,6 +249,56 @@ export default function NovaAvaliacao() {
         }
       }
       return updated
+    })
+  }
+
+  // Ao mudar de etapa, salva o rascunho local imediatamente
+  const handleEtapaFisioChange = (novaEtapa: number) => {
+    setEtapaFisio(novaEtapa)
+    if (isFormDirty) {
+      dispararSalvamentoLocal(formData, novaEtapa)
+    }
+  }
+
+  const handleEtapaPersonalChange = (novaEtapa: number) => {
+    setEtapaPersonal(novaEtapa)
+    if (isFormDirty) {
+      dispararSalvamentoLocal(formData, novaEtapa)
+    }
+  }
+
+  // Restaurar rascunho local encontrado
+  const handleRestaurarRascunho = () => {
+    if (!rascunhoEncontrado) return
+    setFormData(rascunhoEncontrado.data)
+    setIsFormDirty(true)
+    if (rascunhoEncontrado.meta.step) {
+      setStep(rascunhoEncontrado.meta.step)
+    }
+    if (typeof rascunhoEncontrado.meta.sectionIndex === 'number') {
+      if (selectedEspecialidade === 'Fisioterapia') {
+        setEtapaFisio(rascunhoEncontrado.meta.sectionIndex || 1)
+      } else if (selectedEspecialidade === 'Personal') {
+        setEtapaPersonal(rascunhoEncontrado.meta.sectionIndex || 1)
+      } else {
+        setCurrentSectionIndex(rascunhoEncontrado.meta.sectionIndex || 0)
+      }
+    }
+    toast({
+      title: 'Rascunho local restaurado!',
+      description: `Os dados salvos em ${formatDataHoraPTBR(rascunhoEncontrado.meta.updatedAt)} foram carregados com sucesso.`,
+    })
+    setRascunhoEncontrado(null)
+  }
+
+  // Descartar rascunho local encontrado
+  const handleDescartarRascunho = () => {
+    if (!selectedPacienteId) return
+    limparRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
+    setRascunhoEncontrado(null)
+    toast({
+      title: 'Rascunho descartado',
+      description: 'O rascunho não salvo anterior foi removido.',
     })
   }
 
@@ -440,14 +585,22 @@ export default function NovaAvaliacao() {
 
   const handleNextSection = () => {
     if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1)
+      const nextIdx = currentSectionIndex + 1
+      setCurrentSectionIndex(nextIdx)
+      if (isFormDirty) {
+        dispararSalvamentoLocal(formData, nextIdx)
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
   const handlePrevSection = () => {
     if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(currentSectionIndex - 1)
+      const prevIdx = currentSectionIndex - 1
+      setCurrentSectionIndex(prevIdx)
+      if (isFormDirty) {
+        dispararSalvamentoLocal(formData, prevIdx)
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
@@ -565,17 +718,25 @@ export default function NovaAvaliacao() {
       let savedRecordId = editId
       if (editId) {
         await updateAvaliacao(col, editId, requestData)
+        isSuccessfullySavedRef.current = true
+        setIsFormDirty(false)
+        limparRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
         toast({
           title: 'Avaliação atualizada com sucesso!',
+          description: 'Todos os dados foram gravados com segurança no servidor.',
         })
       } else {
         const created = await createAvaliacao(col, requestData)
         savedRecordId = created.id
+        isSuccessfullySavedRef.current = true
+        setIsFormDirty(false)
+        limparRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
         toast({
           title:
             statusFinal === 'Concluída'
               ? 'Avaliação concluída com sucesso!'
               : 'Avaliação salva como rascunho.',
+          description: 'Todos os dados foram gravados com segurança no servidor.',
         })
       }
 
@@ -679,6 +840,17 @@ export default function NovaAvaliacao() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Modal de bloqueio de navegação interna com dados não salvos */}
+      <ModalAlertaSaida
+        open={isBlocked}
+        title="Avaliação não salva"
+        description="Você possui dados preenchidos desta avaliação que ainda não foram gravados no servidor. Se sair agora, as informações não salvas serão perdidas. Deseja realmente sair desta tela?"
+        confirmText="Sim, sair sem salvar"
+        cancelText="Continuar editando"
+        onConfirm={confirmLeave}
+        onCancel={cancelLeave}
+      />
+
       {/* Top back & banner de segurança se cair na tela sem intenção */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <Button
@@ -855,6 +1027,46 @@ export default function NovaAvaliacao() {
       {/* STEP 2: Formulário Dinâmico da Especialidade */}
       {step === 2 && (
         <div className="space-y-6 animate-fade-in">
+          {/* Alerta de Restauração de Rascunho Local */}
+          {rascunhoEncontrado && (
+            <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 border-2 border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <span className="p-2 rounded-2xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                  <AlertCircle className="h-5 w-5 text-amber-700" />
+                </span>
+                <div>
+                  <h4 className="font-bold text-sm text-amber-950">
+                    Rascunho não salvo encontrado!
+                  </h4>
+                  <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                    Encontramos um rascunho salvo localmente em{' '}
+                    <strong>{formatDataHoraPTBR(rascunhoEncontrado.meta.updatedAt)}</strong> para
+                    este atendimento. Deseja restaurar o que foi preenchido anteriormente?
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDescartarRascunho}
+                  className="rounded-xl h-9 text-xs border-amber-200 text-amber-900 hover:bg-amber-100/60"
+                >
+                  Descartar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleRestaurarRascunho}
+                  className="rounded-xl h-9 px-4 text-xs font-bold bg-[#8C6527] hover:bg-[#704F1D] text-white shadow-xs flex items-center gap-1.5"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Restaurar Rascunho
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Header Card do Paciente e Especialidade */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -869,9 +1081,23 @@ export default function NovaAvaliacao() {
                 <h2 className="text-lg font-bold text-gray-900">
                   {selectedPaciente?.nome || 'Paciente Selecionado'}
                 </h2>
-                <p className="text-xs text-gray-400">
-                  Profissional: {formData.profissional_responsavel || user?.name || 'Clínica SOUL'}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-gray-400">
+                    Profissional:{' '}
+                    {formData.profissional_responsavel || user?.name || 'Clínica SOUL'}
+                  </p>
+                  {ultimoSalvoLocal && (
+                    <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                      Salvo localmente às{' '}
+                      {ultimoSalvoLocal.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -894,6 +1120,8 @@ export default function NovaAvaliacao() {
               submitting={submitting}
               paciente={selectedPaciente}
               existingRecordId={editId}
+              etapaAtual={etapaFisio}
+              onEtapaChange={handleEtapaFisioChange}
             />
           ) : selectedEspecialidade === 'Personal' ? (
             /* Formulário da Avaliação Física do PHYSICAL TEST para Personal */
@@ -904,6 +1132,8 @@ export default function NovaAvaliacao() {
               submitting={submitting}
               paciente={selectedPaciente}
               existingRecordId={editId}
+              etapaAtual={etapaPersonal}
+              onEtapaChange={handleEtapaPersonalChange}
             />
           ) : (
             /* Formulário padrão para outras especialidades (Nutrição, Médico) */
