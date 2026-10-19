@@ -35,6 +35,7 @@ import {
   FileSpreadsheet,
   CalendarCheck2,
   Zap,
+  GitMerge,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -294,6 +295,13 @@ export default function GuiaUso() {
           >
             <CalendarCheck2 className="h-4 w-4 text-[#C9A46A]" />
             9. Presença / Confirmação
+          </TabsTrigger>
+          <TabsTrigger
+            value="mesclar-pacientes"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <GitMerge className="h-4 w-4 text-purple-400" />
+            10. Mesclar Cadastros (Admin)
           </TabsTrigger>
 
           <TabsTrigger
@@ -1884,7 +1892,132 @@ export default function GuiaUso() {
           </div>
         </TabsContent>
 
-        {/* TAB 9: PERGUNTAS FREQUENTES (FAQ) */}
+        {/* TAB 10: MESCLAR CADASTROS DUPLICADOS (ADMIN) */}
+        <TabsContent value="mesclar-pacientes" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-800 text-xs font-semibold mb-2">
+                <GitMerge className="h-3.5 w-3.5 text-purple-600" />
+                <span>Gestão Avançada de Prontuários · Exclusivo Administradores</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Mesclar Cadastros Duplicados de Pacientes
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Como unificar dois cadastros do mesmo paciente em um único registro consolidado,
+                preservando 100% da história clínica (avaliações, evoluções assinadas, laudos,
+                consultas e presenças).
+              </p>
+            </div>
+
+            {/* Alerta de Restrição de Acesso */}
+            <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5 text-purple-700 shrink-0 mt-0.5" />
+              <div className="text-xs text-purple-950 leading-relaxed">
+                <strong className="text-purple-900">Ação Restrita a Administradores:</strong> O
+                botão <strong>"Mesclar Cadastros"</strong> aparece exclusivamente para usuários com
+                papel de <em>Administrador</em> (ex: <code>gcdealmeida@gmail.com</code>).
+                Profissionais com acesso restrito (como Fisioterapeutas e Personais) não visualizam
+                o botão na interface e qualquer tentativa de chamada direta é bloqueada no servidor
+                com código HTTP 403.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  1. Seleção Lado a Lado
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">Principal vs. Duplicado</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  O administrador define com clareza qual cadastro é o <strong>Principal</strong>{' '}
+                  (que permanece) e qual é o <strong>Duplicado</strong> (que será absorvido e
+                  excluído). Há também um botão de inversão rápida de papéis.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  2. Migração Integral
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">História Preservada</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Avaliações de todas as áreas (Fisio, Personal, Nutrição, Medicina), exames
+                  anexados (ressonâncias, laudos), evoluções fechadas (<code>EVO-XXXX</code> com
+                  imutabilidade), presenças e relatórios IA são transferidos.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  3. Transacional & Seguro
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">Auditoria e Zero Perda</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Executado em transação única no banco de dados SQLite do servidor. Campos
+                  cadastrais vazios do principal são preenchidos com dados do duplicado (CPF,
+                  telefone, nascimento). A auditoria registra data, autor e contagens.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-[#E9E1D2]">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Como executar a mesclagem passo a passo:
+              </h4>
+
+              <div className="space-y-3 text-xs text-gray-700">
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    <strong>Onde iniciar:</strong> Na página <strong>Pacientes</strong>, clique no
+                    botão superior <strong>"Mesclar Cadastros"</strong> (ou no menu de três
+                    pontinhos de qualquer paciente → <em>"Mesclar com Outro..."</em>, ou no
+                    cabeçalho do perfil do paciente).
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    <strong>Escolher o Duplicado e o Principal:</strong> Selecione na coluna
+                    esquerda o cadastro duplicado (que será absorvido) e na coluna direita o
+                    cadastro principal oficial (que continuará no sistema).
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    <strong>Confirmação de Segurança:</strong> Confira os nomes, CPFs e status dos
+                    dois pacientes. Marque a caixa de confirmação explícita de ação irreversível.
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start">
+                  <div className="h-6 w-6 rounded-full bg-[#8C6527] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    4
+                  </div>
+                  <div>
+                    <strong>Execução e Resumo:</strong> Clique em{' '}
+                    <strong>"Confirmar e Mesclar Cadastros"</strong>. O servidor consolida todos os
+                    registros, emite registro nos logs de auditoria clínica, notifica os
+                    administradores e exibe o painel verde com o total de registros movidos por
+                    tabela.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 11: PERGUNTAS FREQUENTES (FAQ) */}
         <TabsContent value="faq" className="space-y-6 pt-2">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
             <div>

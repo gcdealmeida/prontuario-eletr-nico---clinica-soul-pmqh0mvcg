@@ -50,9 +50,10 @@ import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
 import { ModalImportarPacientes } from '@/components/ModalImportarPacientes'
 import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
+import { ModalMesclarPacientes } from '@/components/ModalMesclarPacientes'
 import { PacienteAcoesRapidas } from '@/components/PacienteAcoesRapidas'
 import { useAuth } from '@/contexts/AuthContext'
-import { Link as LinkIcon, Sparkles, FileSpreadsheet } from 'lucide-react'
+import { Link as LinkIcon, Sparkles, FileSpreadsheet, GitMerge } from 'lucide-react'
 
 export default function Pacientes() {
   const navigate = useNavigate()
@@ -109,6 +110,11 @@ export default function Pacientes() {
 
   // Modal Importar Avaliação Planilha (.xlsx)
   const [importAvaliacaoModalOpen, setImportAvaliacaoModalOpen] = useState(false)
+  const [mergeModalOpen, setMergeModalOpen] = useState(false)
+  const [mergeInitialPacienteId, setMergeInitialPacienteId] = useState<string | undefined>(
+    undefined,
+  )
+  const [mergeInitialRole, setMergeInitialRole] = useState<'target' | 'source'>('source')
 
   // Debounce search
   useEffect(() => {
@@ -291,16 +297,33 @@ export default function Pacientes() {
           </Button>
 
           {isAdmin && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setImportModalOpen(true)}
-              className="rounded-xl h-10 px-3.5 text-xs font-semibold border-amber-300/80 bg-amber-50/70 text-amber-900 hover:bg-amber-100/70 flex items-center gap-2 shadow-2xs"
-              title="Importar pacientes a partir de planilha Google Forms (.xlsx / .csv)"
-            >
-              <FileSpreadsheet className="h-4 w-4 text-amber-700" />
-              Importar Pacientes
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setMergeInitialPacienteId(undefined)
+                  setMergeInitialRole('source')
+                  setMergeModalOpen(true)
+                }}
+                className="rounded-xl h-10 px-3.5 text-xs font-semibold border-purple-300/80 bg-purple-50/70 text-purple-900 hover:bg-purple-100/70 flex items-center gap-2 shadow-2xs"
+                title="Unificar histórico de dois cadastros duplicados (somente Administradores)"
+              >
+                <GitMerge className="h-4 w-4 text-purple-700" />
+                Mesclar Cadastros
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setImportModalOpen(true)}
+                className="rounded-xl h-10 px-3.5 text-xs font-semibold border-amber-300/80 bg-amber-50/70 text-amber-900 hover:bg-amber-100/70 flex items-center gap-2 shadow-2xs"
+                title="Importar pacientes a partir de planilha Google Forms (.xlsx / .csv)"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-amber-700" />
+                Importar Pacientes
+              </Button>
+            </>
           )}
 
           <Button
@@ -537,6 +560,19 @@ export default function Pacientes() {
                             >
                               <UserCheck className="h-3.5 w-3.5 text-gray-500" /> Editar Dados
                             </DropdownMenuItem>
+                            {isAdmin && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setMergeInitialPacienteId(p.id)
+                                  setMergeInitialRole('source')
+                                  setMergeModalOpen(true)
+                                }}
+                                className="text-xs cursor-pointer flex items-center gap-2 text-purple-700 hover:text-purple-800"
+                              >
+                                <GitMerge className="h-3.5 w-3.5 text-purple-600" /> Mesclar com
+                                Outro...
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -850,6 +886,19 @@ export default function Pacientes() {
           navigate(`/pacientes/${res.pacienteId}`)
         }}
       />
+
+      {/* Modal Mesclar Pacientes Duplicados (Admin only) */}
+      {isAdmin && (
+        <ModalMesclarPacientes
+          open={mergeModalOpen}
+          onOpenChange={setMergeModalOpen}
+          initialPacienteId={mergeInitialPacienteId}
+          initialRole={mergeInitialRole}
+          onSuccess={() => {
+            fetchPacientesList()
+          }}
+        />
+      )}
     </div>
   )
 }

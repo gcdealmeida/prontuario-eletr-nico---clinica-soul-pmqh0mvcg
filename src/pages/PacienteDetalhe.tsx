@@ -54,7 +54,9 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
-import { FileSpreadsheet } from 'lucide-react'
+import { ModalMesclarPacientes } from '@/components/ModalMesclarPacientes'
+import { useAuth } from '@/contexts/AuthContext'
+import { FileSpreadsheet, GitMerge } from 'lucide-react'
 import { EvaBadge } from '@/components/ReguaEva'
 import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
 import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
@@ -69,6 +71,8 @@ export default function PacienteDetalhe() {
   const [activeTab, setActiveTab] = useState<string>(initialTab)
 
   const [loading, setLoading] = useState(true)
+  const { isAdmin } = useAuth()
+  const [mergeModalOpen, setMergeModalOpen] = useState(false)
   const [paciente, setPaciente] = useState<PacienteRecord | null>(null)
   const [timeline, setTimeline] = useState<TimelineRecord[]>([])
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({})
@@ -392,6 +396,19 @@ export default function PacienteDetalhe() {
                 className="bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold rounded-xl h-10 px-4 text-xs shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/50"
               >
                 Abrir Prontuário →
+              </Button>
+            )}
+
+            {isAdmin && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setMergeModalOpen(true)}
+                className="rounded-xl h-10 px-3.5 text-xs font-semibold border-purple-300/80 bg-purple-50/70 text-purple-900 hover:bg-purple-100/70 flex items-center gap-1.5 shadow-2xs"
+                title="Mesclar este paciente com outro cadastro duplicado (somente Administradores)"
+              >
+                <GitMerge className="h-4 w-4 text-purple-700" />
+                Mesclar Cadastro
               </Button>
             )}
 
@@ -1383,6 +1400,23 @@ export default function PacienteDetalhe() {
           loadData()
         }}
       />
+
+      {/* Modal Mesclar Paciente (Admin only) */}
+      {isAdmin && paciente && (
+        <ModalMesclarPacientes
+          open={mergeModalOpen}
+          onOpenChange={setMergeModalOpen}
+          initialPacienteId={paciente.id}
+          initialRole="target"
+          onSuccess={(res) => {
+            if (res.target_paciente_id === paciente.id) {
+              loadData()
+            } else {
+              navigate(`/pacientes/${res.target_paciente_id}`)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -51,3 +51,29 @@ export async function updatePaciente(id: string, data: Partial<PacienteRecord>) 
 export async function deletePaciente(id: string) {
   return await pb.collection('pacientes').delete(id)
 }
+
+export interface MergePacientesPayload {
+  target_paciente_id: string
+  source_paciente_id: string
+}
+
+export interface MergePacientesResponse {
+  success: boolean
+  message: string
+  target_paciente_id: string
+  target_paciente_nome: string
+  source_paciente_id: string
+  source_paciente_nome: string
+  registros_movidos: Record<string, number>
+  total_registros_movidos: number
+  campos_herdados: string[]
+}
+
+export async function mergePacientes(
+  payload: MergePacientesPayload,
+): Promise<MergePacientesResponse> {
+  return await pb.send<MergePacientesResponse>('/backend/v1/admin/pacientes/merge', {
+    method: 'POST',
+    body: payload,
+  })
+}
