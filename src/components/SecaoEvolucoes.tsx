@@ -64,6 +64,10 @@ import {
   updateEvolucao,
   deleteEvolucao,
 } from '@/services/evolucoes'
+import {
+  garantirPresencaAutomatica,
+  mapearEspecialidadeParaServicoPresenca,
+} from '@/services/presencas'
 import type { EvolucaoRecord, Especialidade, StatusEvolucao } from '@/types/database'
 import { ESPECIALIDADE_COLORS, formatDataPTBR, formatDataHoraPTBR } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -323,18 +327,19 @@ export function SecaoEvolucoes({
         evolucao_referencia_id: evolucaoReferenciaId || undefined,
       }
 
+      let evolucaoSalva: EvolucaoRecord | null = null
       if (editingId) {
-        await updateEvolucao(editingId, payload)
+        evolucaoSalva = await updateEvolucao(editingId, payload)
         toast({
           title:
             formStatus === 'Finalizada' ? 'Evolução Assinada com Sucesso!' : 'Rascunho Atualizado',
           description:
             formStatus === 'Finalizada'
-              ? 'O documento clínico foi assinado digitalmente e tornou-se imutável.'
+              ? 'O documento clínico foi assinado digitalmente e a presença foi confirmada.'
               : 'O rascunho da sessão foi atualizado.',
         })
       } else {
-        await createEvolucao(payload, {
+        evolucaoSalva = await createEvolucao(payload, {
           addToTimeline: formStatus === 'Finalizada',
           assinarImediatamente: formStatus === 'Finalizada',
         })
@@ -345,9 +350,32 @@ export function SecaoEvolucoes({
               : 'Rascunho de Evolução Salvo',
           description:
             formStatus === 'Finalizada'
-              ? 'Assinatura digital aplicada com data, hora e registro oficial da Clínica SOUL.'
+              ? 'Assinatura digital aplicada com data, hora e presença confirmada automaticamente na lista de Presenças.'
               : 'A evolução foi salva como rascunho e permanece editável até a assinatura.',
         })
+      }
+
+      // Garantia de lançamento de presença caso a evolução tenha sido finalizada/assinada
+      if (formStatus === 'Finalizada' && evolucaoSalva) {
+        try {
+          const { area, detalhe } = mapearEspecialidadeParaServicoPresenca(
+            formEspecialidade,
+            'evolucao',
+          )
+          const regNum = evolucaoSalva.numero_registro || `EVO-${evolucaoSalva.id}`
+          await garantirPresencaAutomatica({
+            pacienteId,
+            pacienteNome,
+            profissionalNome: formProfissional.trim(),
+            dataAtendimento: dataHoraIso,
+            areaServico: area,
+            detalheServico: detalhe,
+            identificadorOrigem: regNum,
+            observacaoOrigem: `Gerado automaticamente pela evolução ${regNum}`,
+          })
+        } catch (errPres) {
+          console.warn('Fallback de presença após evolução:', errPres)
+        }
       }
 
       setModalOpen(false)

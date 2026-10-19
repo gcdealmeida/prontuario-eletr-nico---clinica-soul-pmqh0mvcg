@@ -1680,10 +1680,26 @@ export default function GuiaUso() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  1. Navegação Mensal e Período Livre
+                  1. Automação por Prontuário
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A]">
+                  Lançamento Automático em Evoluções
+                </h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Ao <strong>assinar ou finalizar uma evolução de prontuário</strong> (ou ao
+                  concluir uma avaliação clínica), o sistema <strong>gera automaticamente</strong> o
+                  lançamento de presença com status <em>Presente</em>, área/serviço da especialidade
+                  (dos 13 serviços oficiais), data do atendimento, profissional responsável e rastro
+                  no campo de observação. Sem esforço manual!
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  2. Navegação Mensal e Período Livre
                 </span>
                 <h4 className="font-bold text-sm text-[#4A322A]">
                   Por Mês ou Período Personalizado
@@ -1699,7 +1715,7 @@ export default function GuiaUso() {
 
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  2. Visão do Administrador
+                  3. Visão do Administrador
                 </span>
                 <h4 className="font-bold text-sm text-[#4A322A]">Painel Analítico e Exportações</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
@@ -1713,18 +1729,18 @@ export default function GuiaUso() {
 
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  3. Visão do Colaborador
+                  4. Visão do Colaborador
                 </span>
                 <h4 className="font-bold text-sm text-[#4A322A]">Simples, Direta e Sem Ruído</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Para fisioterapeutas, personais e demais colaboradores, a página é limpa: no topo
-                  destaca-se o botão <strong>"+ Lançar Presença"</strong> e, abaixo, a lista
-                  cronológica com os pacientes e alunos atendidos por ele no mês selecionado, com
-                  opção de editar ou excluir seus próprios registros.
+                  Para fisioterapeutas, personais e demais colaboradores, a página exibe no topo o
+                  botão
+                  <strong>"+ Lançar Presença"</strong> (para atendimentos que não geram prontuário)
+                  e, abaixo, a lista com os atendimentos dele no mês selecionado (tanto os
+                  automáticos vindos de evoluções quanto os lançados manualmente).
                 </p>
               </div>
             </div>
-
             <div className="space-y-4 pt-2 border-t border-[#E9E1D2]">
               <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
                 Diferenças entre o Papel de Administrador e o Colaborador:
@@ -1830,10 +1846,15 @@ export default function GuiaUso() {
                     3
                   </div>
                   <div>
-                    <strong>Lançar Atendimento:</strong> Clique no botão dourado{' '}
-                    <strong>"+ Lançar Presença"</strong>. Digite o nome ou CPF do paciente no campo
-                    de busca com autocomplete, confirme a data, área/serviço, detalhe opcional e
-                    status (Presente, Confirmado, Justificado ou Cancelado).
+                    <strong>Lançamento Automático ou Manual:</strong> <br />•{' '}
+                    <strong>Automático:</strong> Ao preencher e assinar a evolução clínica do
+                    paciente (ou ao concluir uma avaliação), a presença entra{' '}
+                    <em>instantaneamente</em> na lista com status "Presente", vinculada ao
+                    profissional que atendeu e com a nota de origem (ex.:{' '}
+                    <code>Gerado automaticamente pela evolução EVO-2026-XXXX</code>).
+                    <br />• <strong>Manual:</strong> Se precisar registrar um atendimento avulso sem
+                    prontuário, clique no botão dourado <strong>"+ Lançar Presença"</strong>,
+                    selecione o paciente, confirme a data, serviço oficial e status.
                   </div>
                 </div>
 
@@ -2005,11 +2026,15 @@ export default function GuiaUso() {
                   Logo após fazer o login no Sistema SOUL, tanto no topo do Dashboard quanto na
                   barra superior (Topbar), você encontra dois botões de acesso ultra-rápido:
                   <br />• <strong>Presença e Confirmação:</strong> Leva diretamente à tela de
-                  lançamentos de atendimento diário (<code>/presencas</code>). Permite registrar em
-                  poucos segundos o paciente, área/serviço dentre os 13 oficiais da SOUL,
-                  profissional e status (Presente, Confirmado, Justificado, Cancelado). Esse
-                  registro alimenta automaticamente as contagens de atendimentos e serve como base
-                  contábil para cobrança futura no painel administrativo.
+                  lançamentos de atendimento diário (<code>/presencas</code>). Os registros entram
+                  tanto
+                  <strong>
+                    automaticamente ao assinar uma evolução de prontuário ou concluir avaliação
+                  </strong>
+                  , quanto de forma manual pelo botão <em>"+ Lançar Presença"</em>. Permite
+                  registrar e auditar pacientes, área/serviço dentre os 13 oficiais da SOUL,
+                  profissional e status (Presente, Confirmado, Justificado, Cancelado). Alimenta em
+                  tempo real as contagens de atendimentos e a conferência administrativa.
                   <br />• <strong>Evolução Clínica:</strong> Permite buscar e selecionar qualquer
                   paciente ativo para registrar a sessão de atendimento no modelo SOAP com régua EVA
                   de 1 clique,{' '}
@@ -2017,7 +2042,8 @@ export default function GuiaUso() {
                     mesmo que o paciente ainda não possua avaliação prévia ou prontuário cadastrado
                   </em>{' '}
                   (o sistema redireciona automaticamente para a aba de evoluções do histórico do
-                  paciente). Também disponível no botão fixo do topo e na busca global.
+                  paciente). Ao assinar a evolução, o lançamento na lista de Presenças é gerado de
+                  forma 100% automática!
                 </AccordionContent>
               </AccordionItem>
 

@@ -34,6 +34,10 @@ import {
   createTimelineEvent,
   getCollectionNameByEspecialidade,
 } from '@/services/avaliacoes'
+import {
+  garantirPresencaAutomatica,
+  mapearEspecialidadeParaServicoPresenca,
+} from '@/services/presencas'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import type { PacienteRecord, Especialidade, StatusAvaliacao } from '@/types/database'
@@ -575,7 +579,7 @@ export default function NovaAvaliacao() {
         })
       }
 
-      // If Concluída, create a snapshot in timeline
+      // If Concluída, create a snapshot in timeline and ensure presenca
       if (statusFinal === 'Concluída') {
         const resumoTexto =
           basePayload.queixa_principal ||
@@ -592,6 +596,28 @@ export default function NovaAvaliacao() {
           conteudo: `Avaliação concluída por ${basePayload.profissional_responsavel}.\nResumo/Queixa: ${resumoTexto}`,
           data_evento: new Date().toISOString(),
         }).catch(() => {})
+
+        // Garantir presença automática de avaliação no frontend caso o hook backend ainda não tenha rodado
+        try {
+          const { area, detalhe } = mapearEspecialidadeParaServicoPresenca(
+            selectedEspecialidade,
+            'avaliacao',
+          )
+          const origemId = `AVAL-${savedRecordId}`
+          await garantirPresencaAutomatica({
+            pacienteId: selectedPacienteId,
+            pacienteNome: selectedPaciente?.nome,
+            profissionalId: user?.id,
+            profissionalNome: basePayload.profissional_responsavel || user?.name,
+            dataAtendimento: basePayload.data_avaliacao || new Date().toISOString(),
+            areaServico: area,
+            detalheServico: detalhe,
+            identificadorOrigem: origemId,
+            observacaoOrigem: `Gerado automaticamente pela conclusão da avaliação (${origemId})`,
+          })
+        } catch (errPres) {
+          console.warn('Fallback de presença após avaliação:', errPres)
+        }
       }
 
       navigate(`/prontuarios/${savedRecordId}?esp=${encodeURIComponent(selectedEspecialidade)}`)
