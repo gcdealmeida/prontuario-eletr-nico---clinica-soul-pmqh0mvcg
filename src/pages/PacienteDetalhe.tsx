@@ -17,7 +17,6 @@ import {
   Activity,
   CheckCircle2,
   Info,
-  ShieldCheck,
   Dumbbell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
