@@ -33,11 +33,37 @@ export interface PreCadastroPayload {
   diagnostico_medico?: string
 }
 
-export async function submitPreCadastro(payload: PreCadastroPayload) {
-  return await pb.collection('pacientes').create<PacienteRecord>({
-    ...payload,
-    status: 'Pré-cadastro',
-  })
+export interface PreCadastroSubmitResponse {
+  success: boolean
+  is_existing: boolean
+  paciente_id: string
+  paciente_nome: string
+  message: string
+}
+
+export async function submitPreCadastro(
+  payload: PreCadastroPayload,
+): Promise<PreCadastroSubmitResponse> {
+  try {
+    return await pb.send<PreCadastroSubmitResponse>('/backend/v1/public/pre-cadastro', {
+      method: 'POST',
+      body: payload,
+    })
+  } catch (err: any) {
+    // Fallback gracioso caso endpoint backend esteja indisponível
+    console.warn('Fallback para inserção direta de pré-cadastro:', err)
+    const rec = await pb.collection('pacientes').create<PacienteRecord>({
+      ...payload,
+      status: 'Pré-cadastro',
+    })
+    return {
+      success: true,
+      is_existing: false,
+      paciente_id: rec.id,
+      paciente_nome: rec.nome,
+      message: 'Pré-avaliação enviada com sucesso!',
+    }
+  }
 }
 
 export async function createPaciente(data: Partial<PacienteRecord>) {
@@ -50,6 +76,39 @@ export async function updatePaciente(id: string, data: Partial<PacienteRecord>) 
 
 export async function deletePaciente(id: string) {
   return await pb.collection('pacientes').delete(id)
+}
+
+export interface AtivarPacienteResponse {
+  success: boolean
+  message: string
+  paciente: {
+    id: string
+    nome: string
+    status: string
+  }
+}
+
+export async function ativarCadastroPaciente(pacienteId: string): Promise<AtivarPacienteResponse> {
+  try {
+    return await pb.send<AtivarPacienteResponse>('/backend/v1/admin/pacientes/ativar', {
+      method: 'POST',
+      body: { paciente_id: pacienteId },
+    })
+  } catch (err: any) {
+    console.warn('Fallback ativando paciente diretamente via collection update:', err)
+    const rec = await pb.collection('pacientes').update<PacienteRecord>(pacienteId, {
+      status: 'Ativo',
+    })
+    return {
+      success: true,
+      message: `Cadastro de "${rec.nome}" ativado com sucesso!`,
+      paciente: {
+        id: rec.id,
+        nome: rec.nome,
+        status: 'Ativo',
+      },
+    }
+  }
 }
 
 export interface MergePacientesPayload {

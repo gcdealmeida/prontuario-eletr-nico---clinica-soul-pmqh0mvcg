@@ -76,7 +76,9 @@ export default function NovaAvaliacao() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
   const [etapaFisio, setEtapaFisio] = useState(1)
   const [etapaPersonal, setEtapaPersonal] = useState(1)
+  const [activeRecordId, setActiveRecordId] = useState<string>(editId)
   const [submitting, setSubmitting] = useState(false)
+  const [savingRascunho, setSavingRascunho] = useState(false)
   const [loadingInitial, setLoadingInitial] = useState(false)
 
   // Controle de rascunho local e restauração
@@ -253,10 +255,71 @@ export default function NovaAvaliacao() {
   }
 
   // Ao mudar de etapa, salva o rascunho local imediatamente
+  // Salvar no servidor em segundo plano sem sair da página (page-by-page auto-save)
+  const salvarRascunhoServidorSilencioso = async (novoFormData: Record<string, any>) => {
+    if (!selectedPacienteId) return
+    try {
+      const col = getCollectionNameByEspecialidade(selectedEspecialidade)
+      const queixaPrincipal =
+        novoFormData.queixa_principal ||
+        novoFormData.queixas_multiplas?.[0]?.queixa ||
+        novoFormData.anamnese_detalhada?.motivo_principal ||
+        (selectedEspecialidade === 'Personal'
+          ? `Avaliação Física Physical Test - ${novoFormData.objetivo_principal || 'Condicionamento'}`
+          : 'Avaliação Fisioterapêutica')
+
+      const basePayload: Record<string, any> = {
+        ...novoFormData,
+        paciente_id: selectedPacienteId,
+        especialidade: selectedEspecialidade,
+        status: 'Rascunho',
+        queixa_principal: queixaPrincipal,
+        profissional_responsavel:
+          novoFormData.profissional_responsavel || user?.name || 'Dr. Guilherme (Admin)',
+        data_avaliacao: novoFormData.data_avaliacao || new Date().toISOString().substring(0, 10),
+      }
+
+      delete basePayload._pending_exames_files
+      delete basePayload._pending_dinamometro_files
+      delete basePayload._pending_postura_files
+
+      let requestData: any = basePayload
+      if (
+        (novoFormData._pending_exames_files && novoFormData._pending_exames_files.length > 0) ||
+        (novoFormData._pending_dinamometro_files &&
+          novoFormData._pending_dinamometro_files.length > 0) ||
+        (novoFormData._pending_postura_files && novoFormData._pending_postura_files.length > 0)
+      ) {
+        const fd = new FormData()
+        Object.entries(basePayload).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (typeof value === 'object') {
+              fd.append(key, JSON.stringify(value))
+            } else {
+              fd.append(key, String(value))
+            }
+          }
+        })
+        requestData = fd
+      }
+
+      if (activeRecordId) {
+        await updateAvaliacao(col, activeRecordId, requestData)
+      } else {
+        const created = await createAvaliacao(col, requestData)
+        setActiveRecordId(created.id)
+      }
+    } catch (errSilent) {
+      console.warn('Salvamento silencioso no servidor (fallback mantido no local):', errSilent)
+    }
+  }
+
+  // Ao mudar de etapa, salva o rascunho local e sincroniza no servidor (page-by-page)
   const handleEtapaFisioChange = (novaEtapa: number) => {
     setEtapaFisio(novaEtapa)
     if (isFormDirty) {
       dispararSalvamentoLocal(formData, novaEtapa)
+      salvarRascunhoServidorSilencioso(formData)
     }
   }
 
@@ -264,6 +327,7 @@ export default function NovaAvaliacao() {
     setEtapaPersonal(novaEtapa)
     if (isFormDirty) {
       dispararSalvamentoLocal(formData, novaEtapa)
+      salvarRascunhoServidorSilencioso(formData)
     }
   }
 
@@ -589,6 +653,7 @@ export default function NovaAvaliacao() {
       setCurrentSectionIndex(nextIdx)
       if (isFormDirty) {
         dispararSalvamentoLocal(formData, nextIdx)
+        salvarRascunhoServidorSilencioso(formData)
       }
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -600,6 +665,7 @@ export default function NovaAvaliacao() {
       setCurrentSectionIndex(prevIdx)
       if (isFormDirty) {
         dispararSalvamentoLocal(formData, prevIdx)
+        salvarRascunhoServidorSilencioso(formData)
       }
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -615,8 +681,15 @@ export default function NovaAvaliacao() {
       return
     }
 
+    const isApenasRascunho = statusFinal === 'Rascunho'
+
     try {
-      setSubmitting(true)
+      if (isApenasRascunho) {
+        setSavingRascunho(true)
+      } else {
+        setSubmitting(true)
+      }
+
       const col = getCollectionNameByEspecialidade(selectedEspecialidade)
 
       const pendingExames: File[] = formData._pending_exames_files || []
@@ -676,7 +749,6 @@ export default function NovaAvaliacao() {
         if (basePayload.composicao_corporal?.perimetros?.quadril) {
           basePayload.circ_quadril = basePayload.composicao_corporal.perimetros.quadril
         }
-        // Se houver plano_semanal_detalhado e ainda não estiver no ia_plano_treino, sincronizar
         if (
           basePayload.plano_semanal_detalhado &&
           !basePayload.ia_plano_treino?.plano_tratamento_semanal
@@ -715,70 +787,75 @@ export default function NovaAvaliacao() {
         requestData = fd
       }
 
-      let savedRecordId = editId
-      if (editId) {
-        await updateAvaliacao(col, editId, requestData)
-        isSuccessfullySavedRef.current = true
-        setIsFormDirty(false)
-        limparRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
-        toast({
-          title: 'Avaliação atualizada com sucesso!',
-          description: 'Todos os dados foram gravados com segurança no servidor.',
-        })
+      let savedRecordId = activeRecordId || editId
+      if (savedRecordId) {
+        await updateAvaliacao(col, savedRecordId, requestData)
       } else {
         const created = await createAvaliacao(col, requestData)
         savedRecordId = created.id
-        isSuccessfullySavedRef.current = true
-        setIsFormDirty(false)
-        limparRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
-        toast({
-          title:
-            statusFinal === 'Concluída'
-              ? 'Avaliação concluída com sucesso!'
-              : 'Avaliação salva como rascunho.',
-          description: 'Todos os dados foram gravados com segurança no servidor.',
-        })
+        setActiveRecordId(created.id)
       }
 
+      // Manter rascunho local sincronizado
+      dispararSalvamentoLocal(formData)
+
+      // SE FOR RASCUNHO: PERMANECER NA PÁGINA (NÃO SAIR!)
+      if (isApenasRascunho) {
+        setIsFormDirty(false)
+        toast({
+          title: 'Rascunho salvo no servidor!',
+          description:
+            'Todos os dados foram gravados com sucesso. Você pode continuar preenchendo normalmente.',
+        })
+        return
+      }
+
+      // SE FOR CONCLUSÃO FINAL:
+      isSuccessfullySavedRef.current = true
+      setIsFormDirty(false)
+      limparRascunhoLocal('avaliacao', selectedPacienteId, selectedEspecialidade)
+      toast({
+        title: 'Avaliação concluída com sucesso!',
+        description: 'O prontuário foi oficializado e salvo no servidor.',
+      })
+
       // If Concluída, create a snapshot in timeline and ensure presenca
-      if (statusFinal === 'Concluída') {
-        const resumoTexto =
-          basePayload.queixa_principal ||
-          basePayload.objetivo_principal ||
-          basePayload.objetivos ||
-          basePayload.hipotese_diagnostica ||
-          'Avaliação clínica multidisciplinar finalizada.'
+      const resumoTexto =
+        basePayload.queixa_principal ||
+        basePayload.objetivo_principal ||
+        basePayload.objetivos ||
+        basePayload.hipotese_diagnostica ||
+        'Avaliação clínica multidisciplinar finalizada.'
 
-        await createTimelineEvent({
-          paciente_id: selectedPacienteId,
-          tipo: 'Avaliação',
-          especialidade: selectedEspecialidade,
-          titulo: `Avaliação de ${selectedEspecialidade}`,
-          conteudo: `Avaliação concluída por ${basePayload.profissional_responsavel}.\nResumo/Queixa: ${resumoTexto}`,
-          data_evento: new Date().toISOString(),
-        }).catch(() => {})
+      await createTimelineEvent({
+        paciente_id: selectedPacienteId,
+        tipo: 'Avaliação',
+        especialidade: selectedEspecialidade,
+        titulo: `Avaliação de ${selectedEspecialidade}`,
+        conteudo: `Avaliação concluída por ${basePayload.profissional_responsavel}.\nResumo/Queixa: ${resumoTexto}`,
+        data_evento: new Date().toISOString(),
+      }).catch(() => {})
 
-        // Garantir presença automática de avaliação no frontend caso o hook backend ainda não tenha rodado
-        try {
-          const { area, detalhe } = mapearEspecialidadeParaServicoPresenca(
-            selectedEspecialidade,
-            'avaliacao',
-          )
-          const origemId = `AVAL-${savedRecordId}`
-          await garantirPresencaAutomatica({
-            pacienteId: selectedPacienteId,
-            pacienteNome: selectedPaciente?.nome,
-            profissionalId: user?.id,
-            profissionalNome: basePayload.profissional_responsavel || user?.name,
-            dataAtendimento: basePayload.data_avaliacao || new Date().toISOString(),
-            areaServico: area,
-            detalheServico: detalhe,
-            identificadorOrigem: origemId,
-            observacaoOrigem: `Gerado automaticamente pela conclusão da avaliação (${origemId})`,
-          })
-        } catch (errPres) {
-          console.warn('Fallback de presença após avaliação:', errPres)
-        }
+      // Garantir presença automática de avaliação no frontend caso o hook backend ainda não tenha rodado
+      try {
+        const { area, detalhe } = mapearEspecialidadeParaServicoPresenca(
+          selectedEspecialidade,
+          'avaliacao',
+        )
+        const origemId = `AVAL-${savedRecordId}`
+        await garantirPresencaAutomatica({
+          pacienteId: selectedPacienteId,
+          pacienteNome: selectedPaciente?.nome,
+          profissionalId: user?.id,
+          profissionalNome: basePayload.profissional_responsavel || user?.name,
+          dataAtendimento: basePayload.data_avaliacao || new Date().toISOString(),
+          areaServico: area,
+          detalheServico: detalhe,
+          identificadorOrigem: origemId,
+          observacaoOrigem: `Gerado automaticamente pela conclusão da avaliação (${origemId})`,
+        })
+      } catch (errPres) {
+        console.warn('Fallback de presença após avaliação:', errPres)
       }
 
       navigate(`/prontuarios/${savedRecordId}?esp=${encodeURIComponent(selectedEspecialidade)}`)
@@ -791,6 +868,7 @@ export default function NovaAvaliacao() {
       })
     } finally {
       setSubmitting(false)
+      setSavingRascunho(false)
     }
   }
 
@@ -1119,7 +1197,7 @@ export default function NovaAvaliacao() {
               onSave={handleSaveEvaluation}
               submitting={submitting}
               paciente={selectedPaciente}
-              existingRecordId={editId}
+              existingRecordId={activeRecordId || editId}
               etapaAtual={etapaFisio}
               onEtapaChange={handleEtapaFisioChange}
             />
@@ -1131,7 +1209,7 @@ export default function NovaAvaliacao() {
               onSave={handleSaveEvaluation}
               submitting={submitting}
               paciente={selectedPaciente}
-              existingRecordId={editId}
+              existingRecordId={activeRecordId || editId}
               etapaAtual={etapaPersonal}
               onEtapaChange={handleEtapaPersonalChange}
             />
@@ -1309,11 +1387,15 @@ export default function NovaAvaliacao() {
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <Button
                       variant="outline"
-                      disabled={submitting}
+                      disabled={submitting || savingRascunho}
                       onClick={() => handleSaveEvaluation('Rascunho')}
                       className="rounded-xl h-10 px-4 text-xs font-semibold border-gray-200 hover:bg-gray-50 flex items-center gap-1.5"
                     >
-                      <Save className="h-3.5 w-3.5 text-gray-500" />
+                      {savingRascunho ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-500" />
+                      ) : (
+                        <Save className="h-3.5 w-3.5 text-gray-500" />
+                      )}
                       Salvar Rascunho
                     </Button>
 

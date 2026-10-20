@@ -56,7 +56,8 @@ import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { ModalImportarAvaliacaoPlanilha } from '@/components/ModalImportarAvaliacaoPlanilha'
 import { ModalMesclarPacientes } from '@/components/ModalMesclarPacientes'
 import { useAuth } from '@/contexts/AuthContext'
-import { FileSpreadsheet, GitMerge } from 'lucide-react'
+import { ativarCadastroPaciente } from '@/services/pacientes'
+import { FileSpreadsheet, GitMerge, UserCheck, ShieldCheck } from 'lucide-react'
 import { EvaBadge } from '@/components/ReguaEva'
 import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
 import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
@@ -120,6 +121,7 @@ export default function PacienteDetalhe() {
   const [editControleAlimentar, setEditControleAlimentar] = useState('')
   const [editQuemIndicou, setEditQuemIndicou] = useState('')
   const [savingDados, setSavingDados] = useState(false)
+  const [activating, setActivating] = useState(false)
 
   const loadData = async () => {
     if (!id) return
@@ -222,6 +224,30 @@ export default function PacienteDetalhe() {
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }))
+  }
+
+  const handleAtivarCadastroEIrProntuario = async () => {
+    if (!paciente) return
+    try {
+      setActivating(true)
+      const res = await ativarCadastroPaciente(paciente.id)
+      setPaciente((prev) => (prev ? { ...prev, status: 'Ativo' } : prev))
+      toast({
+        title: 'Cadastro ativado com sucesso!',
+        description: 'Redirecionando automaticamente para abertura do prontuário...',
+      })
+      // Redireciona imediatamente para nova avaliação/prontuário com dados do pré-cadastro
+      navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
+    } catch (err: any) {
+      console.error('Erro ativando paciente:', err)
+      toast({
+        title: 'Erro ao ativar cadastro',
+        description: err?.message || 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActivating(false)
+    }
   }
 
   const handleSaveDadosPessoais = async (e: React.FormEvent) => {
@@ -390,12 +416,19 @@ export default function PacienteDetalhe() {
           <div className="flex flex-wrap items-center gap-2.5">
             {paciente.status === 'Pré-cadastro' && (
               <Button
-                onClick={() =>
-                  navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
-                }
-                className="bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold rounded-xl h-10 px-4 text-xs shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/50"
+                onClick={handleAtivarCadastroEIrProntuario}
+                disabled={activating}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-10 px-4 text-xs shadow-sm flex items-center gap-1.5 border border-emerald-500/40"
               >
-                Abrir Prontuário →
+                {activating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Ativando...
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-4 w-4" /> Ativar Cadastro & Abrir Prontuário
+                  </>
+                )}
               </Button>
             )}
 
@@ -448,6 +481,54 @@ export default function PacienteDetalhe() {
             </Button>
           </div>
         </div>
+
+        {/* Banner de Autorização de Ativação para Pacientes em Pré-cadastro */}
+        {paciente.status === 'Pré-cadastro' && (
+          <div className="mt-6 p-5 rounded-2xl bg-amber-50/90 border-2 border-amber-300 space-y-3.5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500 text-white font-bold text-xs">
+                    ⚡
+                  </span>
+                  <h4 className="font-bold text-base text-amber-950">
+                    Autorização de Ativação de Cadastro
+                  </h4>
+                  <Badge
+                    variant="outline"
+                    className="bg-amber-100 text-amber-900 border-amber-300 text-xs font-bold"
+                  >
+                    Pendente de Ativação
+                  </Badge>
+                </div>
+                <p className="text-xs text-amber-900/90 leading-relaxed max-w-2xl">
+                  Esta paciente preencheu a ficha de pré-avaliação online. Clique em{' '}
+                  <strong>"Ativar Cadastro & Abrir Prontuário"</strong> para autorizar o cadastro na
+                  clínica e iniciar imediatamente o preenchimento da avaliação com os dados já
+                  integrados.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <Button
+                  onClick={handleAtivarCadastroEIrProntuario}
+                  disabled={activating}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 rounded-xl shadow-md flex items-center gap-2 border border-emerald-500"
+                >
+                  {activating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Ativando...
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-4 w-4" /> Ativar Cadastro & Abrir Prontuário →
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Banner de Pré-Cadastro / Respostas da Anamnese Inicial */}
         {(paciente.motivo_procura ||

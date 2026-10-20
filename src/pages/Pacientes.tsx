@@ -523,14 +523,11 @@ export default function Pacientes() {
                           <DropdownMenuContent align="end" className="w-44 rounded-xl">
                             {p.status === 'Pré-cadastro' && (
                               <DropdownMenuItem
-                                onClick={() =>
-                                  navigate(
-                                    `/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia`,
-                                  )
-                                }
-                                className="text-xs cursor-pointer flex items-center gap-2 font-bold text-[#8C6527] bg-[#FAF5EE]"
+                                onClick={() => navigate(`/pacientes/${p.id}`)}
+                                className="text-xs cursor-pointer flex items-center gap-2 font-bold text-emerald-700 bg-emerald-50"
                               >
-                                <Sparkles className="h-3.5 w-3.5 text-[#8C6527]" /> Abrir Prontuário
+                                <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> Ativar & Abrir
+                                Prontuário
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -629,18 +626,18 @@ export default function Pacientes() {
 
                   {p.status === 'Pré-cadastro' && (
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] text-[#8C6527] font-semibold">
-                        Aguardando abertura de prontuário
+                      <span className="text-[11px] text-amber-800 font-semibold">
+                        Aguardando ativação do cadastro
                       </span>
                       <Button
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          navigate(`/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia`)
+                          navigate(`/pacientes/${p.id}`)
                         }}
-                        className="h-7 px-2.5 text-[11px] bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold rounded-lg"
+                        className="h-7 px-2.5 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
                       >
-                        Abrir Prontuário →
+                        Ativar & Abrir →
                       </Button>
                     </div>
                   )}

@@ -305,6 +305,14 @@ export default function GuiaUso() {
           </TabsTrigger>
 
           <TabsTrigger
+            value="pre-cadastro-ativacao"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <Sparkles className="h-4 w-4 text-emerald-400" />
+            11. Pré-Cadastro → Ativação → Prontuário
+          </TabsTrigger>
+
+          <TabsTrigger
             value="faq"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
           >
@@ -465,16 +473,22 @@ export default function GuiaUso() {
                   </div>
                   <div className="space-y-1">
                     <h5 className="font-bold text-sm text-[#33221C]">
-                      Salvar Rascunho vs. Concluir Avaliação
+                      Salvar Rascunho sem Sair da Página & Persistência Página a Página
                     </h5>
                     <p className="text-xs text-gray-600 leading-relaxed">
                       • <strong>Salvar Rascunho (botão cinza com disquete):</strong> Salva o
-                      formulário exatamente no ponto onde você parou, ideal se a consulta for
-                      interrompida ou se faltarem exames para anexar.
+                      formulário <strong>diretamente no servidor e PERMANECE na página</strong> para
+                      você continuar o atendimento sem interrupções. Nunca fecha a tela nem
+                      redireciona você antes da hora.
+                      <br />• <strong>Salvamento automático página a página:</strong> Ao avançar ou
+                      alternar qualquer etapa da avaliação (1 a 7 na Fisioterapia, 1 a 8 no
+                      Personal), o sistema grava automaticamente o rascunho no servidor e no
+                      navegador local (dupla camada de proteção). Se houver oscilação de internet ou
+                      recarregamento acidental, nada é perdido no caminho.
                       <br />• <strong>Concluir Avaliação (botão dourado com check):</strong>{' '}
-                      Finaliza o atendimento, muda o status para "Concluída", cria um snapshot
-                      automático na Timeline oficial do paciente e bloqueia edições acidentais
-                      (permitindo revisões controladas).
+                      Finaliza a avaliação, altera o status de Rascunho para Oficial ("Concluída"),
+                      registra a presença automática do paciente, gera o snapshot oficial na
+                      Timeline e só então direciona para a visualização do prontuário concluído.
                     </p>
                   </div>
                 </div>

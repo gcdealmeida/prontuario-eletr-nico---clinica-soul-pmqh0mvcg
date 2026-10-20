@@ -184,6 +184,7 @@ export const FormPersonal: React.FC<FormPersonalProps> = ({
               disabled={submitting}
               onClick={() => onSave('Rascunho')}
               className="rounded-xl h-10 px-4 text-xs font-semibold border-gray-200 hover:bg-gray-50 flex items-center gap-1.5"
+              title="Salva no servidor e continua na página"
             >
               <Save className="h-3.5 w-3.5 text-gray-500" />
               Salvar Rascunho

@@ -93,6 +93,7 @@ export default function PreCadastroPublico() {
   // UI status
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [vinculadoExistente, setVinculadoExistente] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Formatação automática CPF e Telefone
@@ -140,7 +141,7 @@ export default function PreCadastroPublico() {
       const origemFinal =
         origem === 'Outro' && origemOutro.trim() ? `Outro: ${origemOutro.trim()}` : origem
 
-      await submitPreCadastro({
+      const res = await submitPreCadastro({
         nome: nome.trim(),
         cpf: cpf.trim() || undefined,
         data_nascimento: dataNascimento ? `${dataNascimento} 00:00:00.000Z` : undefined,
@@ -155,6 +156,7 @@ export default function PreCadastroPublico() {
         diagnostico_medico: diagnosticoMedico.trim() || 'Não tenho / não sei',
       })
 
+      setVinculadoExistente(Boolean(res?.is_existing))
       setSubmitted(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err: any) {
@@ -204,18 +206,21 @@ export default function PreCadastroPublico() {
 
               <div className="space-y-2 max-w-md mx-auto">
                 <h2 className="text-2xl font-serif font-bold text-[#33221C]">
-                  Recebemos sua pré-avaliação!
+                  {vinculadoExistente
+                    ? 'Pré-avaliação vinculada ao seu cadastro!'
+                    : 'Recebemos sua pré-avaliação!'}
                 </h2>
                 <p className="text-sm text-[#73574A] leading-relaxed">
-                  Agradecemos a confiança na Clínica SOUL. Seus dados já foram registrados em nosso
-                  sistema clínico e, em breve, entraremos em contato para confirmar seu agendamento
-                  e dar continuidade ao seu cuidado integral.
+                  {vinculadoExistente
+                    ? 'Identificamos que você já possui cadastro na Clínica SOUL. Suas respostas de pré-avaliação foram vinculadas com sucesso ao seu prontuário sem gerar duplicidade de registro.'
+                    : 'Agradecemos a confiança na Clínica SOUL. Seus dados já foram registrados em nosso sistema clínico e, em breve, nossa equipe entrará em contato para confirmar seu agendamento.'}
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] text-xs text-[#73574A] text-left space-y-1.5">
                 <div className="font-semibold text-[#8C6527] flex items-center gap-1.5">
-                  <ShieldCheck className="h-4 w-4" /> Informações Seguras
+                  <ShieldCheck className="h-4 w-4" />{' '}
+                  {vinculadoExistente ? 'Cadastro Atualizado com Sucesso' : 'Informações Seguras'}
                 </div>
                 <p>
                   Paciente: <strong className="text-[#33221C]">{nome}</strong>
