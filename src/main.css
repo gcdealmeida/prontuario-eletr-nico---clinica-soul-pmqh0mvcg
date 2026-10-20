@@ -92,7 +92,7 @@
   /* REGRAS GLOBAIS DE IMPRESSÃO A4 LIMPA (sem sobreposições) */
   @page {
     size: A4 portrait;
-    margin: 15mm 15mm 15mm 15mm;
+    margin: 15mm 15mm 18mm 15mm;
   }
 
   @media print {
@@ -146,6 +146,59 @@
       break-before: page !important;
       page-break-before: always !important;
     }
+
+    /* ============================================================== */
+    /* IMPRESSÃO DO PRONTUÁRIO NO MODELO INSTITUCIONAL SOUL           */
+    /* ============================================================== */
+    /* Quando a classe 'imprimindo-prontuario-soul' estiver ativa no body:
+       - Oculta completamente a aplicação base (#root)
+       - Exibe com exclusividade absoluta o container dedicado
+         #container-impressao-prontuario-soul (documento institucional)
+    */
+    body.imprimindo-prontuario-soul #root {
+      display: none !important;
+    }
+
+    body.imprimindo-prontuario-soul #container-impressao-prontuario-soul {
+      display: block !important;
+      position: static !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+    }
+
+    /* Rodapé institucional repetido em todas as páginas (rodapé fixo A4) */
+    #rodape-fixo-prontuario-soul {
+      display: none;
+    }
+
+    @media print and (min-width: 0) {
+      body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul {
+        display: flex !important;
+      }
+    }
+
+    /* Cabeçalho/rodapé fixos por página via position fixed (funciona no Chromium
+       — em cada página impressa o conteúdo fixed é re-renderizado) */
+    @page {
+      margin-top: 14mm;
+      margin-bottom: 16mm;
+    }
+
+    body.imprimindo-prontuario-soul table {
+      break-inside: auto;
+    }
+
+    body.imprimindo-prontuario-soul thead {
+      display: table-header-group;
+    }
+
+    body.imprimindo-prontuario-soul tr,
+    body.imprimindo-prontuario-soul img,
+    body.imprimindo-prontuario-soul li {
+      break-inside: avoid;
+    }
   }
 
   .dark {
@@ -197,6 +250,44 @@
   section[aria-label='Notifications alt+T'] {
     padding: 0 !important;
     margin: 0 !important;
+  }
+}
+
+/* ================================================================== */
+/* RODAPÉ INSTITUCIONAL FIXO POR PÁGINA (Modelo Institucional SOUL)   */
+/* Exibido em todas as páginas impressas do prontuário                */
+/* ================================================================== */
+#rodape-fixo-prontuario-soul {
+  display: none;
+}
+
+@media print {
+  body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 8.5pt;
+    color: #5f544f;
+    padding-top: 4px;
+    border-top: 1px solid #d5ae6f66;
+    background: white;
+    z-index: 9999;
+  }
+
+  body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul .rodape-linha-institucional {
+    text-align: left;
+  }
+
+  body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul .rodape-pagina {
+    text-align: right;
+    font-weight: 600;
+    color: #6a402d;
   }
 }
 
@@ -371,5 +462,11 @@
 
   .animate-spotlight {
     animation: spotlight 2s ease forwards;
+  }
+
+  /* ===== Impressão institucional: quebras de página limpas ===== */
+  .doc-section-page-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
