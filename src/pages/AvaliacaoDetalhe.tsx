@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   Printer,
@@ -49,6 +50,8 @@ export default function AvaliacaoDetalhe() {
 
   // Modal Relatório IA
   const [modalRelatorioIaOpen, setModalRelatorioIaOpen] = useState(false)
+  const [preparandoImpressao, setPreparandoImpressao] = useState(false)
+  const printTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (tabParam && (tabParam === 'avaliacao' || tabParam === 'evolucoes')) {
@@ -95,20 +98,44 @@ export default function AvaliacaoDetalhe() {
   }
 
   const handlePrint = () => {
+    if (preparandoImpressao) return
+    setPreparandoImpressao(true)
+
     // Aplica classe no body para isolar estritamente o modelo institucional SOUL na impressão
     document.body.classList.add('imprimindo-prontuario-soul')
-    const handleAfterPrint = () => {
+
+    const cleanup = () => {
       document.body.classList.remove('imprimindo-prontuario-soul')
-      window.removeEventListener('afterprint', handleAfterPrint)
+      setPreparandoImpressao(false)
+      window.removeEventListener('afterprint', cleanup)
+      if (printTimeoutRef.current) {
+        clearTimeout(printTimeoutRef.current)
+        printTimeoutRef.current = null
+      }
     }
-    window.addEventListener('afterprint', handleAfterPrint)
-    // Dispara a impressão nativa / salvar em PDF
-    window.print()
-    // Fallback de segurança para remover classe caso afterprint não dispare
-    setTimeout(() => {
-      document.body.classList.remove('imprimindo-prontuario-soul')
-    }, 2000)
+    window.addEventListener('afterprint', cleanup)
+
+    // Aguarda dois frames de requestAnimationFrame para garantir montagem completa do DOM e pintura dos estilos
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          window.print()
+        } finally {
+          // Fallback de segurança caso afterprint não seja disparado
+          printTimeoutRef.current = setTimeout(cleanup, 2500)
+        }
+      })
+    })
   }
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('imprimindo-prontuario-soul')
+      if (printTimeoutRef.current) {
+        clearTimeout(printTimeoutRef.current)
+      }
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -138,15 +165,19 @@ export default function AvaliacaoDetalhe() {
     <>
       {/* ======================================================================== */}
       {/* CONTAINER EXCLUSIVO DE IMPRESSÃO / BAIXAR PDF NO MODELO INSTITUCIONAL SOUL */}
-      {/* Ativo e visível com exclusividade na impressão (body.imprimindo-prontuario-soul) */}
+      {/* Renderizado diretamente no body via Portal para não sofrer display:none do #root */}
       {/* ======================================================================== */}
-      <div id="container-impressao-prontuario-soul" className="hidden">
-        <DocumentoProntuarioInstitucional
-          avaliacao={avaliacao}
-          especialidade={espParam}
-          listaEvolucoes={listaEvolucoesImpressao}
-        />
-      </div>
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div id="container-impressao-prontuario-soul" className="print:block" aria-hidden="true">
+            <DocumentoProntuarioInstitucional
+              avaliacao={avaliacao}
+              especialidade={espParam}
+              listaEvolucoes={listaEvolucoesImpressao}
+            />
+          </div>,
+          document.body,
+        )}
 
       <div className="space-y-6 max-w-4xl mx-auto print:max-w-none print:m-0 print:p-0">
         {/* Top Bar / Breadcrumb (hidden on print) */}
@@ -217,11 +248,16 @@ export default function AvaliacaoDetalhe() {
             {/* Baixar PDF via window.print */}
             <Button
               size="sm"
+              disabled={preparandoImpressao}
               onClick={handlePrint}
-              className="bg-[#1E2530] hover:bg-black text-white rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+              className="bg-[#1E2530] hover:bg-black text-white rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
             >
-              <Printer className="h-3.5 w-3.5" />
-              Baixar PDF / Imprimir
+              {preparandoImpressao ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#C9A46A]" />
+              ) : (
+                <Printer className="h-3.5 w-3.5" />
+              )}
+              {preparandoImpressao ? 'Preparando...' : 'Baixar PDF / Imprimir'}
             </Button>
           </div>
         </div>

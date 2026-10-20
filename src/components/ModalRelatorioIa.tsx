@@ -452,17 +452,22 @@ export function ModalRelatorioIa({
    */
   const handleImprimir = () => {
     document.body.classList.add('imprimindo-relatorio-ia')
-    window.print()
-    // Event listener para remoção segura após a impressão
     const cleanup = () => {
       document.body.classList.remove('imprimindo-relatorio-ia')
       window.removeEventListener('afterprint', cleanup)
     }
     window.addEventListener('afterprint', cleanup)
-    // Fallback de timeout caso o navegador não emita afterprint
-    setTimeout(() => {
-      document.body.classList.remove('imprimindo-relatorio-ia')
-    }, 2000)
+
+    // Aguarda rAF duplo para garantir que os estilos e o portal estejam totalmente pintados
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          window.print()
+        } finally {
+          setTimeout(cleanup, 2500)
+        }
+      })
+    })
   }
 
   // Dados cadastrais derivados

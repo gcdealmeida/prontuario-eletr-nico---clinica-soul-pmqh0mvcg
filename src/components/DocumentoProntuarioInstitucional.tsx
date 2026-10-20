@@ -146,11 +146,11 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
 
   // Anamnese Fisio
   const anamneseFisio = avaliacao.anamnese_detalhada || {}
-  const queixasFisio = avaliacao.queixas_multiplas || []
+  const queixasFisio = Array.isArray(avaliacao.queixas_multiplas) ? avaliacao.queixas_multiplas : []
   const queixaPrincipalTexto =
     limparTexto(avaliacao.queixa_principal) ||
     anamneseFisio.motivo_principal ||
-    (queixasFisio.length > 0 ? queixasFisio[0].queixa : '') ||
+    (queixasFisio.length > 0 ? queixasFisio[0]?.queixa : '') ||
     'Acompanhamento preventivo e postural'
 
   // Objetivo
@@ -167,12 +167,20 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
   // Dados de Exame Físico e Postura
   const posturaTexto = avaliacao.postura || ''
   const palpacaoTexto = avaliacao.palpacao || ''
-  const admSegmentos = (avaliacao.adm_segmentos || []).filter((s: any) => s.ativo)
+  const admSegmentos = Array.isArray(avaliacao.adm_segmentos)
+    ? avaliacao.adm_segmentos.filter((s: any) => s && s.ativo)
+    : []
   const descricaoForca = avaliacao.forca_muscular_descricao || ''
-  const gruposForca = avaliacao.forca_muscular_grupos || []
-  const testesEsp = (avaliacao.testes_especiais_segmentos || []).filter((s: any) => s.ativo)
+  const gruposForca = Array.isArray(avaliacao.forca_muscular_grupos)
+    ? avaliacao.forca_muscular_grupos
+    : []
+  const testesEsp = Array.isArray(avaliacao.testes_especiais_segmentos)
+    ? avaliacao.testes_especiais_segmentos.filter((s: any) => s && s.ativo)
+    : []
   const comp = avaliacao.secoes_complementares || {}
-  const planoSemanal = avaliacao.plano_semanal_detalhado || []
+  const planoSemanal = Array.isArray(avaliacao.plano_semanal_detalhado)
+    ? avaliacao.plano_semanal_detalhado
+    : []
   const hipoteseIa = avaliacao.hipotese_diagnostica_ia || ''
   const diagDisfuncional =
     avaliacao.diagnostico_disfuncional ||
@@ -190,7 +198,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
 
   // Linhas da Tabela Postural Modelo
   const linhasPostura: Array<{ regiao: string; achado: string }> = []
-  if (posturaTexto) {
+  if (posturaTexto && typeof posturaTexto === 'string' && posturaTexto.trim()) {
     // Tenta quebrar a postura por linhas ou tópicos
     const partes = posturaTexto
       .split(/\n|;|\./)
@@ -200,7 +208,10 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
       partes.forEach((pt: string) => {
         if (pt.includes(':')) {
           const [r, ...a] = pt.split(':')
-          linhasPostura.push({ regiao: r.trim(), achado: a.join(':').trim() })
+          linhasPostura.push({
+            regiao: (r || 'Região').trim(),
+            achado: (a.join(':') || 'Sem alterações').trim(),
+          })
         } else {
           linhasPostura.push({ regiao: 'Avaliação Postural', achado: pt })
         }
@@ -210,17 +221,19 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
     }
   } else {
     linhasPostura.push(
-      { regiao: 'Coluna', achado: 'Leve hiperlordose lombar flexível' },
+      { regiao: 'Coluna', achado: 'Alinhamento postural preservado em plano sagital e frontal' },
       { regiao: 'Pelve e quadril', achado: 'Sem desalinhamento pélvico significativo' },
-      { regiao: 'Joelhos', achado: 'Alinhamento com tendência a valgo dinâmico sob carga' },
-      { regiao: 'Pés', achado: 'Apoio plantar com leve pronação e queda do arco medial direito' },
+      { regiao: 'Joelhos', achado: 'Alinhamento funcional estável' },
+      { regiao: 'Pés', achado: 'Apoio plantar distribuído' },
     )
   }
 
   // Tabela de Síntese dos Principais Achados
+  const primeiroNomePaciente = (nomePaciente || 'Paciente').trim().split(/\s+/)[0] || 'Paciente'
+
   const sinteseAchados: Array<{ achado: string; significa: string; importancia: string }> = [
     {
-      achado: queixaPrincipalTexto,
+      achado: queixaPrincipalTexto || 'Acompanhamento clínico funcional',
       significa: 'Achado clínico correlacionado à queixa relatada pelo paciente',
       importancia: 'Queixa principal',
     },
@@ -555,7 +568,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
               <thead>
                 <tr className="bg-[#F7F2EC] text-[#6A402D] font-bold border-b border-[#E9E1D2]">
                   <th className="py-2 px-3 w-2/5">Teste</th>
-                  <th className="py-2 px-3 w-1/4">{nomePaciente.split(' ')[0]}</th>
+                  <th className="py-2 px-3 w-1/4">{primeiroNomePaciente}</th>
                   <th className="py-2 px-3">Referência para a idade</th>
                 </tr>
               </thead>
@@ -640,7 +653,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
               <thead>
                 <tr className="bg-[#F7F2EC] text-[#6A402D] font-bold border-b border-[#E9E1D2]">
                   <th className="py-2 px-3 w-1/2">Distribuição de peso</th>
-                  <th className="py-2 px-3 w-1/4">{nomePaciente.split(' ')[0]}</th>
+                  <th className="py-2 px-3 w-1/4">{primeiroNomePaciente}</th>
                   <th className="py-2 px-3">Esperado</th>
                 </tr>
               </thead>
@@ -686,22 +699,24 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E9E1D2]/60">
-                    {testesEsp.flatMap((seg: any) =>
-                      seg.testes.map((t: any, i: number) => (
-                        <tr key={`${seg.segmento}-${i}`} className="bg-white">
+                    {testesEsp.flatMap((seg: any) => {
+                      const testesLista = Array.isArray(seg?.testes) ? seg.testes : []
+                      const nomeSegmento = seg?.segmento || 'Segmento'
+                      return testesLista.map((t: any, i: number) => (
+                        <tr key={`${nomeSegmento}-${i}`} className="bg-white">
                           <td className="py-1.5 px-3 font-semibold text-[#6A402D]">
-                            {seg.segmento}: {t.nome}
+                            {nomeSegmento}: {t?.nome || 'Teste'}
                           </td>
                           <td className="py-1.5 px-2 text-center font-bold text-[8.5pt]">
-                            {t.status_direito || 'N/R'}
+                            {t?.status_direito || 'N/R'}
                           </td>
                           <td className="py-1.5 px-2 text-center font-bold text-[8.5pt]">
-                            {t.status_esquerdo || 'N/R'}
+                            {t?.status_esquerdo || 'N/R'}
                           </td>
-                          <td className="py-1.5 px-3 text-[#5F544F]">{t.observacao || '—'}</td>
+                          <td className="py-1.5 px-3 text-[#5F544F]">{t?.observacao || '—'}</td>
                         </tr>
-                      )),
-                    )}
+                      ))
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1120,7 +1135,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
       {/* ======================================================================== */}
       {/* HISTÓRICO DE EVOLUÇÕES CLÍNICAS ASSINADAS (se houver sessões)           */}
       {/* ======================================================================== */}
-      {listaEvolucoes.length > 0 && (
+      {Array.isArray(listaEvolucoes) && listaEvolucoes.length > 0 && (
         <section className="pt-6 mb-8 border-t-2 border-[#D5AE6F]/40 page-break-before space-y-4">
           <div className="pb-2 border-b border-[#E9E1D2]">
             <h3 className="font-soul font-bold text-[14pt] text-[#6A402D]">
@@ -1132,58 +1147,67 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
           </div>
 
           <div className="space-y-3">
-            {listaEvolucoes.map((evo) => (
-              <div
-                key={evo.id}
-                className="p-3.5 rounded-lg border border-[#E9E1D2] bg-white text-[9pt] space-y-1.5 page-break-inside-avoid"
-              >
-                <div className="flex items-center justify-between pb-1 border-b border-gray-100">
-                  <span className="font-bold text-[#6A402D]">
-                    {evo.especialidade} {evo.numero_registro ? `• ${evo.numero_registro}` : ''}
-                  </span>
-                  <span className="text-[#5F544F] text-[8.5pt]">
-                    Sessão em: <strong>{formatDataPTBR(evo.data_evolucao || evo.created)}</strong>
-                  </span>
+            {listaEvolucoes.map((evo) => {
+              if (!evo) return null
+              return (
+                <div
+                  key={evo.id || Math.random().toString()}
+                  className="p-3.5 rounded-lg border border-[#E9E1D2] bg-white text-[9pt] space-y-1.5 page-break-inside-avoid"
+                >
+                  <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+                    <span className="font-bold text-[#6A402D]">
+                      {evo.especialidade || 'Sessão'}{' '}
+                      {evo.numero_registro ? `• ${evo.numero_registro}` : ''}
+                    </span>
+                    <span className="text-[#5F544F] text-[8.5pt]">
+                      Sessão em: <strong>{formatDataPTBR(evo.data_evolucao || evo.created)}</strong>
+                    </span>
+                  </div>
+
+                  {evo.subjetivo && (
+                    <p>
+                      <strong className="text-[#6A402D]">Subjetivo (S):</strong>{' '}
+                      {typeof evo.eva_dor === 'number' && (
+                        <span className="font-bold text-[#8C6527] mr-1">
+                          [EVA: {evo.eva_dor}/10]
+                        </span>
+                      )}
+                      {evo.subjetivo}
+                    </p>
+                  )}
+
+                  {evo.objetivo && (
+                    <p>
+                      <strong className="text-[#6A402D]">Objetivo (O):</strong> {evo.objetivo}
+                    </p>
+                  )}
+
+                  {evo.avaliacao_clinica && (
+                    <p>
+                      <strong className="text-[#6A402D]">Avaliação Clínica (A):</strong>{' '}
+                      {evo.avaliacao_clinica}
+                    </p>
+                  )}
+
+                  {evo.conduta_procedimentos && (
+                    <p>
+                      <strong className="text-[#8C6527]">Conduta Realizada:</strong>{' '}
+                      {evo.conduta_procedimentos}
+                    </p>
+                  )}
+
+                  <div className="pt-1.5 mt-1 border-t border-dashed border-[#E9E1D2] flex justify-between text-[8pt] text-[#73574A]">
+                    <span>
+                      Assinado por:{' '}
+                      <strong>
+                        {evo.assinado_por_nome || evo.profissional || 'Profissional SOUL'}
+                      </strong>
+                    </span>
+                    <span>Status: {evo.status || 'Concluída'}</span>
+                  </div>
                 </div>
-
-                {evo.subjetivo && (
-                  <p>
-                    <strong className="text-[#6A402D]">Subjetivo (S):</strong>{' '}
-                    {typeof evo.eva_dor === 'number' && (
-                      <span className="font-bold text-[#8C6527] mr-1">[EVA: {evo.eva_dor}/10]</span>
-                    )}
-                    {evo.subjetivo}
-                  </p>
-                )}
-
-                {evo.objetivo && (
-                  <p>
-                    <strong className="text-[#6A402D]">Objetivo (O):</strong> {evo.objetivo}
-                  </p>
-                )}
-
-                {evo.avaliacao_clinica && (
-                  <p>
-                    <strong className="text-[#6A402D]">Avaliação Clínica (A):</strong>{' '}
-                    {evo.avaliacao_clinica}
-                  </p>
-                )}
-
-                {evo.conduta_procedimentos && (
-                  <p>
-                    <strong className="text-[#8C6527]">Conduta Realizada:</strong>{' '}
-                    {evo.conduta_procedimentos}
-                  </p>
-                )}
-
-                <div className="pt-1.5 mt-1 border-t border-dashed border-[#E9E1D2] flex justify-between text-[8pt] text-[#73574A]">
-                  <span>
-                    Assinado por: <strong>{evo.assinado_por_nome || evo.profissional}</strong>
-                  </span>
-                  <span>Status: {evo.status || 'Concluída'}</span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}
