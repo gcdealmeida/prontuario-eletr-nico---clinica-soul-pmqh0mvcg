@@ -165,27 +165,42 @@
       left: auto !important;
       top: auto !important;
       width: 100% !important;
+      max-width: 100% !important;
       margin: 0 !important;
       padding: 0 !important;
       background: white !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      overflow: visible !important;
     }
 
-    /* Rodapé institucional repetido em todas as páginas (rodapé fixo A4) */
-    #rodape-fixo-prontuario-soul {
-      display: none;
+    /* Rodapé institucional fixo repetido em todas as páginas */
+    body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul {
+      display: flex !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      font-family: 'Montserrat', sans-serif !important;
+      font-size: 8.5pt !important;
+      color: #5f544f !important;
+      padding-top: 4px !important;
+      border-top: 1px solid #d5ae6f66 !important;
+      background: white !important;
+      z-index: 9999 !important;
     }
 
-    @media print and (min-width: 0) {
-      body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul {
-        display: flex !important;
-      }
+    body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul .rodape-linha-institucional {
+      text-align: left !important;
     }
 
-    /* Cabeçalho/rodapé fixos por página via position fixed (funciona no Chromium
-       — em cada página impressa o conteúdo fixed é re-renderizado) */
-    @page {
-      margin-top: 14mm;
-      margin-bottom: 16mm;
+    body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul .rodape-pagina {
+      text-align: right !important;
+      font-weight: 600 !important;
+      color: #6a402d !important;
     }
 
     body.imprimindo-prontuario-soul table {
@@ -256,59 +271,12 @@
 }
 
 /* ================================================================== */
-/* CONTAINER DE IMPRESSÃO DO PRONTUÁRIO INSTITUCIONAL SOUL            */
-/* Fora da impressão: oculto no fluxo da tela                         */
-/* Pré-impressão: renderiza em off-screen para calcular geometria     */
+/* CONTAINERS DE IMPRESSÃO - OCULTOS NO FLUXO DE TELA                 */
 /* ================================================================== */
-#container-impressao-prontuario-soul {
-  display: none;
-}
-
-body.imprimindo-prontuario-soul #container-impressao-prontuario-soul {
-  display: block !important;
-  position: absolute !important;
-  left: -99999px !important;
-  top: 0 !important;
-  width: 210mm !important;
-  background: white !important;
-}
-
-/* ================================================================== */
-/* RODAPÉ INSTITUCIONAL FIXO POR PÁGINA (Modelo Institucional SOUL)   */
-/* Exibido em todas as páginas impressas do prontuário                */
-/* ================================================================== */
+#container-impressao-prontuario-soul,
+#container-impressao-relatorio-ia,
 #rodape-fixo-prontuario-soul {
   display: none;
-}
-
-@media print {
-  body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul {
-    display: flex !important;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 8.5pt;
-    color: #5f544f;
-    padding-top: 4px;
-    border-top: 1px solid #d5ae6f66;
-    background: white;
-    z-index: 9999;
-  }
-
-  body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul .rodape-linha-institucional {
-    text-align: left;
-  }
-
-  body.imprimindo-prontuario-soul #rodape-fixo-prontuario-soul .rodape-pagina {
-    text-align: right;
-    font-weight: 600;
-    color: #6a402d;
-  }
 }
 
 @layer utilities {

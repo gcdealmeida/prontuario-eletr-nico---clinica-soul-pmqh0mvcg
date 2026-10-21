@@ -115,17 +115,17 @@ export default function AvaliacaoDetalhe() {
     }
     window.addEventListener('afterprint', cleanup)
 
-    // Aguarda dois frames de requestAnimationFrame para garantir montagem completa do DOM e pintura dos estilos
-    requestAnimationFrame(() => {
+    // Timeout de 150ms + requestAnimationFrame garante renderização no DOM do portal, cálculo de layout e fontes
+    setTimeout(() => {
       requestAnimationFrame(() => {
         try {
           window.print()
         } finally {
           // Fallback de segurança caso afterprint não seja disparado
-          printTimeoutRef.current = setTimeout(cleanup, 2500)
+          printTimeoutRef.current = setTimeout(cleanup, 3000)
         }
       })
-    })
+    }, 150)
   }
 
   useEffect(() => {
@@ -168,8 +168,9 @@ export default function AvaliacaoDetalhe() {
       {/* Renderizado diretamente no body via Portal para não sofrer display:none do #root */}
       {/* ======================================================================== */}
       {typeof document !== 'undefined' &&
+        document.body &&
         createPortal(
-          <div id="container-impressao-prontuario-soul" className="print:block" aria-hidden="true">
+          <div id="container-impressao-prontuario-soul" aria-hidden="true">
             <DocumentoProntuarioInstitucional
               avaliacao={avaliacao}
               especialidade={espParam}

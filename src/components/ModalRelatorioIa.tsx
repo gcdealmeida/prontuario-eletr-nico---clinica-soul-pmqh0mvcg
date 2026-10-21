@@ -458,16 +458,16 @@ export function ModalRelatorioIa({
     }
     window.addEventListener('afterprint', cleanup)
 
-    // Aguarda rAF duplo para garantir que os estilos e o portal estejam totalmente pintados
-    requestAnimationFrame(() => {
+    // Aguarda timeout + rAF para garantir que os estilos e o portal estejam totalmente pintados
+    setTimeout(() => {
       requestAnimationFrame(() => {
         try {
           window.print()
         } finally {
-          setTimeout(cleanup, 2500)
+          setTimeout(cleanup, 3000)
         }
       })
-    })
+    }, 150)
   }
 
   // Dados cadastrais derivados
@@ -501,11 +501,12 @@ export function ModalRelatorioIa({
       {/* Totalmente desacoplado do modal e do #root para impressão 100% fiel     */}
       {/* ======================================================================== */}
       {typeof document !== 'undefined' &&
+        document.body &&
         conteudoEditavel &&
         createPortal(
           <div
             id="container-impressao-relatorio-ia"
-            className="hidden print:block bg-white text-[#1F1B18] p-0 m-0 w-full font-montserrat"
+            className="bg-white text-[#1F1B18] p-0 m-0 w-full font-montserrat"
           >
             {/* CABEÇALHO OFICIAL: Logo SOUL no topo com respiro + linha dourada fina */}
             <header className="pt-2 pb-5 text-center space-y-3">
