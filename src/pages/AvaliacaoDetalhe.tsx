@@ -51,7 +51,7 @@ export default function AvaliacaoDetalhe() {
   // Modal Relatório IA
   const [modalRelatorioIaOpen, setModalRelatorioIaOpen] = useState(false)
   const [preparandoImpressao, setPreparandoImpressao] = useState(false)
-  const printTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const printTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (tabParam && (tabParam === 'avaliacao' || tabParam === 'evolucoes')) {

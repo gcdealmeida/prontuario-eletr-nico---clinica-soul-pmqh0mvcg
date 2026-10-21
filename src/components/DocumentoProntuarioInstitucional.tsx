@@ -9,8 +9,6 @@ import type {
   EvolucaoRecord,
   Especialidade,
 } from '@/types/database'
-import { CIRTOMETRIA_REGIOES_PADRAO } from '@/lib/fisioterapiaModel'
-
 interface DocumentoProntuarioInstitucionalProps {
   avaliacao: any
   especialidade: Especialidade | 'Geral'
