@@ -132,7 +132,27 @@ export async function updateAvaliacao(
   return await pb.collection(collectionName).update(id, data)
 }
 
-export async function gerarIaFisioterapia(avaliacaoPayload: Record<string, unknown>) {
+export interface GerarIaFisioterapiaResponse {
+  raw_content?: string
+  structured?: {
+    hipotese_diagnostica?: string
+    fundamentacao_cientifica?: string
+    diagnostico_disfuncional?: string
+    objetivos_tratamento?: string
+    plano_tratamento_semanal?: Array<{
+      semana: string
+      foco: string
+      condutas: string
+      criterios_evolucao?: string
+    }>
+    sintese_geral?: string
+  }
+  citations?: any[]
+}
+
+export async function gerarIaFisioterapia(
+  avaliacaoPayload: Record<string, unknown>,
+): Promise<GerarIaFisioterapiaResponse> {
   const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/fisioterapia/gerar-ia`
   const token = pb.authStore.token
   const res = await fetch(url, {
@@ -148,7 +168,7 @@ export async function gerarIaFisioterapia(avaliacaoPayload: Record<string, unkno
   if (!res.ok) {
     throw new Error(data?.error || 'Falha ao processar análise da IA')
   }
-  return data
+  return data as GerarIaFisioterapiaResponse
 }
 
 export async function gerarIaPersonal(
@@ -174,6 +194,7 @@ export async function gerarIaPersonal(
     raw_content?: string
     structured?: {
       hipotese_diagnostica?: string
+      fundamentacao_cientifica?: string
       diagnostico_funcional?: string
       objetivos_treinamento?: string
       plano_tratamento_semanal?: Array<{

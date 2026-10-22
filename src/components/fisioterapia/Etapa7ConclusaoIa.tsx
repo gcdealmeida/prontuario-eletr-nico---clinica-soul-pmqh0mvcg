@@ -152,9 +152,11 @@ export const Etapa7ConclusaoIa: React.FC<Etapa7ConclusaoIaProps> = ({
                 </span>
               </div>
               <p className="text-xs text-gray-300 mt-0.5 leading-relaxed">
-                Cruza automaticamente diagnóstico médico, queixas, amplitudes (ADM),
-                força/dinamômetro, testes especiais e tabela de Core com diretrizes científicas de
-                alto impacto (CPG, Lancet, JOSPT, Oliveira et al. 2018).
+                Cruza automaticamente queixa do paciente, diagnóstico médico/funcional, achados
+                objetivos (ADM, dinamometria/força, testes especiais, Core e laudos de anexos) com a
+                literatura dos principais periódicos científicos de Ortopedia, Medicina Esportiva e
+                Fisioterapia (JOSPT, BJSM, AJSM, Spine, JBJS, RBO, BJPT, MSSE, Arthroscopy e
+                Fisioterapia Brasil).
               </p>
             </div>
           </div>
@@ -189,35 +191,39 @@ export const Etapa7ConclusaoIa: React.FC<Etapa7ConclusaoIaProps> = ({
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-[11px] text-[#DFBF8E] pt-1 border-t border-white/10">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#DFBF8E] pt-1 border-t border-white/10">
           <span className="flex items-center gap-1">
-            <BookOpen className="h-3.5 w-3.5" /> Evidências científicas conectadas
+            <BookOpen className="h-3.5 w-3.5" /> Base: JOSPT, BJSM, AJSM, Spine, JBJS, BJPT, MSSE,
+            RBO
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
-            <Layers className="h-3.5 w-3.5" /> Hipótese + Diagnóstico + Plano 8 semanas
+            <Layers className="h-3.5 w-3.5" /> Queixa × Diagnóstico × Avaliação × Periódicos
           </span>
           <span>•</span>
-          <span className="text-gray-300">Totalmente aberto a edição manual</span>
+          <span className="text-gray-300">Hipótese + Plano 8 semanas editáveis</span>
         </div>
       </div>
 
       {/* 1. Hipótese Diagnóstica (Cruzamento Clínico) */}
       <div className="space-y-2">
         <Label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-          <span>1. Hipótese Diagnóstica (Cruzamento de Dados Clínicos e Biomecânicos)</span>
+          <span>
+            1. Hipótese Diagnóstica (Síntese: Queixa × Diagnóstico × Avaliação × Periódicos
+            Científicos)
+          </span>
           {formData.hipotese_diagnostica_ia && (
             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-              Gerado com base na avaliação
+              Gerado com base na avaliação e periódicos
             </span>
           )}
         </Label>
         <Textarea
-          rows={3}
+          rows={5}
           value={formData.hipotese_diagnostica_ia || ''}
           onChange={(e) => onChange('hipotese_diagnostica_ia', e.target.value)}
-          placeholder="Relação entre diagnóstico médico, fragilidades musculares encontradas, testes especiais positivos e laudos dos exames..."
-          className="rounded-2xl text-xs sm:text-sm leading-relaxed"
+          placeholder="Síntese relacionando queixa principal, diagnóstico, achados objetivos da avaliação, laudos de anexos e fundamentação científica em periódicos (JOSPT, BJSM, Spine, etc.)..."
+          className="rounded-2xl text-xs sm:text-sm leading-relaxed font-sans"
         />
       </div>
 

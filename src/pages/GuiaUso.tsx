@@ -521,13 +521,18 @@ export default function GuiaUso() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Fisio */}
                 <div className="p-4 rounded-2xl bg-[#EFF6FF] border border-[#BFDBFE] space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="h-7 w-7 rounded-lg bg-[#3B82F6] text-white flex items-center justify-center font-bold text-xs">
-                      <Activity className="h-4 w-4" />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-7 w-7 rounded-lg bg-[#3B82F6] text-white flex items-center justify-center font-bold text-xs">
+                        <Activity className="h-4 w-4" />
+                      </span>
+                      <h5 className="font-bold text-sm text-[#1D4ED8]">
+                        Fisioterapia (Modelo Exclusivo SOUL)
+                      </h5>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                      Conclusão com IA & Periódicos
                     </span>
-                    <h5 className="font-bold text-sm text-[#1D4ED8]">
-                      Fisioterapia (Modelo Exclusivo SOUL)
-                    </h5>
                   </div>
                   <ul className="text-xs text-gray-700 space-y-1.5 list-disc pl-4 leading-relaxed">
                     <li>
@@ -552,22 +557,50 @@ export default function GuiaUso() {
                       por segmento/movimento e prescrição de palmilha em sub-fluxo próprio.
                     </li>
                     <li>
-                      <strong>Gerar com IA:</strong> na etapa 7, o assistente inteligente cruza
-                      todos os achados com diretrizes científicas (Lancet, CPG) e sugere hipótese
-                      diagnóstica + plano semanal de 8 semanas 100% editável.
+                      <strong>Gerar Conclusão com IA (Base Científica em Periódicos):</strong> na
+                      etapa 7, o assistente inteligente cruza numa síntese relacional explícita:{' '}
+                      <em>(1) Queixa principal do paciente</em> ×{' '}
+                      <em>(2) Diagnóstico médico e cinético-funcional</em> ×{' '}
+                      <em>
+                        (3) Achados da avaliação física (ADM, dinamometria/força, testes especiais,
+                        Core e laudos de anexos)
+                      </em>{' '}
+                      × <em>(4) Literatura científica de referência</em> baseada nos principais
+                      periódicos:
+                      <div className="mt-1.5 p-2 rounded-xl bg-white/80 border border-blue-200 text-[11px] text-gray-700 space-y-1">
+                        <div>
+                          <strong>Ortopedia e Traumatologia:</strong> JBJS, AJSM, Spine, The Spine
+                          Journal, Arthroscopy, RBO.
+                        </div>
+                        <div>
+                          <strong>Medicina Esportiva & Performance:</strong> BJSM, Sports Medicine,
+                          MSSE, RBME.
+                        </div>
+                        <div>
+                          <strong>Fisioterapia Esportiva & Reabilitação:</strong> JOSPT, Physical
+                          Therapy in Sport, BJPT, Fisioterapia Brasil.
+                        </div>
+                      </div>
+                      Gera hipótese diagnóstica integrada, diagnóstico disfuncional e plano semana a
+                      semana de 8 semanas, todos 100% editáveis pelo profissional.
                     </li>
                   </ul>
                 </div>
 
                 {/* Personal */}
                 <div className="p-4 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="h-7 w-7 rounded-lg bg-[#F97316] text-white flex items-center justify-center font-bold text-xs">
-                      <Dumbbell className="h-4 w-4" />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-7 w-7 rounded-lg bg-[#F97316] text-white flex items-center justify-center font-bold text-xs">
+                        <Dumbbell className="h-4 w-4" />
+                      </span>
+                      <h5 className="font-bold text-sm text-[#C2410C]">
+                        Personal Trainer (Padrão Physical Test)
+                      </h5>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                      Conclusão com IA & Periódicos
                     </span>
-                    <h5 className="font-bold text-sm text-[#C2410C]">
-                      Personal Trainer (Padrão Physical Test)
-                    </h5>
                   </div>
                   <ul className="text-xs text-gray-700 space-y-1.5 list-disc pl-4 leading-relaxed">
                     <li>
@@ -581,9 +614,15 @@ export default function GuiaUso() {
                       em tempo real.
                     </li>
                     <li>
-                      <strong>Gerar com IA na etapa 8:</strong> gera síntese biomecânica, hipótese
-                      funcional e periodização semanal de 12 semanas (adaptação, hipertrofia, força
-                      e deload) totalmente editável.
+                      <strong>
+                        Gerar Conclusão com IA na etapa 8 (Periódicos & Cruzamento com Medidas):
+                      </strong>{' '}
+                      gera a hipótese funcional fundamentada nas principais revistas científicas
+                      (MSSE, RBME, BJSM, Sports Medicine, JOSPT, Physical Therapy in Sport, BJPT,
+                      AJSM, Spine), relacionando objetivos, composição corporal (%G), assimetrias do
+                      dinamômetro, postura, Core McGill e FMS, além de permitir o cruzamento
+                      avançado "Objetivos × Fragilidades da Avaliação" com as medidas numéricas
+                      exatas e periodização de 12 semanas editável.
                     </li>
                   </ul>
                 </div>

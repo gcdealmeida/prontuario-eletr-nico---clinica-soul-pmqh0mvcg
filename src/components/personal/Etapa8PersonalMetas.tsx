@@ -286,9 +286,11 @@ export const Etapa8PersonalMetas: React.FC<Etapa8PersonalMetasProps> = ({
                 </span>
               </div>
               <p className="text-xs text-gray-300 mt-0.5 leading-relaxed">
-                Cruza automaticamente IMC, RCQ, dobras e %G (Physical Test), dinamômetro manual com
-                assimetrias, Banco de Wells, postura estática, Core McGill e FMS com as diretrizes
-                do ACSM e evidências científicas.
+                Cruza automaticamente objetivos, IMC, RCQ, dobras e %G (Physical Test), dinamometria
+                manual com assimetrias, Banco de Wells, postura, Core McGill, FMS e resumos de
+                anexos com as evidências dos principais periódicos de Medicina Esportiva, Exercício
+                e Biomecânica (MSSE, RBME, BJSM, Sports Medicine, JOSPT, Physical Therapy in Sport,
+                BJPT, AJSM, Spine).
               </p>
             </div>
           </div>
@@ -323,35 +325,39 @@ export const Etapa8PersonalMetas: React.FC<Etapa8PersonalMetasProps> = ({
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-[11px] text-[#DFBF8E] pt-1 border-t border-white/10">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#DFBF8E] pt-1 border-t border-white/10">
           <span className="flex items-center gap-1">
-            <BookOpen className="h-3.5 w-3.5" /> Evidências ACSM, McGill e FMS conectadas
+            <BookOpen className="h-3.5 w-3.5" /> Base: MSSE, RBME, BJSM, Sports Med, JOSPT, BJPT,
+            AJSM
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
-            <Layers className="h-3.5 w-3.5" /> Hipótese + Diagnóstico + 12 semanas
+            <Layers className="h-3.5 w-3.5" /> Objetivos × Avaliação × Periódicos
           </span>
           <span>•</span>
-          <span className="text-gray-300">Totalmente aberto a edição manual</span>
+          <span className="text-gray-300">Hipótese + Periodização 12 semanas editáveis</span>
         </div>
       </div>
 
       {/* 1. Hipótese Diagnóstica / Avaliação Funcional Integrada */}
       <div className="space-y-2">
         <Label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-          <span>1. Hipótese Diagnóstica / Avaliação Funcional Integrada</span>
+          <span>
+            1. Hipótese Diagnóstica / Avaliação Funcional (Objetivos × Avaliação × Periódicos
+            Científicos)
+          </span>
           {formData.hipotese_diagnostica_ia && (
             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-              Gerado com base na avaliação física
+              Gerado com base na avaliação física e literatura
             </span>
           )}
         </Label>
         <Textarea
-          rows={3}
+          rows={5}
           value={formData.hipotese_diagnostica_ia || ''}
           onChange={(e) => onChange('hipotese_diagnostica_ia', e.target.value)}
-          placeholder="Síntese funcional cruzando riscos metabólicos (RCQ/IMC), assimetrias de força muscular, desvios posturais e restrições de movimento..."
-          className="rounded-2xl text-xs sm:text-sm leading-relaxed border-gray-200"
+          placeholder="Síntese funcional integrando objetivos do aluno, riscos metabólicos (%G/RCQ), assimetrias de dinamometria, desvios posturais, Core, FMS e literatura de referência em periódicos..."
+          className="rounded-2xl text-xs sm:text-sm leading-relaxed border-gray-200 font-sans"
         />
       </div>
 

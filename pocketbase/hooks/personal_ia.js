@@ -75,7 +75,15 @@ Responda estritamente com um JSON válido contendo:
   "sintese_cruzamento": "string com texto explicativo pronto para prontuário"
 }`
       } else {
-        promptMensagem = `Realize a análise funcional e biomecânica completa da seguinte avaliação física de Personal Trainer (Padrão Physical Test) e elabore a Hipótese Diagnóstica / Avaliação Funcional, Diagnóstico Funcional (pontos fortes e limitações), Objetivos do Treinamento priorizados e o Plano de Treinamento semana a semana periodizado (12 semanas, cobrindo volume, intensidade, foco e critérios) em formato JSON.
+        promptMensagem = `Realize a análise funcional e biomecânica completa da seguinte avaliação física de Personal Trainer (Padrão Physical Test) da Clínica SOUL.
+Sua missão é formular uma CONCLUSÃO COM IA que faça uma SÍNTESE RELACIONANDO:
+(1) Objetivo principal declarado do aluno, queixas, histórico e restrições.
+(2) Diagnóstico funcional e achados objetivos da avaliação (composição corporal %G, dinamometria/assimetrias de força, flexibilidade no Banco de Wells/Flexitest, postura estática, Core McGill e FMS).
+(3) Resumos de anexos e laudos de exames lidos com IA.
+(4) Evidências e consensos dos periódicos científicos de referência em Medicina Esportiva, Exercício e Biomecânica:
+    - Medicina Esportiva, Performance e Lesões: British Journal of Sports Medicine (BJSM), Sports Medicine, Medicine & Science in Sports & Exercise (MSSE), Revista Brasileira de Medicina do Esporte (RBME).
+    - Fisioterapia Esportiva e Biomecânica: Journal of Orthopaedic & Sports Physical Therapy (JOSPT), Physical Therapy in Sport, Brazilian Journal of Physical Therapy (BJPT), Fisioterapia Brasil.
+    - Ortopedia / Preservação Articular: The American Journal of Sports Medicine (AJSM), Arthroscopy, Spine.
 
 DADOS DO ALUNO E AVALIAÇÃO FÍSICA:
 - Nome/Identificação: ${avaliacaoData.paciente_nome || 'Aluno SOUL'} (Nasc: ${avaliacaoData.paciente_nascimento || 'Não informado'})
@@ -125,10 +133,17 @@ ${JSON.stringify(avaliacaoData.anamnese_personal || {})}
 8. METAS PREVIAS & DIVISÃO PRETENDIDA:
 ${JSON.stringify(avaliacaoData.metas_treino || {})}
 - Observações prévias: ${avaliacaoData.observacoes || '—'}
+- Síntese Clínica dos Anexos / Laudos Lidos com IA: ${JSON.stringify(avaliacaoData.resumos_anexos || {})}
+
+DIRETRIZES DE REDAÇÃO:
+1. Sem prefixos mecânicos tipo "CAMPO:", "Achado:", "Item:".
+2. Sem tabelas markdown com barras verticais e traços (|---|---|).
+3. Fundamentação científica nos periódicos (MSSE, RBME, BJSM, Sports Medicine, JOSPT, etc.) de forma natural como fontes de autoridade, sem forjar anos ou páginas de citação.
 
 Por favor, responda estritamente com uma estrutura JSON válida contendo:
 {
-  "hipotese_diagnostica": "string detalhada com o raciocínio funcional integrando composição, riscos, assimetrias e testes",
+  "hipotese_diagnostica": "string detalhada com o raciocínio funcional integrando objetivos x composição x assimetrias x testes x fundamentação nos periódicos científicos",
+  "fundamentacao_cientifica": "síntese específica do que as revistas de referência (MSSE, BJSM, Sports Medicine, JOSPT, etc.) preconizam para a periodização, volume e correção das fragilidades observadas",
   "diagnostico_funcional": "string destacando pontos fortes e limitações prioritárias do aluno",
   "objetivos_treinamento": "string com objetivos de curto prazo (30-60 dias), médio prazo (3-6 meses) e longo prazo (12 meses)",
   "plano_tratamento_semanal": [
@@ -161,6 +176,18 @@ O array "plano_tratamento_semanal" deve conter a periodização completa de 12 s
         }
       } catch (err) {
         console.log('Aviso ao parsear JSON do agente de personal:', err)
+      }
+
+      // Se parsed possui fundamentacao_cientifica e a hipotese_diagnostica não a incorporou,
+      // assegurar que a fundamentação fique bem visível e preservada
+      if (parsed && parsed.fundamentacao_cientifica && parsed.hipotese_diagnostica) {
+        if (
+          !parsed.hipotese_diagnostica.includes(parsed.fundamentacao_cientifica) &&
+          !parsed.hipotese_diagnostica.toLowerCase().includes('fundamentação') &&
+          !parsed.hipotese_diagnostica.toLowerCase().includes('literatura')
+        ) {
+          parsed.hipotese_diagnostica = `${parsed.hipotese_diagnostica}\n\nFundamentação Científica (Periódicos de Referência):\n${parsed.fundamentacao_cientifica}`
+        }
       }
 
       return e.json(200, {
