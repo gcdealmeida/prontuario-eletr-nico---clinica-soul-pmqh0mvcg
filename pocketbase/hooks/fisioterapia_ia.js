@@ -25,7 +25,8 @@ DADOS DO PACIENTE E AVALIAÇÃO:
 - Teste de Força Muscular & Dinamometria: ${avaliacaoData.forca_muscular_descricao || JSON.stringify(avaliacaoData.forca_muscular_grupos || {})}
 - Testes Especiais por Segmento: ${JSON.stringify(avaliacaoData.testes_especiais_segmentos || {})}
 - Testes Complementares (Berg, TUG, Cirtometria, Podologia): ${JSON.stringify(avaliacaoData.secoes_complementares || {})}
-- Exames Complementares Anexados / Descrição: ${avaliacaoData.descricao_exames || 'Exames de imagem/laboratoriais anexados em prontuário'}
+- Exames Complementares Anexados / Descrição: ${avaliacaoData.descricao_exames || avaliacaoData.historico_medico || 'Exames de imagem/laboratoriais anexados em prontuário'}
+- Síntese Clínica dos Anexos / Laudos Lidos com IA: ${JSON.stringify(avaliacaoData.resumos_anexos || {})}
 Por favor, responda com uma estrutura JSON válida contendo:
 {
   "hipotese_diagnostica": "string detalhada cruzando os dados",

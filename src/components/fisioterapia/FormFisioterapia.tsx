@@ -169,6 +169,7 @@ export const FormFisioterapia: React.FC<FormFisioterapiaProps> = ({
             formData={formData}
             onChange={onChange}
             existingRecordId={existingRecordId}
+            pacienteId={paciente?.id}
           />
         )}
         {etapaAtual === 7 && (

@@ -238,6 +238,60 @@ export async function extrairDinamometroArquivo(file: File, textoContexto?: stri
   }
 }
 
+export interface AnalisarAnexoIaParams {
+  arquivo?: File
+  paciente_id?: string
+  avaliacao_id?: string
+  evolucao_id?: string
+  especialidade?: string
+  nome_arquivo?: string
+  collection_name?: string
+  record_id?: string
+}
+
+export interface AnalisarAnexoIaResponse {
+  success: boolean
+  nome_arquivo: string
+  resumo: string
+  truncated?: boolean
+  aviso?: string
+  analisado_em: string
+  analisado_por: string
+}
+
+export async function analisarAnexoIa(
+  params: AnalisarAnexoIaParams,
+): Promise<AnalisarAnexoIaResponse> {
+  const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/anexos/analisar-ia`
+  const token = pb.authStore.token
+
+  const formData = new FormData()
+  if (params.arquivo) {
+    formData.append('arquivo', params.arquivo)
+  }
+  if (params.paciente_id) formData.append('paciente_id', params.paciente_id)
+  if (params.avaliacao_id) formData.append('avaliacao_id', params.avaliacao_id)
+  if (params.evolucao_id) formData.append('evolucao_id', params.evolucao_id)
+  if (params.especialidade) formData.append('especialidade', params.especialidade)
+  if (params.nome_arquivo) formData.append('nome_arquivo', params.nome_arquivo)
+  if (params.collection_name) formData.append('collection_name', params.collection_name)
+  if (params.record_id) formData.append('record_id', params.record_id)
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  })
+
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data?.error || 'Falha ao analisar anexo com IA')
+  }
+  return data as AnalisarAnexoIaResponse
+}
+
 export function getFileUrl(collectionName: string, recordId: string, filename: string): string {
   return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${collectionName}/${recordId}/${filename}`
 }

@@ -1124,26 +1124,48 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
           <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2.5 rounded-xl flex items-center gap-2">
             <Paperclip className="h-4 w-4" /> 6. Arquivos e Exames Anexados ao Prontuário
           </h3>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {avaliacao.anexos_exames?.map((f) => (
-              <a
-                key={f}
-                href={getFileUrl('avaliacoes_fisioterapia', avaliacao.id, f)}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-blue-700 font-medium flex items-center gap-1.5"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                {f}
-              </a>
-            ))}
+          <div className="space-y-2 text-xs">
+            {avaliacao.anexos_exames?.map((f) => {
+              const itemResumo = avaliacao.resumos_anexos?.[f]
+              return (
+                <div
+                  key={f}
+                  className="p-3 bg-white rounded-2xl border border-gray-200 shadow-2xs space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <a
+                      href={getFileUrl('avaliacoes_fisioterapia', avaliacao.id, f)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-blue-700 font-medium flex items-center gap-1.5"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {f}
+                    </a>
+                    {itemResumo && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> Sintetizado por IA
+                      </span>
+                    )}
+                  </div>
+                  {itemResumo?.resumo && (
+                    <div className="p-2.5 rounded-xl bg-[#FAF9F6] border border-[#E9E1D2] text-xs text-gray-800 space-y-1">
+                      <span className="text-[10px] font-bold text-[#8C6527] uppercase tracking-wider block">
+                        Síntese Clínica dos Resultados:
+                      </span>
+                      <p className="leading-relaxed whitespace-pre-wrap">{itemResumo.resumo}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
             {avaliacao.anexos_dinamometro?.map((f) => (
               <a
                 key={f}
                 href={getFileUrl('avaliacoes_fisioterapia', avaliacao.id, f)}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-medium flex items-center gap-1.5"
+                className="inline-flex px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-medium items-center gap-1.5"
               >
                 <Zap className="h-3.5 w-3.5" />
                 {f} (Dinamômetro)
@@ -1161,6 +1183,31 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
         </h3>
 
         <div className="space-y-4 text-xs">
+          {avaliacao.resumos_anexos && Object.keys(avaliacao.resumos_anexos).length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-2">
+              <div className="flex items-center gap-1.5 text-blue-900 font-bold">
+                <Sparkles className="h-4 w-4 text-blue-600" />
+                <span>
+                  Sínteses Clínicas dos Anexos Integradas ao Raciocínio (
+                  {Object.keys(avaliacao.resumos_anexos).length}):
+                </span>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(avaliacao.resumos_anexos).map(([fn, item]: [string, any]) => (
+                  <div
+                    key={fn}
+                    className="p-2.5 bg-white rounded-xl border border-blue-100 text-xs"
+                  >
+                    <span className="font-semibold text-gray-900 block mb-0.5">{fn}</span>
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {item?.resumo || item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {avaliacao.hipotese_diagnostica_ia && (
             <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70">
               <span className="font-bold text-amber-950 uppercase tracking-wider block mb-1">

@@ -64,6 +64,7 @@ export const Etapa7ConclusaoIa: React.FC<Etapa7ConclusaoIaProps> = ({
         ...formData,
         paciente_nome: paciente?.nome,
         paciente_nascimento: paciente?.data_nascimento,
+        resumos_anexos: formData.resumos_anexos || {},
       }
 
       const res = await gerarIaFisioterapia(payload)

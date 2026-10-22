@@ -50,12 +50,14 @@ interface Etapa5PersonalPosturaProps {
   formData: Record<string, any>
   onChange: (field: string, value: any) => void
   existingRecordId?: string
+  pacienteId?: string
 }
 
 export const Etapa5PersonalPostura: React.FC<Etapa5PersonalPosturaProps> = ({
   formData,
   onChange,
   existingRecordId,
+  pacienteId,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const postural = formData.postural_dados || {}

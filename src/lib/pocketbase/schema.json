@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T20:27:48.314Z",
+  "generatedAt": "2026-10-22T23:20:17.628Z",
   "collections": [
     {
       "name": "users",
@@ -718,6 +718,12 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "resumos_anexos",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"]
@@ -986,6 +992,12 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "resumos_anexos",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_apersonal_paciente ON avaliacoes_personal (paciente_id)"]
@@ -1182,6 +1194,12 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "resumos_anexos",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_anutri_paciente ON avaliacoes_nutricao (paciente_id)"]
@@ -1370,6 +1388,12 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "resumos_anexos",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_amedico_paciente ON avaliacoes_medico (paciente_id)"]
@@ -1590,6 +1614,12 @@
         {
           "name": "eva_dor",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resumos_anexos",
+          "type": "json",
           "required": false,
           "system": false
         }

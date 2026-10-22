@@ -199,6 +199,7 @@ export default function NovaAvaliacao() {
     if (!selectedPacienteId || isSuccessfullySavedRef.current) return
     const pacienteAtual = pacientes.find((p) => p.id === selectedPacienteId)
     // Remove uploads de arquivos nativos do JSON (pois File não serializa em JSON)
+    // Mantém resumos_anexos salvo no rascunho para não perder texto lido/editado por IA
     const dadosParaSalvar = { ...novoFormData }
     delete dadosParaSalvar._pending_exames_files
     delete dadosParaSalvar._pending_dinamometro_files
@@ -714,6 +715,7 @@ export default function NovaAvaliacao() {
         profissional_responsavel:
           formData.profissional_responsavel || user?.name || 'Dr. Guilherme (Admin)',
         data_avaliacao: formData.data_avaliacao || new Date().toISOString().substring(0, 10),
+        resumos_anexos: formData.resumos_anexos || {},
       }
 
       // Limpar campos de estado temporário do form

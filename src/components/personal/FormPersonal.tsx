@@ -157,6 +157,7 @@ export const FormPersonal: React.FC<FormPersonalProps> = ({
             formData={formData}
             onChange={onChange}
             existingRecordId={existingRecordId}
+            pacienteId={paciente?.id}
           />
         )}
         {etapaAtual === 6 && <Etapa6PersonalCore formData={formData} onChange={onChange} />}

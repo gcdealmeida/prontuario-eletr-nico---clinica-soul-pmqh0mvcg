@@ -167,6 +167,7 @@ export const Etapa8PersonalMetas: React.FC<Etapa8PersonalMetasProps> = ({
         ...formData,
         paciente_nome: paciente?.nome,
         paciente_nascimento: paciente?.data_nascimento,
+        resumos_anexos: formData.resumos_anexos || {},
       }
 
       const res = await gerarIaPersonal(payload)

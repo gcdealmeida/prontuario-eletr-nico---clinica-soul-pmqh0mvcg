@@ -36,6 +36,7 @@ DADOS DO ALUNO E AVALIAÇÃO:
 - Nome: ${avaliacaoData.paciente_nome || 'Aluno SOUL'}
 - Objetivo Principal Declarado: ${avaliacaoData.objetivo_principal || 'Melhora Geral'}
 - Restrições/Alertas: ${avaliacaoData.restricoes_treino || 'Nenhuma'}
+- Exames e Laudos Anexados (Síntese IA): ${JSON.stringify(avaliacaoData.resumos_anexos || {})}
 - Metas/Objetivos declarados pelo profissional: ${JSON.stringify(avaliacaoData.metas_treino || {})}
 - Objetivos do Treinamento já anotados: ${avaliacaoData.objetivos_treinamento || '—'}
 - Composição Corporal: %G=${avaliacaoData.composicao_corporal?.percentual_gordura ?? avaliacaoData.percentual_gordura ?? '—'}%, Dobras=${JSON.stringify(avaliacaoData.composicao_corporal?.dobras || {})}, Perímetros=${JSON.stringify(avaliacaoData.composicao_corporal?.perimetros || {})}

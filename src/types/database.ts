@@ -41,6 +41,7 @@ export interface EvolucaoRecord {
   documento_fechado?: boolean
   tipo_evolucao?: TipoEvolucao
   evolucao_referencia_id?: string
+  resumos_anexos?: Record<string, ResumoAnexoIaItem>
 
   created: string
   updated: string
@@ -510,6 +511,15 @@ export interface PlanoSemanalItem {
   criterios_evolucao?: string
 }
 
+export interface ResumoAnexoIaItem {
+  nome_arquivo: string
+  resumo: string
+  analisado_em?: string
+  analisado_por?: string
+  editado_manualmente?: boolean
+  truncated?: boolean
+}
+
 export interface AvaliacaoFisioterapiaRecord {
   id: string
   paciente_id: string
@@ -553,6 +563,7 @@ export interface AvaliacaoFisioterapiaRecord {
   plano_semanal_detalhado?: PlanoSemanalItem[]
   anexos_exames?: string[]
   anexos_dinamometro?: string[]
+  resumos_anexos?: Record<string, ResumoAnexoIaItem>
   dados_importados_planilha?: {
     arquivo_origem?: string
     importado_em?: string
@@ -743,6 +754,7 @@ export interface AvaliacaoPersonalRecord {
     }>
     sintese_geral?: string
   }
+  resumos_anexos?: Record<string, ResumoAnexoIaItem>
   created: string
   updated: string
   expand?: {
