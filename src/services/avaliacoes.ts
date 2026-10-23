@@ -304,23 +304,140 @@ export function normalizeAvaliacaoFisioterapiaPayload(
   return normalized
 }
 
+const FISIO_FILE_FIELDS = new Set<string>(['anexos_exames', 'anexos_dinamometro', 'anexos_postura'])
+
+/**
+ * Remove campos de arquivo quando o valor for apenas string ou array de strings
+ * (nomes de arquivos já salvos anteriormente), pois em JSON/FormData o PocketBase
+ * rejeita strings em campos do tipo file com validation_invalid_file.
+ * Mantém valores se forem File ou Blob (ou array contendo File/Blob).
+ */
+export function stripExistingFileStringFields(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = { ...payload }
+  for (const field of FISIO_FILE_FIELDS) {
+    if (field in cleaned) {
+      const val = cleaned[field]
+      if (typeof val === 'string') {
+        delete cleaned[field]
+      } else if (Array.isArray(val)) {
+        const hasRealFile = val.some(
+          (item) =>
+            (typeof File !== 'undefined' && item instanceof File) ||
+            (typeof Blob !== 'undefined' && item instanceof Blob),
+        )
+        if (!hasRealFile) {
+          delete cleaned[field]
+        }
+      }
+    }
+  }
+  return cleaned
+}
+
+/**
+ * Higieniza um FormData para a coleção avaliacoes_fisioterapia:
+ * 1. Converte campos NUMBER vazios ("" ou "null" ou "NaN") omitindo-os ou setando null (PocketBase aceita ausência ou número real).
+ * 2. Remove entradas dos campos file (anexos_exames, anexos_dinamometro, anexos_postura) se o valor for string (não File/Blob).
+ * 3. Garante que campos JSON sejam strings JSON válidas ou omitidos.
+ */
+export function sanitizeFisioterapiaFormData(sourceFd: FormData): FormData {
+  const sanitized = new FormData()
+
+  for (const [key, val] of sourceFd.entries()) {
+    // 1. Filtrar chaves que não existem no schema de avaliacoes_fisioterapia
+    if (!AVALIACOES_FISIOTERAPIA_ALLOWED_FIELDS.has(key)) {
+      continue
+    }
+
+    // 2. Tratar campos de arquivo: apenas aceitar File ou Blob real
+    if (FISIO_FILE_FIELDS.has(key)) {
+      if (typeof File !== 'undefined' && val instanceof File && val.size > 0 && val.name) {
+        sanitized.append(key, val)
+      } else if (typeof Blob !== 'undefined' && val instanceof Blob && !(typeof val === 'string')) {
+        sanitized.append(key, val)
+      }
+      // Nomes de arquivos pré-existentes como strings são IGNORADOS aqui (não reenviar)
+      continue
+    }
+
+    // 3. Tratar campos NUMBER
+    if (FISIO_NUMBER_FIELDS.has(key)) {
+      if (typeof val === 'string') {
+        const trimmed = val.trim()
+        if (!trimmed || trimmed === 'null' || trimmed === 'undefined' || trimmed === 'NaN') {
+          // Não enviar strings vazias para campos numéricos no FormData
+          continue
+        }
+        const num = Number(trimmed)
+        if (Number.isFinite(num)) {
+          sanitized.append(key, String(num))
+        }
+      }
+      continue
+    }
+
+    // 4. Tratar campos JSON
+    if (FISIO_JSON_FIELDS.has(key)) {
+      if (typeof val === 'string') {
+        const trimmed = val.trim()
+        if (!trimmed || trimmed === 'null' || trimmed === 'undefined') {
+          continue
+        }
+        try {
+          JSON.parse(trimmed)
+          sanitized.append(key, trimmed)
+        } catch {
+          // JSON inválido, não enviar
+          continue
+        }
+      }
+      continue
+    }
+
+    // 5. Demais campos (textos, data_avaliacao, paciente_id, status, etc.)
+    sanitized.append(key, val)
+  }
+
+  // Garantias mínimas
+  if (!sanitized.has('especialidade')) {
+    sanitized.append('especialidade', 'Fisioterapia')
+  }
+
+  if (!sanitized.has('status')) {
+    sanitized.append('status', 'Rascunho')
+  }
+
+  if (!sanitized.has('user_id') && pb.authStore.record?.id) {
+    sanitized.append('user_id', pb.authStore.record.id)
+  }
+
+  if (!sanitized.has('data_avaliacao')) {
+    sanitized.append('data_avaliacao', new Date().toISOString().substring(0, 10))
+  }
+
+  return sanitized
+}
+
 export async function createAvaliacao(
   collectionName: string,
   data: Record<string, unknown> | FormData,
 ) {
   // Tratar FormData (usado para envio de arquivos)
   if (data instanceof FormData) {
-    if (!data.has('user_id') && pb.authStore.record?.id) {
-      data.append('user_id', pb.authStore.record.id)
+    let fdToSend = data
+    if (collectionName === 'avaliacoes_fisioterapia') {
+      fdToSend = sanitizeFisioterapiaFormData(data)
+    } else {
+      if (!fdToSend.has('user_id') && pb.authStore.record?.id) {
+        fdToSend.append('user_id', pb.authStore.record.id)
+      }
     }
-    // Se for Fisioterapia, higienizar chaves indesejadas não é direto no FormData,
-    // mas garantimos que as entradas numéricas/json cruciais estejam corretas
-    return await pb.collection(collectionName).create(data)
+    return await pb.collection(collectionName).create(fdToSend)
   }
 
-  let payload: Record<string, unknown> = {
-    ...data,
-  }
+  let payload: Record<string, unknown> = stripExistingFileStringFields(data)
 
   if (collectionName === 'avaliacoes_fisioterapia') {
     payload = normalizeAvaliacaoFisioterapiaPayload(
@@ -342,12 +459,14 @@ export async function updateAvaliacao(
   data: Record<string, unknown> | FormData,
 ) {
   if (data instanceof FormData) {
-    return await pb.collection(collectionName).update(id, data)
+    let fdToSend = data
+    if (collectionName === 'avaliacoes_fisioterapia') {
+      fdToSend = sanitizeFisioterapiaFormData(data)
+    }
+    return await pb.collection(collectionName).update(id, fdToSend)
   }
 
-  let payload: Record<string, unknown> = {
-    ...data,
-  }
+  let payload: Record<string, unknown> = stripExistingFileStringFields(data)
 
   if (collectionName === 'avaliacoes_fisioterapia') {
     payload = normalizeAvaliacaoFisioterapiaPayload(

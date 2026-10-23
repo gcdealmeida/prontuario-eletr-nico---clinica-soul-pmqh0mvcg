@@ -282,21 +282,32 @@ export default function NovaAvaliacao() {
         data_avaliacao: novoFormData.data_avaliacao || new Date().toISOString().substring(0, 10),
       }
 
+      const pendingExames: File[] = (novoFormData._pending_exames_files || []).filter(
+        (f: unknown): f is File => typeof File !== 'undefined' && f instanceof File,
+      )
+      const pendingDinamometro: File[] = (novoFormData._pending_dinamometro_files || []).filter(
+        (f: unknown): f is File => typeof File !== 'undefined' && f instanceof File,
+      )
+      const pendingPostura: File[] = (novoFormData._pending_postura_files || []).filter(
+        (f: unknown): f is File => typeof File !== 'undefined' && f instanceof File,
+      )
+
       delete basePayload._pending_exames_files
       delete basePayload._pending_dinamometro_files
       delete basePayload._pending_postura_files
+
+      // Strip arrays de strings/nomes de arquivos pré-existentes dos campos FILE
+      // para nunca enviar strings como upload
+      delete basePayload.anexos_exames
+      delete basePayload.anexos_dinamometro
+      delete basePayload.anexos_postura
 
       if (selectedEspecialidade === 'Fisioterapia') {
         basePayload = normalizeAvaliacaoFisioterapiaPayload(basePayload, 'Rascunho')
       }
 
       let requestData: any = basePayload
-      if (
-        (novoFormData._pending_exames_files && novoFormData._pending_exames_files.length > 0) ||
-        (novoFormData._pending_dinamometro_files &&
-          novoFormData._pending_dinamometro_files.length > 0) ||
-        (novoFormData._pending_postura_files && novoFormData._pending_postura_files.length > 0)
-      ) {
+      if (pendingExames.length > 0 || pendingDinamometro.length > 0 || pendingPostura.length > 0) {
         const fd = new FormData()
         Object.entries(basePayload).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -307,14 +318,26 @@ export default function NovaAvaliacao() {
             }
           }
         })
+        for (const f of pendingExames) {
+          fd.append('anexos_exames', f)
+        }
+        for (const f of pendingDinamometro) {
+          fd.append('anexos_dinamometro', f)
+        }
+        for (const f of pendingPostura) {
+          fd.append('anexos_postura', f)
+        }
         requestData = fd
       }
 
-      if (activeRecordId) {
-        await updateAvaliacao(col, activeRecordId, requestData)
+      const targetRecordId = activeRecordId || editId || novoFormData.id
+      if (targetRecordId) {
+        await updateAvaliacao(col, targetRecordId, requestData)
       } else {
         const created = await createAvaliacao(col, requestData)
-        setActiveRecordId(created.id)
+        if (created?.id) {
+          setActiveRecordId(created.id)
+        }
       }
     } catch (errSilent) {
       console.warn('Salvamento silencioso no servidor (fallback mantido no local):', errSilent)
@@ -699,9 +722,15 @@ export default function NovaAvaliacao() {
 
       const col = getCollectionNameByEspecialidade(selectedEspecialidade)
 
-      const pendingExames: File[] = formData._pending_exames_files || []
-      const pendingDinamometro: File[] = formData._pending_dinamometro_files || []
-      const pendingPostura: File[] = formData._pending_postura_files || []
+      const pendingExames: File[] = (formData._pending_exames_files || []).filter(
+        (f: unknown): f is File => typeof File !== 'undefined' && f instanceof File,
+      )
+      const pendingDinamometro: File[] = (formData._pending_dinamometro_files || []).filter(
+        (f: unknown): f is File => typeof File !== 'undefined' && f instanceof File,
+      )
+      const pendingPostura: File[] = (formData._pending_postura_files || []).filter(
+        (f: unknown): f is File => typeof File !== 'undefined' && f instanceof File,
+      )
 
       // Garantir compatibilidade de queixa_principal para Fisioterapia
       const queixaPrincipal =
@@ -728,6 +757,12 @@ export default function NovaAvaliacao() {
       delete basePayload._pending_exames_files
       delete basePayload._pending_dinamometro_files
       delete basePayload._pending_postura_files
+
+      // Strip arrays de strings/nomes de arquivos pré-existentes dos campos FILE
+      // para nunca enviar strings como upload
+      delete basePayload.anexos_exames
+      delete basePayload.anexos_dinamometro
+      delete basePayload.anexos_postura
 
       // Se for Fisioterapia, normalizar completamente antes do envio
       if (selectedEspecialidade === 'Fisioterapia') {
@@ -798,7 +833,7 @@ export default function NovaAvaliacao() {
         requestData = fd
       }
 
-      let savedRecordId = activeRecordId || editId
+      let savedRecordId = activeRecordId || editId || (formData.id ? String(formData.id) : '')
       if (savedRecordId) {
         await updateAvaliacao(col, savedRecordId, requestData)
       } else {
