@@ -103,24 +103,236 @@ export async function getAvaliacaoById(collectionName: string, id: string) {
   })
 }
 
+// Lista exata de campos permitidos no schema da coleção avaliacoes_fisioterapia
+export const AVALIACOES_FISIOTERAPIA_ALLOWED_FIELDS = new Set<string>([
+  'id',
+  'paciente_id',
+  'especialidade',
+  'status',
+  'queixa_principal',
+  'historia_doenca_atual',
+  'historico_medico',
+  'medicamentos',
+  'cirurgias',
+  'postura',
+  'adm_ombro',
+  'adm_joelho',
+  'adm_quadril',
+  'adm_coluna',
+  'forca_mmss',
+  'forca_mmii',
+  'forca_core',
+  'palpacao',
+  'testes_especiais',
+  'diagnostico_fisioterapeutico',
+  'objetivos_tratamento',
+  'plano_tratamento',
+  'evolucao_nota',
+  'profissional_responsavel',
+  'data_avaliacao',
+  'anamnese_detalhada',
+  'queixas_multiplas',
+  'visceras_sistemicas',
+  'habitos_saude',
+  'adm_segmentos',
+  'forca_muscular_grupos',
+  'forca_core_tabela',
+  'testes_especiais_segmentos',
+  'secoes_complementares',
+  'diagnostico_disfuncional',
+  'hipotese_diagnostica_ia',
+  'plano_semanal_detalhado',
+  'anexos_exames',
+  'anexos_dinamometro',
+  'forca_muscular_descricao',
+  'user_id',
+  'dados_importados_planilha',
+  'resumos_anexos',
+  'fundamentacao_cientifica',
+  'fundamentacao_cientifica_ia',
+])
+
+const FISIO_NUMBER_FIELDS = new Set<string>([
+  'adm_ombro',
+  'adm_joelho',
+  'adm_quadril',
+  'adm_coluna',
+  'forca_mmss',
+  'forca_mmii',
+  'forca_core',
+])
+
+const FISIO_JSON_FIELDS = new Set<string>([
+  'anamnese_detalhada',
+  'queixas_multiplas',
+  'visceras_sistemicas',
+  'habitos_saude',
+  'adm_segmentos',
+  'forca_muscular_grupos',
+  'forca_core_tabela',
+  'testes_especiais_segmentos',
+  'secoes_complementares',
+  'plano_semanal_detalhado',
+  'dados_importados_planilha',
+  'resumos_anexos',
+])
+
+const FISIO_TEXT_FIELDS = new Set<string>([
+  'queixa_principal',
+  'historia_doenca_atual',
+  'historico_medico',
+  'medicamentos',
+  'cirurgias',
+  'postura',
+  'palpacao',
+  'testes_especiais',
+  'diagnostico_fisioterapeutico',
+  'diagnostico_disfuncional',
+  'hipotese_diagnostica_ia',
+  'objetivos_tratamento',
+  'plano_tratamento',
+  'evolucao_nota',
+  'profissional_responsavel',
+  'forca_muscular_descricao',
+  'fundamentacao_cientifica',
+  'fundamentacao_cientifica_ia',
+])
+
+/**
+ * Normaliza um payload para a coleção avaliacoes_fisioterapia conforme o schema oficial do PocketBase:
+ * 1. Remove qualquer chave não existente no schema.
+ * 2. Converte campos NUMBER (""/undefined/NaN -> null).
+ * 3. Converte campos JSON (string vazia -> null, se string tentar JSON.parse ou null se inválido).
+ * 4. Garante que queixa_principal, paciente_id, especialidade e status estão preenchidos e válidos.
+ */
+export function normalizeAvaliacaoFisioterapiaPayload(
+  raw: Record<string, unknown>,
+  fallbackStatus: 'Rascunho' | 'Concluída' = 'Rascunho',
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {}
+
+  for (const [key, val] of Object.entries(raw)) {
+    // 1. Filtrar chaves que não existem no schema de avaliacoes_fisioterapia
+    if (!AVALIACOES_FISIOTERAPIA_ALLOWED_FIELDS.has(key)) {
+      continue
+    }
+
+    // 2. Normalizar campos NUMBER
+    if (FISIO_NUMBER_FIELDS.has(key)) {
+      if (val === '' || val === null || val === undefined) {
+        normalized[key] = null
+      } else {
+        const num = Number(val)
+        normalized[key] = Number.isFinite(num) ? num : null
+      }
+      continue
+    }
+
+    // 3. Normalizar campos JSON
+    if (FISIO_JSON_FIELDS.has(key)) {
+      if (val === '' || val === null || val === undefined) {
+        normalized[key] = null
+      } else if (typeof val === 'string') {
+        const trimmed = val.trim()
+        if (!trimmed || trimmed === 'null') {
+          normalized[key] = null
+        } else {
+          try {
+            normalized[key] = JSON.parse(trimmed)
+          } catch {
+            normalized[key] = null
+          }
+        }
+      } else if (typeof val === 'object') {
+        normalized[key] = val
+      } else {
+        normalized[key] = null
+      }
+      continue
+    }
+
+    // 4. Normalizar campos TEXT
+    if (FISIO_TEXT_FIELDS.has(key)) {
+      if (val === null || val === undefined) {
+        normalized[key] = ''
+      } else {
+        normalized[key] = String(val)
+      }
+      continue
+    }
+
+    // Outros campos permitidos (data_avaliacao, especialidade, status, paciente_id, user_id, etc.)
+    normalized[key] = val
+  }
+
+  // Garantias obrigatórias do schema
+  normalized.especialidade = 'Fisioterapia'
+
+  const currentStatus = String(normalized.status || raw.status || fallbackStatus)
+  normalized.status = currentStatus === 'Concluída' ? 'Concluída' : 'Rascunho'
+
+  // Garantir queixa_principal preenchida (obrigatória no schema de Fisioterapia)
+  let queixa = String(normalized.queixa_principal || '').trim()
+  if (!queixa) {
+    const rawAnamnese = raw.anamnese_detalhada as Record<string, unknown> | undefined
+    const rawQueixas = raw.queixas_multiplas as Array<Record<string, unknown>> | undefined
+    queixa =
+      (typeof rawAnamnese?.motivo_principal === 'string' && rawAnamnese.motivo_principal.trim()) ||
+      (Array.isArray(rawQueixas) &&
+        typeof rawQueixas[0]?.queixa === 'string' &&
+        rawQueixas[0].queixa.trim()) ||
+      (typeof raw.motivo_procura === 'string' && raw.motivo_procura.trim()) ||
+      'Avaliação Fisioterapêutica'
+  }
+  normalized.queixa_principal = queixa
+
+  // Garantir data_avaliacao em formato YYYY-MM-DD
+  if (!normalized.data_avaliacao) {
+    normalized.data_avaliacao = new Date().toISOString().substring(0, 10)
+  } else if (
+    typeof normalized.data_avaliacao === 'string' &&
+    normalized.data_avaliacao.includes('T')
+  ) {
+    normalized.data_avaliacao = normalized.data_avaliacao.substring(0, 10)
+  }
+
+  // Garantir user_id do autor se ausente
+  if (!normalized.user_id && pb.authStore.record?.id) {
+    normalized.user_id = pb.authStore.record.id
+  }
+
+  return normalized
+}
+
 export async function createAvaliacao(
   collectionName: string,
   data: Record<string, unknown> | FormData,
 ) {
-  // Garante que o user_id do autor autenticado seja salvo se ainda não definido
+  // Tratar FormData (usado para envio de arquivos)
   if (data instanceof FormData) {
     if (!data.has('user_id') && pb.authStore.record?.id) {
       data.append('user_id', pb.authStore.record.id)
     }
+    // Se for Fisioterapia, higienizar chaves indesejadas não é direto no FormData,
+    // mas garantimos que as entradas numéricas/json cruciais estejam corretas
     return await pb.collection(collectionName).create(data)
   }
 
-  const payload: Record<string, unknown> = {
+  let payload: Record<string, unknown> = {
     ...data,
   }
-  if (!payload.user_id && pb.authStore.record?.id) {
-    payload.user_id = pb.authStore.record.id
+
+  if (collectionName === 'avaliacoes_fisioterapia') {
+    payload = normalizeAvaliacaoFisioterapiaPayload(
+      payload,
+      (payload.status as 'Rascunho' | 'Concluída') || 'Rascunho',
+    )
+  } else {
+    if (!payload.user_id && pb.authStore.record?.id) {
+      payload.user_id = pb.authStore.record.id
+    }
   }
+
   return await pb.collection(collectionName).create(payload)
 }
 
@@ -129,7 +341,22 @@ export async function updateAvaliacao(
   id: string,
   data: Record<string, unknown> | FormData,
 ) {
-  return await pb.collection(collectionName).update(id, data)
+  if (data instanceof FormData) {
+    return await pb.collection(collectionName).update(id, data)
+  }
+
+  let payload: Record<string, unknown> = {
+    ...data,
+  }
+
+  if (collectionName === 'avaliacoes_fisioterapia') {
+    payload = normalizeAvaliacaoFisioterapiaPayload(
+      payload,
+      (payload.status as 'Rascunho' | 'Concluída') || 'Rascunho',
+    )
+  }
+
+  return await pb.collection(collectionName).update(id, payload)
 }
 
 export interface GerarIaFisioterapiaResponse {

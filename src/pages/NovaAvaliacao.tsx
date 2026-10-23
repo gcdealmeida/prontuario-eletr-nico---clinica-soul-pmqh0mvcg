@@ -36,7 +36,9 @@ import {
   getAvaliacaoById,
   createTimelineEvent,
   getCollectionNameByEspecialidade,
+  normalizeAvaliacaoFisioterapiaPayload,
 } from '@/services/avaliacoes'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   garantirPresencaAutomatica,
   mapearEspecialidadeParaServicoPresenca,
@@ -269,7 +271,7 @@ export default function NovaAvaliacao() {
           ? `Avaliação Física Physical Test - ${novoFormData.objetivo_principal || 'Condicionamento'}`
           : 'Avaliação Fisioterapêutica')
 
-      const basePayload: Record<string, any> = {
+      let basePayload: Record<string, any> = {
         ...novoFormData,
         paciente_id: selectedPacienteId,
         especialidade: selectedEspecialidade,
@@ -283,6 +285,10 @@ export default function NovaAvaliacao() {
       delete basePayload._pending_exames_files
       delete basePayload._pending_dinamometro_files
       delete basePayload._pending_postura_files
+
+      if (selectedEspecialidade === 'Fisioterapia') {
+        basePayload = normalizeAvaliacaoFisioterapiaPayload(basePayload, 'Rascunho')
+      }
 
       let requestData: any = basePayload
       if (
@@ -706,7 +712,7 @@ export default function NovaAvaliacao() {
           ? `Avaliação Física Physical Test - ${formData.objetivo_principal || 'Condicionamento'}`
           : 'Avaliação Fisioterapêutica')
 
-      const basePayload: Record<string, any> = {
+      let basePayload: Record<string, any> = {
         ...formData,
         paciente_id: selectedPacienteId,
         especialidade: selectedEspecialidade,
@@ -723,8 +729,11 @@ export default function NovaAvaliacao() {
       delete basePayload._pending_dinamometro_files
       delete basePayload._pending_postura_files
 
-      // Convert numbers para especialidades clássicas (exceto Fisioterapia e Personal, que têm formulários dedicados com tipagem fina)
-      if (selectedEspecialidade !== 'Fisioterapia' && selectedEspecialidade !== 'Personal') {
+      // Se for Fisioterapia, normalizar completamente antes do envio
+      if (selectedEspecialidade === 'Fisioterapia') {
+        basePayload = normalizeAvaliacaoFisioterapiaPayload(basePayload, statusFinal)
+      } else if (selectedEspecialidade !== 'Personal') {
+        // Convert numbers para especialidades clássicas (Nutrição, Médico)
         for (const sec of sections) {
           for (const f of sec.fields) {
             if (f.type === 'number' && basePayload[f.name] !== undefined) {
@@ -863,9 +872,10 @@ export default function NovaAvaliacao() {
       navigate(`/prontuarios/${savedRecordId}?esp=${encodeURIComponent(selectedEspecialidade)}`)
     } catch (err: any) {
       console.error('Erro salvando avaliação:', err)
+      const userMessage = getErrorMessage(err)
       toast({
-        title: 'Erro ao salvar avaliação',
-        description: err?.message || 'Verifique se os campos foram preenchidos corretamente.',
+        title: 'Não foi possível salvar a avaliação',
+        description: userMessage,
         variant: 'destructive',
       })
     } finally {
