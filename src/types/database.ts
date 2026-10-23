@@ -560,6 +560,8 @@ export interface AvaliacaoFisioterapiaRecord {
   diagnostico_disfuncional?: string
   forca_muscular_descricao?: string
   hipotese_diagnostica_ia?: string
+  fundamentacao_cientifica?: string
+  fundamentacao_cientifica_ia?: string
   plano_semanal_detalhado?: PlanoSemanalItem[]
   anexos_exames?: string[]
   anexos_dinamometro?: string[]
@@ -740,10 +742,13 @@ export interface AvaliacaoPersonalRecord {
     sintese_cruzamento?: string
   }
   hipotese_diagnostica_ia?: string
+  fundamentacao_cientifica?: string
+  fundamentacao_cientifica_ia?: string
   diagnostico_funcional?: string
   objetivos_treinamento?: string
   ia_plano_treino?: {
     hipotese_diagnostica?: string
+    fundamentacao_cientifica?: string
     diagnostico_funcional?: string
     objetivos_treinamento?: string
     plano_tratamento_semanal?: Array<{

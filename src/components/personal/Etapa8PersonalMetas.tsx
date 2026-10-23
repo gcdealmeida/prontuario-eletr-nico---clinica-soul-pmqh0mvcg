@@ -19,6 +19,12 @@ import {
 } from 'lucide-react'
 import { gerarIaPersonal } from '@/services/avaliacoes'
 import { useToast } from '@/hooks/use-toast'
+import {
+  distribuirConclusaoIaPorHeuristica,
+  tentarParsearJsonIa,
+  formatarPlanoSemanalEmTexto,
+  normalizarParaTextoPuro,
+} from '@/lib/normalizadorRelatorioIa'
 import type { PacienteRecord, PlanoSemanalItem } from '@/types/database'
 
 interface Etapa8PersonalMetasProps {
@@ -172,50 +178,96 @@ export const Etapa8PersonalMetas: React.FC<Etapa8PersonalMetasProps> = ({
 
       const res = await gerarIaPersonal(payload)
       const data = res.structured
+      const raw = res.raw_content || ''
 
-      if (data) {
-        if (data.hipotese_diagnostica) {
-          onChange('hipotese_diagnostica_ia', data.hipotese_diagnostica)
-        }
-        if (data.diagnostico_funcional) {
-          onChange('diagnostico_funcional', data.diagnostico_funcional)
-        }
-        if (data.objetivos_treinamento) {
-          onChange('objetivos_treinamento', data.objetivos_treinamento)
-        }
-        if (data.plano_tratamento_semanal && Array.isArray(data.plano_tratamento_semanal)) {
-          onChange('plano_semanal_detalhado', data.plano_tratamento_semanal)
-          onChange('ia_plano_treino', data)
+      let hipotese = data?.hipotese_diagnostica || ''
+      let fundamentacao = data?.fundamentacao_cientifica || ''
+      let diagnostico = data?.diagnostico_funcional || ''
+      let objetivos = data?.objetivos_treinamento || ''
+      let planoSemanalRes: PlanoSemanalItem[] = Array.isArray(data?.plano_tratamento_semanal)
+        ? data.plano_tratamento_semanal
+        : []
+      let sintese = data?.sintese_geral || ''
 
-          // Gerar texto formatado do plano para o campo plano_treino legado/compatibilidade
-          const planoTexto = data.plano_tratamento_semanal
-            .map(
-              (s) =>
-                `[${s.semana}] ${s.foco}\nPrescrição/Condutas: ${s.condutas}\nCritérios de Progressão: ${s.criterios_evolucao || 'Evolução favorável'}`,
-            )
-            .join('\n\n')
-          onChange('plano_treino', planoTexto)
-        } else {
-          onChange('ia_plano_treino', data)
-        }
+      const precisaDistribuir =
+        !data ||
+        (!diagnostico && !objetivos && planoSemanalRes.length === 0) ||
+        (hipotese && hipotese.length > 350 && !diagnostico && !objetivos)
 
-        if (data.sintese_geral && !formData.observacoes) {
-          onChange('observacoes', data.sintese_geral)
+      if (precisaDistribuir && raw) {
+        const jsonFallback = tentarParsearJsonIa(raw)
+        if (jsonFallback && typeof jsonFallback === 'object') {
+          if (jsonFallback.hipotese_diagnostica) hipotese = jsonFallback.hipotese_diagnostica
+          if (jsonFallback.fundamentacao_cientifica)
+            fundamentacao = jsonFallback.fundamentacao_cientifica
+          if (jsonFallback.diagnostico_funcional) diagnostico = jsonFallback.diagnostico_funcional
+          if (jsonFallback.objetivos_treinamento) objetivos = jsonFallback.objetivos_treinamento
+          if (Array.isArray(jsonFallback.plano_tratamento_semanal)) {
+            planoSemanalRes = jsonFallback.plano_tratamento_semanal
+          }
+          if (jsonFallback.sintese_geral) sintese = jsonFallback.sintese_geral
         }
 
-        toast({
-          title: 'Análise de Personal gerada com sucesso pela IA!',
-          description:
-            'A hipótese funcional, diagnóstico, objetivos e periodização de 12 semanas foram preenchidos e estão abertos para sua edição.',
-        })
-      } else if (res.raw_content) {
-        onChange('hipotese_diagnostica_ia', res.raw_content)
-        onChange('diagnostico_funcional', res.raw_content.substring(0, 300))
-        toast({
-          title: 'Resposta da IA gerada!',
-          description: 'Verifique as seções preenchidas abaixo.',
-        })
+        if (!diagnostico && !objetivos) {
+          const heuristico = distribuirConclusaoIaPorHeuristica(raw || hipotese, 'personal')
+          if (heuristico.hipotese_diagnostica) hipotese = heuristico.hipotese_diagnostica
+          if (heuristico.fundamentacao_cientifica && !fundamentacao) {
+            fundamentacao = heuristico.fundamentacao_cientifica
+          }
+          if (heuristico.diagnostico_disfuncional) diagnostico = heuristico.diagnostico_disfuncional
+          if (heuristico.objetivos_tratamento) objetivos = heuristico.objetivos_tratamento
+          if (heuristico.plano_tratamento_semanal.length > 0 && planoSemanalRes.length === 0) {
+            planoSemanalRes = heuristico.plano_tratamento_semanal
+          }
+          if (heuristico.sintese_geral && !sintese) sintese = heuristico.sintese_geral
+        }
       }
+
+      hipotese = normalizarParaTextoPuro(hipotese)
+      fundamentacao = normalizarParaTextoPuro(fundamentacao)
+      diagnostico = normalizarParaTextoPuro(diagnostico)
+      objetivos = normalizarParaTextoPuro(objetivos)
+      sintese = normalizarParaTextoPuro(sintese)
+
+      if (hipotese) {
+        onChange('hipotese_diagnostica_ia', hipotese)
+      }
+      if (fundamentacao) {
+        onChange('fundamentacao_cientifica', fundamentacao)
+        onChange('fundamentacao_cientifica_ia', fundamentacao)
+      }
+      if (diagnostico) {
+        onChange('diagnostico_funcional', diagnostico)
+      }
+      if (objetivos) {
+        onChange('objetivos_treinamento', objetivos)
+      }
+      if (sintese && !formData.observacoes) {
+        onChange('observacoes', sintese)
+      }
+
+      if (planoSemanalRes.length > 0) {
+        onChange('plano_semanal_detalhado', planoSemanalRes)
+        const planoTexto = formatarPlanoSemanalEmTexto(planoSemanalRes)
+        onChange('plano_treino', planoTexto)
+      }
+
+      const iaDataAtualizado = {
+        ...(formData.ia_plano_treino || {}),
+        hipotese_diagnostica: hipotese,
+        fundamentacao_cientifica: fundamentacao,
+        diagnostico_funcional: diagnostico,
+        objetivos_treinamento: objetivos,
+        plano_tratamento_semanal: planoSemanalRes.length > 0 ? planoSemanalRes : planoSemanal,
+        sintese_geral: sintese,
+      }
+      onChange('ia_plano_treino', iaDataAtualizado)
+
+      toast({
+        title: 'Análise de Personal gerada com sucesso pela IA!',
+        description:
+          'Hipótese funcional, diagnóstico, objetivos e periodização de 12 semanas distribuídos com sucesso.',
+      })
     } catch (err: any) {
       console.error('Erro ao chamar agente de IA de Personal:', err)
       setIaError(err?.message || 'Falha na comunicação com o assistente inteligente')
@@ -343,12 +395,12 @@ export const Etapa8PersonalMetas: React.FC<Etapa8PersonalMetasProps> = ({
       <div className="space-y-2">
         <Label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
           <span>
-            1. Hipótese Diagnóstica / Avaliação Funcional (Objetivos × Avaliação × Periódicos
-            Científicos)
+            1. Hipótese Diagnóstica / Avaliação Funcional (Objetivos × Composição Corporal ×
+            Assimetrias)
           </span>
           {formData.hipotese_diagnostica_ia && (
             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-              Gerado com base na avaliação física e literatura
+              Gerado com base na avaliação física
             </span>
           )}
         </Label>
@@ -356,10 +408,35 @@ export const Etapa8PersonalMetas: React.FC<Etapa8PersonalMetasProps> = ({
           rows={5}
           value={formData.hipotese_diagnostica_ia || ''}
           onChange={(e) => onChange('hipotese_diagnostica_ia', e.target.value)}
-          placeholder="Síntese funcional integrando objetivos do aluno, riscos metabólicos (%G/RCQ), assimetrias de dinamometria, desvios posturais, Core, FMS e literatura de referência em periódicos..."
+          placeholder="Síntese funcional integrando objetivos do aluno, composição corporal (%G/RCQ), assimetrias de dinamometria, postura, Core e FMS..."
           className="rounded-2xl text-xs sm:text-sm leading-relaxed border-gray-200 font-sans"
         />
       </div>
+
+      {/* 1.1 Fundamentação Científica em Periódicos (MSSE, RBME, BJSM, Sports Med, JOSPT) */}
+      {(formData.fundamentacao_cientifica || formData.fundamentacao_cientifica_ia) && (
+        <div className="space-y-2 p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80">
+          <Label className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-[#8C6527]" />
+            <span>
+              Fundamentação Científica em Periódicos (MSSE, RBME, BJSM, Sports Medicine, JOSPT)
+            </span>
+            <span className="text-[10px] text-[#8C6527] bg-[#C9A46A]/20 px-2 py-0.5 rounded-full font-semibold border border-[#C9A46A]/30">
+              Prescrição Baseada em Evidências
+            </span>
+          </Label>
+          <Textarea
+            rows={3}
+            value={formData.fundamentacao_cientifica || formData.fundamentacao_cientifica_ia || ''}
+            onChange={(e) => {
+              onChange('fundamentacao_cientifica', e.target.value)
+              onChange('fundamentacao_cientifica_ia', e.target.value)
+            }}
+            placeholder="Diretrizes científicas de volume, intensidade, periodização e progressão de cargas..."
+            className="rounded-xl text-xs sm:text-sm leading-relaxed bg-white/90 border-amber-200"
+          />
+        </div>
+      )}
 
       {/* 2. Diagnóstico Funcional (Pontos Fortes e Limitações) */}
       <div className="space-y-2">

@@ -237,3 +237,402 @@ export function normalizarParaTextoPuro(textoBruto: string): string {
       .trim()
   )
 }
+
+/**
+ * Interface padronizada do resultado da Conclusão com IA (Fisio / Personal).
+ */
+export interface ConclusaoIaEstruturada {
+  hipotese_diagnostica: string
+  fundamentacao_cientifica: string
+  diagnostico_disfuncional: string
+  objetivos_tratamento: string
+  plano_tratamento_semanal: Array<{
+    semana: string
+    foco: string
+    condutas: string
+    criterios_evolucao?: string
+  }>
+  plano_tratamento_texto?: string
+  sintese_geral: string
+}
+
+/**
+ * Tenta parsear JSON cru retornado pela IA com suporte a blocos markdown e aspas inteligentes.
+ */
+export function tentarParsearJsonIa(raw: string | undefined | null): any | null {
+  if (!raw || typeof raw !== 'string') return null
+  let text = raw.trim()
+
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  if (codeBlockMatch) {
+    text = codeBlockMatch[1].trim()
+  } else {
+    const firstBrace = text.indexOf('{')
+    const lastBrace = text.lastIndexOf('}')
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      text = text.substring(firstBrace, lastBrace + 1)
+    }
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    /* intentionally ignored */
+  }
+
+  try {
+    const semTrailingCommas = text
+      .replace(/,\s*([}\]])/g, '$1')
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2018\u2019]/g, "'")
+    return JSON.parse(semTrailingCommas)
+  } catch {
+    /* intentionally ignored */
+  }
+
+  return null
+}
+
+/**
+ * Converte blocos semanais de plano em texto legível formatado
+ */
+export function formatarPlanoSemanalEmTexto(
+  semanas: Array<{
+    semana?: string
+    foco?: string
+    condutas?: string
+    criterios_evolucao?: string
+  }>,
+): string {
+  if (!Array.isArray(semanas) || semanas.length === 0) return ''
+  return semanas
+    .map((s) => {
+      const rotulo = s.semana || 'Semana'
+      const foco = s.foco ? ` ${s.foco}` : ''
+      const condutas = s.condutas ? `\nCondutas: ${s.condutas}` : ''
+      const criterios = s.criterios_evolucao ? `\nCritérios: ${s.criterios_evolucao}` : ''
+      return `[${rotulo}]${foco}${condutas}${criterios}`
+    })
+    .join('\n\n')
+}
+
+/**
+ * Parser heurístico ROBUSTO de texto livre da IA para distribuir com precisão nas seções
+ * da avaliação clínica (Fisioterapia ou Personal).
+ *
+ * Garante que NUNCA todo o texto caia em um único campo como "1. Hipótese Diagnóstica",
+ * limpando resíduos de markdown, marcadores e normalizando parágrafos.
+ */
+export function distribuirConclusaoIaPorHeuristica(
+  raw: string | undefined | null,
+  tipo: 'fisioterapia' | 'personal' = 'fisioterapia',
+): ConclusaoIaEstruturada {
+  const vazia: ConclusaoIaEstruturada = {
+    hipotese_diagnostica: '',
+    fundamentacao_cientifica: '',
+    diagnostico_disfuncional: '',
+    objetivos_tratamento: '',
+    plano_tratamento_semanal: [],
+    plano_tratamento_texto: '',
+    sintese_geral: '',
+  }
+
+  if (!raw || typeof raw !== 'string') return vazia
+  const textoLimpo = normalizarConteudoRelatorio(raw)
+
+  // 1. Tentar primeiro extrair via marcadores explícitos estilo TAG: ou ###TAG###
+  const regexMarcadores =
+    /(?:###\s*([A-Z0-9_]+)\s*###|^([A-Z0-9_]{3,30})\s*:)\s*([\s\S]*?)(?=(?:###\s*[A-Z0-9_]+\s*###|^[A-Z0-9_]{3,30}\s*:)|$)/gim
+  let m
+  let encontrouMarcador = false
+  const achadosMarcador: Record<string, string> = {}
+
+  while ((m = regexMarcadores.exec(textoLimpo)) !== null) {
+    const tag = (m[1] || m[2] || '').toUpperCase().trim()
+    const val = (m[3] || '').trim()
+    if (!val) continue
+
+    if (tag.includes('HIPOTESE') || tag.includes('AVALIACAO_FUNCIONAL')) {
+      achadosMarcador.hipotese =
+        (achadosMarcador.hipotese ? achadosMarcador.hipotese + '\n\n' : '') + val
+      encontrouMarcador = true
+    } else if (
+      tag.includes('FUNDAMENTACAO') ||
+      tag.includes('PERIODIC') ||
+      tag.includes('LITERATURA')
+    ) {
+      achadosMarcador.fundamentacao =
+        (achadosMarcador.fundamentacao ? achadosMarcador.fundamentacao + '\n\n' : '') + val
+      encontrouMarcador = true
+    } else if (
+      tag.includes('DISFUNCIONAL') ||
+      tag.includes('CINETICO') ||
+      (tag.includes('DIAGNOSTICO') && !tag.includes('MEDICO')) ||
+      tag.includes('PONTOS_FORTES')
+    ) {
+      achadosMarcador.diagnostico =
+        (achadosMarcador.diagnostico ? achadosMarcador.diagnostico + '\n\n' : '') + val
+      encontrouMarcador = true
+    } else if (tag.includes('OBJETIV') || tag.includes('METAS')) {
+      achadosMarcador.objetivos =
+        (achadosMarcador.objetivos ? achadosMarcador.objetivos + '\n\n' : '') + val
+      encontrouMarcador = true
+    } else if (tag.includes('PLANO') || tag.includes('SEMANAL') || tag.includes('PERIODIZACAO')) {
+      achadosMarcador.plano = (achadosMarcador.plano ? achadosMarcador.plano + '\n\n' : '') + val
+      encontrouMarcador = true
+    } else if (tag.includes('SINTESE') || tag.includes('RESUMO') || tag.includes('OBSERVACOES')) {
+      achadosMarcador.sintese =
+        (achadosMarcador.sintese ? achadosMarcador.sintese + '\n\n' : '') + val
+      encontrouMarcador = true
+    }
+  }
+
+  // 2. Se os marcadores fortes pegaram pelo menos 2 seções, usar direto
+  if (encontrouMarcador && Object.keys(achadosMarcador).length >= 2) {
+    return {
+      hipotese_diagnostica: normalizarParaTextoPuro(achadosMarcador.hipotese || ''),
+      fundamentacao_cientifica: normalizarParaTextoPuro(achadosMarcador.fundamentacao || ''),
+      diagnostico_disfuncional: normalizarParaTextoPuro(achadosMarcador.diagnostico || ''),
+      objetivos_tratamento: normalizarParaTextoPuro(achadosMarcador.objetivos || ''),
+      plano_tratamento_semanal: parsearPlanoSemanalDeTexto(achadosMarcador.plano || '', tipo),
+      plano_tratamento_texto: normalizarConteudoRelatorio(achadosMarcador.plano || ''),
+      sintese_geral: normalizarParaTextoPuro(achadosMarcador.sintese || ''),
+    }
+  }
+
+  // 3. Parser heurístico linha a linha identificando cabeçalhos clássicos numerados ou em negrito
+  // Ex: "1. Hipótese Diagnóstica", "2. Diagnóstico Disfuncional", "### Fundamentação Científica", etc.
+  const secoesConfig = [
+    {
+      key: 'hipotese',
+      regex:
+        /^(?:(?:\d+[.)-]\s*)?(?:hip[oó]tese\s*diagn[oó]stica|avalia[cç][aã]o\s*funcional|an[aá]lise\s*(?:cl[ií]nica|biomec[aâ]nica)))(?:\s*\(.*?\))?:?$/i,
+    },
+    {
+      key: 'fundamentacao',
+      regex:
+        /^(?:(?:\d+[.)-]\s*)?(?:fundamenta[cç][aã]o\s*cient[ií]fica|peri[oó]dicos\s*(?:cient[ií]ficos|de\s*refer[eê]ncia)?|literatura\s*cient[ií]fica|evid[eê]ncias\s*cient[ií]ficas))(?:\s*\(.*?\))?:?$/i,
+    },
+    {
+      key: 'diagnostico',
+      regex:
+        /^(?:(?:\d+[.)-]\s*)?(?:diagn[oó]stico\s*disfuncional|diagn[oó]stico\s*cin[eé]tico[- ]funcional|diagn[oó]stico\s*fisioterap[eê]utico|diagn[oó]stico\s*funcional|pontos\s*fortes\s*e\s*limita[cç][oõ]es))(?:\s*\(.*?\))?:?$/i,
+    },
+    {
+      key: 'objetivos',
+      regex:
+        /^(?:(?:\d+[.)-]\s*)?(?:objetivos\s*(?:do\s*tratamento|terap[eê]uticos|do\s*treinamento|priorizados)?|metas\s*de\s*tratamento))(?:\s*\(.*?\))?:?$/i,
+    },
+    {
+      key: 'plano',
+      regex:
+        /^(?:(?:\d+[.)-]\s*)?(?:plano\s*(?:de\s*tratamento|de\s*treino|de\s*treinamento|semanal|semana\s*a\s*semana)|periodiza[cç][aã]o(?:\s*semanal)?))(?:\s*\(.*?\))?:?$/i,
+    },
+    {
+      key: 'sintese',
+      regex:
+        /^(?:(?:\d+[.)-]\s*)?(?:s[ií]ntese\s*geral|resumo\s*(?:do\s*prontu[aá]rio|geral|final)|observa[cç][oõ]es\s*finais))(?:\s*\(.*?\))?:?$/i,
+    },
+  ]
+
+  const linhas = textoLimpo.split('\n')
+  const acumuladores: Record<string, string[]> = {
+    hipotese: [],
+    fundamentacao: [],
+    diagnostico: [],
+    objetivos: [],
+    plano: [],
+    sintese: [],
+  }
+
+  let chaveAtiva = 'hipotese'
+  let achouAlgumCabecalho = false
+
+  for (let i = 0; i < linhas.length; i++) {
+    const linha = linhas[i]
+    const trimmed = linha.trim()
+
+    // Normaliza para testar se a linha é um título de seção
+    const linhaParaTeste = trimmed
+      .replace(/^#{1,6}\s*/, '')
+      .replace(/^\*\*([\s\S]+)\*\*$/, '$1')
+      .replace(/^__([\s\S]+)__$/, '$1')
+      .trim()
+
+    let secaoMatch: string | null = null
+    if (linhaParaTeste.length >= 3 && linhaParaTeste.length <= 80) {
+      for (const sc of secoesConfig) {
+        if (sc.regex.test(linhaParaTeste)) {
+          secaoMatch = sc.key
+          break
+        }
+      }
+    }
+
+    if (secaoMatch) {
+      chaveAtiva = secaoMatch
+      achouAlgumCabecalho = true
+      continue
+    }
+
+    acumuladores[chaveAtiva].push(linha)
+  }
+
+  const hipoteseBruta = acumuladores.hipotese.join('\n').trim()
+  const fundBruta = acumuladores.fundamentacao.join('\n').trim()
+  const diagBruto = acumuladores.diagnostico.join('\n').trim()
+  const objBruto = acumuladores.objetivos.join('\n').trim()
+  const planoBruto = acumuladores.plano.join('\n').trim()
+  const sinteseBruta = acumuladores.sintese.join('\n').trim()
+
+  const resultado: ConclusaoIaEstruturada = {
+    hipotese_diagnostica: normalizarParaTextoPuro(hipoteseBruta),
+    fundamentacao_cientifica: normalizarParaTextoPuro(fundBruta),
+    diagnostico_disfuncional: normalizarParaTextoPuro(diagBruto),
+    objetivos_tratamento: normalizarParaTextoPuro(objBruto),
+    plano_tratamento_semanal: parsearPlanoSemanalDeTexto(planoBruto, tipo),
+    plano_tratamento_texto: normalizarConteudoRelatorio(planoBruto),
+    sintese_geral: normalizarParaTextoPuro(sinteseBruta),
+  }
+
+  // 4. Se não achou cabeçalhos suficientes ou se a hipótese acumulou todo o texto (>400 caracteres e os outros vazios),
+  // fatiar por parágrafos/conteúdo sem perder nada
+  if (
+    (!achouAlgumCabecalho ||
+      (!resultado.diagnostico_disfuncional && !resultado.objetivos_tratamento)) &&
+    resultado.hipotese_diagnostica.length > 300
+  ) {
+    const paragrafos = resultado.hipotese_diagnostica
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+
+    if (paragrafos.length >= 2) {
+      const restantes: string[] = []
+
+      for (const p of paragrafos) {
+        // Citação de periódicos
+        if (
+          !resultado.fundamentacao_cientifica &&
+          /JBJS|AJSM|Spine|BJSM|JOSPT|BJPT|Arthroscopy|RBO|MSSE|RBME|Physical Therapy in Sport|Fisioterapia Brasil/i.test(
+            p,
+          )
+        ) {
+          resultado.fundamentacao_cientifica = p
+          continue
+        }
+
+        // Diagnóstico cinético-funcional
+        if (
+          !resultado.diagnostico_disfuncional &&
+          /diagn[oó]stico|disfun[cç][aã]o\s*cin[eé]tico|d[eé]ficit\s*de|fraqueza|mobilidade|estabilidade/i.test(
+            p,
+          )
+        ) {
+          resultado.diagnostico_disfuncional = p
+          continue
+        }
+
+        // Objetivos terapêuticos
+        if (
+          !resultado.objetivos_tratamento &&
+          /objetivo|curto prazo|m[eé]dio prazo|longo prazo|meta/i.test(p)
+        ) {
+          resultado.objetivos_tratamento = p
+          continue
+        }
+
+        // Plano semanal
+        if (
+          !resultado.plano_tratamento_texto &&
+          /semana\s*\d|fase\s*\d|periodiza[cç][aã]o|condutas|reabilita[cç][aã]o/i.test(p)
+        ) {
+          resultado.plano_tratamento_texto = p
+          resultado.plano_tratamento_semanal = parsearPlanoSemanalDeTexto(p, tipo)
+          continue
+        }
+
+        restantes.push(p)
+      }
+
+      if (restantes.length > 0) {
+        resultado.hipotese_diagnostica = restantes.join('\n\n')
+      }
+    }
+  }
+
+  return resultado
+}
+
+/**
+ * Tenta decompor um texto livre de plano semanal em blocos estruturados ({ semana, foco, condutas, criterios_evolucao })
+ */
+export function parsearPlanoSemanalDeTexto(
+  textoPlano: string,
+  tipo: 'fisioterapia' | 'personal' = 'fisioterapia',
+): Array<{ semana: string; foco: string; condutas: string; criterios_evolucao?: string }> {
+  if (!textoPlano || typeof textoPlano !== 'string') return []
+
+  // Bloco padrão com regex para detectar [Semana 1-2] ou Semana 1-2: ou Fase 1:
+  const blocosRegex =
+    /(?:\[(Semanas?\s*[\d–-]+)\]|(?:^|\n)(Semanas?\s*[\d–-]+|Fase\s*\d+)[:\s–-]+)([\s\S]*?)(?=(?:\[Semanas?\s*[\d–-]+\]|(?:^|\n)(?:Semanas?\s*[\d–-]+|Fase\s*\d+)[:\s–-]+)|$)/gi
+  const resultado: Array<{
+    semana: string
+    foco: string
+    condutas: string
+    criterios_evolucao?: string
+  }> = []
+  let b
+
+  while ((b = blocosRegex.exec(textoPlano)) !== null) {
+    const nomeSemana = (b[1] || b[2] || '').trim()
+    const corpo = (b[3] || '').trim()
+    if (!nomeSemana && !corpo) continue
+
+    let foco = ''
+    let condutas = ''
+    let criterios = ''
+
+    const linhasCorpo = corpo
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (linhasCorpo.length > 0) {
+      // Primeira linha costuma ser o foco
+      const primeira = linhasCorpo[0]
+      if (/foco\s*:/i.test(primeira)) {
+        foco = primeira.replace(/foco\s*:/i, '').trim()
+      } else if (!/conduta|crit[eé]rio/i.test(primeira)) {
+        foco = primeira
+      }
+
+      // Restante
+      const resto = linhasCorpo.slice(foco === primeira ? 1 : 0).join('\n')
+      const condutaMatch = resto.match(
+        /(?:condutas?|prescri[cç][aã]o|exerc[ií]cios)\s*:\s*([\s\S]*?)(?=(?:crit[eé]rios?|$))/i,
+      )
+      const criterioMatch = resto.match(
+        /crit[eé]rios?\s*(?:de\s*evolu[cç][aã]o|de\s*progress[aã]o)?\s*:\s*([\s\S]*)$/i,
+      )
+
+      if (condutaMatch) {
+        condutas = condutaMatch[1].trim()
+      } else if (!criterioMatch) {
+        condutas = resto.trim()
+      }
+
+      if (criterioMatch) {
+        criterios = criterioMatch[1].trim()
+      }
+    }
+
+    resultado.push({
+      semana: nomeSemana || `Fase ${resultado.length + 1}`,
+      foco: normalizarParaTextoPuro(foco || 'Evolução e progressão clínica'),
+      condutas: normalizarParaTextoPuro(condutas || corpo),
+      criterios_evolucao: normalizarParaTextoPuro(criterios || 'Evolução favorável'),
+    })
+  }
+
+  return resultado
+}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T23:38:15.718Z",
+  "generatedAt": "2026-10-23T09:41:09.615Z",
   "collections": [
     {
       "name": "users",
@@ -724,6 +724,18 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "fundamentacao_cientifica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fundamentacao_cientifica_ia",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"]
@@ -996,6 +1008,18 @@
         {
           "name": "resumos_anexos",
           "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fundamentacao_cientifica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fundamentacao_cientifica_ia",
+          "type": "text",
           "required": false,
           "system": false
         }

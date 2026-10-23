@@ -746,6 +746,22 @@ export const VisualizacaoPersonal: React.FC<VisualizacaoPersonalProps> = ({ aval
           </div>
         )}
 
+        {/* Fundamentação Científica em Periódicos */}
+        {((avaliacao as any).fundamentacao_cientifica ||
+          (avaliacao as any).fundamentacao_cientifica_ia ||
+          (iaPlano as any)?.fundamentacao_cientifica) && (
+          <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] space-y-1">
+            <span className="font-bold text-[#8C6527] uppercase tracking-wider text-xs block">
+              Fundamentação Científica em Periódicos (MSSE, RBME, BJSM, Sports Med, JOSPT):
+            </span>
+            <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-xs sm:text-sm">
+              {(avaliacao as any).fundamentacao_cientifica ||
+                (avaliacao as any).fundamentacao_cientifica_ia ||
+                (iaPlano as any)?.fundamentacao_cientifica}
+            </p>
+          </div>
+        )}
+
         {/* Diagnóstico Funcional (Pontos Fortes & Limitações) */}
         {(avaliacao.diagnostico_funcional || iaPlano.diagnostico_funcional) && (
           <div className="p-3.5 rounded-2xl bg-gray-50/80 border border-gray-200 space-y-1">

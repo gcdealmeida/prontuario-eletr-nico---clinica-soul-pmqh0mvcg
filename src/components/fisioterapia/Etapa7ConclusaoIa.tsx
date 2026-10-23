@@ -3,9 +3,15 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Sparkles, RefreshCw, CheckCircle2, AlertTriangle, BookOpen, Layers } from 'lucide-react'
+import { Sparkles, RefreshCw, AlertTriangle, BookOpen, Layers } from 'lucide-react'
 import { gerarIaFisioterapia } from '@/services/avaliacoes'
 import { useToast } from '@/hooks/use-toast'
+import {
+  distribuirConclusaoIaPorHeuristica,
+  tentarParsearJsonIa,
+  formatarPlanoSemanalEmTexto,
+  normalizarParaTextoPuro,
+} from '@/lib/normalizadorRelatorioIa'
 import type { PacienteRecord, PlanoSemanalItem } from '@/types/database'
 
 interface Etapa7ConclusaoIaProps {
@@ -69,43 +75,94 @@ export const Etapa7ConclusaoIa: React.FC<Etapa7ConclusaoIaProps> = ({
 
       const res = await gerarIaFisioterapia(payload)
       const data = res.structured
+      const raw = res.raw_content || ''
 
-      if (data) {
-        if (data.hipotese_diagnostica) {
-          onChange('hipotese_diagnostica_ia', data.hipotese_diagnostica)
+      // Tentativa 1: Structured já retornado pelo hook
+      // Tentativa 2: Parsear JSON de raw_content se estruturado estiver incompleto
+      // Tentativa 3: Distribuição heurística inteligente sem despejar tudo na hipótese
+      let hipotese = data?.hipotese_diagnostica || ''
+      let fundamentacao = data?.fundamentacao_cientifica || ''
+      let diagnostico = data?.diagnostico_disfuncional || ''
+      let objetivos = data?.objetivos_tratamento || ''
+      let planoSemanalRes: PlanoSemanalItem[] = Array.isArray(data?.plano_tratamento_semanal)
+        ? data.plano_tratamento_semanal
+        : []
+      let sintese = data?.sintese_geral || ''
+
+      // Se não veio estruturado ou veio concentrado em um único bloco de texto
+      const precisaDistribuir =
+        !data ||
+        (!diagnostico && !objetivos && planoSemanalRes.length === 0) ||
+        (hipotese && hipotese.length > 350 && !diagnostico && !objetivos)
+
+      if (precisaDistribuir && raw) {
+        const jsonFallback = tentarParsearJsonIa(raw)
+        if (jsonFallback && typeof jsonFallback === 'object') {
+          if (jsonFallback.hipotese_diagnostica) hipotese = jsonFallback.hipotese_diagnostica
+          if (jsonFallback.fundamentacao_cientifica)
+            fundamentacao = jsonFallback.fundamentacao_cientifica
+          if (jsonFallback.diagnostico_disfuncional)
+            diagnostico = jsonFallback.diagnostico_disfuncional
+          if (jsonFallback.objetivos_tratamento) objetivos = jsonFallback.objetivos_tratamento
+          if (Array.isArray(jsonFallback.plano_tratamento_semanal)) {
+            planoSemanalRes = jsonFallback.plano_tratamento_semanal
+          }
+          if (jsonFallback.sintese_geral) sintese = jsonFallback.sintese_geral
         }
-        if (data.diagnostico_disfuncional) {
-          onChange('diagnostico_disfuncional', data.diagnostico_disfuncional)
-          onChange('diagnostico_fisioterapeutico', data.diagnostico_disfuncional)
+
+        // Se ainda assim os campos estiverem vazios ou concentrados na hipótese, usa distribuição heurística robusta
+        if (!diagnostico && !objetivos) {
+          const heuristico = distribuirConclusaoIaPorHeuristica(raw || hipotese, 'fisioterapia')
+          if (heuristico.hipotese_diagnostica) hipotese = heuristico.hipotese_diagnostica
+          if (heuristico.fundamentacao_cientifica && !fundamentacao) {
+            fundamentacao = heuristico.fundamentacao_cientifica
+          }
+          if (heuristico.diagnostico_disfuncional) diagnostico = heuristico.diagnostico_disfuncional
+          if (heuristico.objetivos_tratamento) objetivos = heuristico.objetivos_tratamento
+          if (heuristico.plano_tratamento_semanal.length > 0 && planoSemanalRes.length === 0) {
+            planoSemanalRes = heuristico.plano_tratamento_semanal
+          }
+          if (heuristico.sintese_geral && !sintese) sintese = heuristico.sintese_geral
         }
-        if (data.objetivos_tratamento) {
-          onChange('objetivos_tratamento', data.objetivos_tratamento)
-        }
-        if (data.plano_tratamento_semanal && Array.isArray(data.plano_tratamento_semanal)) {
-          onChange('plano_semanal_detalhado', data.plano_tratamento_semanal)
-          // Também formatar versão texto para compatibilidade
-          const planoTexto = data.plano_tratamento_semanal
-            .map(
-              (s: any) =>
-                `[${s.semana}] ${s.foco}\nCondutas: ${s.condutas}\nCritérios: ${s.criterios_evolucao || 'Evolução clínica favorável'}`,
-            )
-            .join('\n\n')
-          onChange('plano_tratamento', planoTexto)
-        }
-        toast({
-          title: 'Análise gerada com sucesso pela IA!',
-          description:
-            'A hipótese, objetivos e plano semanal foram preenchidos e estão abertos para sua edição.',
-        })
-      } else if (res.raw_content) {
-        // Fallback para conteúdo em texto caso json não venha parseado
-        onChange('hipotese_diagnostica_ia', res.raw_content)
-        onChange('diagnostico_disfuncional', res.raw_content.substring(0, 300))
-        toast({
-          title: 'Resposta da IA gerada!',
-          description: 'Verifique as seções preenchidas.',
-        })
       }
+
+      // Normalizar cada campo para remover tags mecânicas como "CAMPO:", pipes |---| e markdown desordenado
+      hipotese = normalizarParaTextoPuro(hipotese)
+      fundamentacao = normalizarParaTextoPuro(fundamentacao)
+      diagnostico = normalizarParaTextoPuro(diagnostico)
+      objetivos = normalizarParaTextoPuro(objetivos)
+      sintese = normalizarParaTextoPuro(sintese)
+
+      // Atualizar no formulário
+      if (hipotese) {
+        onChange('hipotese_diagnostica_ia', hipotese)
+      }
+      if (fundamentacao) {
+        onChange('fundamentacao_cientifica', fundamentacao)
+        onChange('fundamentacao_cientifica_ia', fundamentacao)
+      }
+      if (diagnostico) {
+        onChange('diagnostico_disfuncional', diagnostico)
+        onChange('diagnostico_fisioterapeutico', diagnostico)
+      }
+      if (objetivos) {
+        onChange('objetivos_tratamento', objetivos)
+      }
+      if (sintese && !formData.evolucao_nota) {
+        onChange('evolucao_nota', sintese)
+      }
+
+      if (planoSemanalRes.length > 0) {
+        onChange('plano_semanal_detalhado', planoSemanalRes)
+        const planoTexto = formatarPlanoSemanalEmTexto(planoSemanalRes)
+        onChange('plano_tratamento', planoTexto)
+      }
+
+      toast({
+        title: 'Análise gerada com sucesso pela IA!',
+        description:
+          'Hipótese, fundamentação em periódicos, diagnóstico e plano semanal foram distribuídos nas seções corretas.',
+      })
     } catch (err: any) {
       console.error('Erro ao chamar agente de IA:', err)
       setIaError(err?.message || 'Falha na comunicação com o assistente inteligente')
@@ -209,12 +266,11 @@ export const Etapa7ConclusaoIa: React.FC<Etapa7ConclusaoIaProps> = ({
       <div className="space-y-2">
         <Label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
           <span>
-            1. Hipótese Diagnóstica (Síntese: Queixa × Diagnóstico × Avaliação × Periódicos
-            Científicos)
+            1. Hipótese Diagnóstica (Queixa Principal × Diagnóstico Médico × Achados Objetivos)
           </span>
           {formData.hipotese_diagnostica_ia && (
             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-              Gerado com base na avaliação e periódicos
+              Gerado com base na avaliação
             </span>
           )}
         </Label>
@@ -222,10 +278,35 @@ export const Etapa7ConclusaoIa: React.FC<Etapa7ConclusaoIaProps> = ({
           rows={5}
           value={formData.hipotese_diagnostica_ia || ''}
           onChange={(e) => onChange('hipotese_diagnostica_ia', e.target.value)}
-          placeholder="Síntese relacionando queixa principal, diagnóstico, achados objetivos da avaliação, laudos de anexos e fundamentação científica em periódicos (JOSPT, BJSM, Spine, etc.)..."
+          placeholder="Síntese biomecânica relacionando queixa principal, diagnóstico médico informado, achados objetivos da avaliação e laudos de anexos..."
           className="rounded-2xl text-xs sm:text-sm leading-relaxed font-sans"
         />
       </div>
+
+      {/* 1.1 Fundamentação Científica em Periódicos (JBJS, AJSM, Spine, BJSM, JOSPT, etc.) */}
+      {(formData.fundamentacao_cientifica || formData.fundamentacao_cientifica_ia) && (
+        <div className="space-y-2 p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80">
+          <Label className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-[#8C6527]" />
+            <span>
+              Fundamentação Científica em Periódicos (JBJS, AJSM, Spine, BJSM, JOSPT, BJPT, MSSE)
+            </span>
+            <span className="text-[10px] text-[#8C6527] bg-[#C9A46A]/20 px-2 py-0.5 rounded-full font-semibold border border-[#C9A46A]/30">
+              Evidências & Consensos
+            </span>
+          </Label>
+          <Textarea
+            rows={3}
+            value={formData.fundamentacao_cientifica || formData.fundamentacao_cientifica_ia || ''}
+            onChange={(e) => {
+              onChange('fundamentacao_cientifica', e.target.value)
+              onChange('fundamentacao_cientifica_ia', e.target.value)
+            }}
+            placeholder="Diretrizes e consensos de periódicos científicos de referência (JOSPT, BJSM, Spine, etc.) para a condição..."
+            className="rounded-xl text-xs sm:text-sm leading-relaxed bg-white/90 border-amber-200"
+          />
+        </div>
+      )}
 
       {/* 2. Diagnóstico Disfuncional (Cinético-Funcional) */}
       <div className="space-y-2">

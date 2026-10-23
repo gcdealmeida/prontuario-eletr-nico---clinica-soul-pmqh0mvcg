@@ -1211,10 +1211,23 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
           {avaliacao.hipotese_diagnostica_ia && (
             <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70">
               <span className="font-bold text-amber-950 uppercase tracking-wider block mb-1">
-                Hipótese Diagnóstica (Cruzamento de Evidências Clínicas & Exames):
+                Hipótese Diagnóstica (Queixa × Diagnóstico × Achados Clínicos):
               </span>
               <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
                 {avaliacao.hipotese_diagnostica_ia}
+              </p>
+            </div>
+          )}
+
+          {((avaliacao as any).fundamentacao_cientifica ||
+            (avaliacao as any).fundamentacao_cientifica_ia) && (
+            <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] space-y-1">
+              <span className="font-bold text-[#8C6527] uppercase tracking-wider text-xs block">
+                Fundamentação Científica em Periódicos (JBJS, AJSM, Spine, BJSM, JOSPT):
+              </span>
+              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-xs sm:text-sm">
+                {(avaliacao as any).fundamentacao_cientifica ||
+                  (avaliacao as any).fundamentacao_cientifica_ia}
               </p>
             </div>
           )}
