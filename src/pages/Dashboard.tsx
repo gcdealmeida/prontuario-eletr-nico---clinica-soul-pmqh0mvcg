@@ -23,6 +23,10 @@ import {
   MessageCircle,
   Share2,
   ExternalLink,
+  Sparkles,
+  Loader2,
+  Phone,
+  Mail,
 } from 'lucide-react'
 import { ModalAcessoRapidoEvolucao } from '@/components/ModalAcessoRapidoEvolucao'
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
@@ -35,7 +39,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import pb from '@/lib/pocketbase/client'
 import { getConsultasHoje, getConsultas } from '@/services/consultas'
-import { getPacientes } from '@/services/pacientes'
+import { getPacientes, ativarCadastroPaciente } from '@/services/pacientes'
 import type { ConsultaRecord, PacienteRecord, EvolucaoRecord } from '@/types/database'
 import { ESPECIALIDADE_COLORS, formatHoraPTBR, formatDataPTBR, getInitials } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -65,6 +69,8 @@ export default function Dashboard() {
   const [modalEvolucaoOpen, setModalEvolucaoOpen] = useState(false)
   const [modalLinkPreCadastroOpen, setModalLinkPreCadastroOpen] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [preCadastrosPendentes, setPreCadastrosPendentes] = useState<PacienteRecord[]>([])
+  const [ativandoPacienteId, setAtivandoPacienteId] = useState<string | null>(null)
   const { toast } = useToast()
 
   // Link público direto de pré-avaliação/pré-cadastro (padrão com versão de cache)
@@ -241,14 +247,47 @@ export default function Dashboard() {
     }
   }
 
+  const loadPreCadastros = async () => {
+    try {
+      const res = await getPacientes('status = "Pré-cadastro"', '-created', 50, 1)
+      setPreCadastrosPendentes(res.items)
+    } catch (err) {
+      console.warn('Erro ao carregar pré-cadastros pendentes:', err)
+      setPreCadastrosPendentes([])
+    }
+  }
+
+  const handleAtivarPreCadastro = async (p: PacienteRecord) => {
+    try {
+      setAtivandoPacienteId(p.id)
+      await ativarCadastroPaciente(p.id)
+      toast({
+        title: 'Cadastro ativado!',
+        description: `Cadastro de ${p.nome} ativado com sucesso. Abrindo prontuário...`,
+      })
+      // Atualiza lista local
+      setPreCadastrosPendentes((prev) => prev.filter((item) => item.id !== p.id))
+      // Redireciona para nova avaliação / prontuário pré-carregado
+      navigate(`/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia`)
+    } catch (err: any) {
+      console.error('Erro ativando pré-cadastro:', err)
+      toast({
+        title: 'Erro ao ativar cadastro',
+        description: err?.message || 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setAtivandoPacienteId(null)
+    }
+  }
+
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      if (isAdmin) {
-        await loadAdminData()
-      } else if (user?.id) {
-        await loadProfessionalData(user.id)
-      }
+      await Promise.all([
+        isAdmin ? loadAdminData() : user?.id ? loadProfessionalData(user.id) : Promise.resolve(),
+        loadPreCadastros(),
+      ])
     } catch (err) {
       console.error('Erro dashboard:', err)
     } finally {
@@ -260,9 +299,20 @@ export default function Dashboard() {
     loadDashboardData()
   }, [isAdmin, user?.id])
 
+  // Revalidar ao focar a janela do navegador
+  useEffect(() => {
+    const handleFocus = () => {
+      loadPreCadastros()
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   // Realtime updates
   useRealtime('consultas', () => loadDashboardData())
-  useRealtime('pacientes', () => loadDashboardData())
+  useRealtime('pacientes', () => {
+    loadDashboardData()
+  })
   useRealtime('evolucoes', () => loadDashboardData())
 
   const hojePtBr = new Date().toLocaleDateString('pt-BR', {
@@ -459,6 +509,126 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* CARD EM DESTAQUE: PRÉ-CADASTROS PENDENTES QUE PRECISAM ABRIR PRONTUÁRIO   */}
+        {/* Renderiza quando houver clientes aguardando ativação                     */}
+        {/* ========================================================================= */}
+        {preCadastrosPendentes.length > 0 && (
+          <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-[#FFF9F0] via-[#FAF5EE] to-[#F5EAD6] border-2 border-[#C9A46A] shadow-md transition-all animate-fade-in">
+            {/* Faixa decorativa superior */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E3C89A]/80">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-[#8C6527] to-[#C9A46A] text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] bg-[#E3C89A]/60 px-2.5 py-0.5 rounded-full inline-block">
+                      Lembrete de Gestão
+                    </span>
+                    <Badge className="bg-[#B87355] text-white text-[11px] font-bold px-2 py-0.5 shadow-xs">
+                      {preCadastrosPendentes.length}{' '}
+                      {preCadastrosPendentes.length === 1
+                        ? 'pré-cadastro pendente'
+                        : 'pré-cadastros pendentes'}
+                    </Badge>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-serif font-bold text-[#4A322A] mt-0.5">
+                    Pré-Cadastros Aguardando Abertura de Prontuário
+                  </h2>
+                </div>
+              </div>
+              <p className="text-xs text-[#73574A] max-w-md leading-relaxed sm:text-right">
+                Clientes que preencheram o link público de pré-avaliação. Ative para iniciar o
+                atendimento.
+              </p>
+            </div>
+
+            {/* Lista dos Pré-cadastros pendentes */}
+            <div className="mt-4 space-y-3">
+              {preCadastrosPendentes.map((p) => {
+                const isActivating = ativandoPacienteId === p.id
+                return (
+                  <div
+                    key={p.id}
+                    className="p-4 rounded-2xl bg-white/95 border border-[#E9E1D2] hover:border-[#C9A46A] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5 transition-all group"
+                  >
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                      <Avatar className="h-11 w-11 rounded-xl bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-white font-bold text-xs shrink-0 shadow-xs border border-white">
+                        <AvatarFallback className="bg-gradient-to-tr from-[#C9A46A] to-[#B87355] text-[#33221C] font-bold">
+                          {getInitials(p.nome)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            onClick={() => navigate(`/pacientes/${p.id}`)}
+                            className="font-bold text-sm sm:text-base text-[#33221C] hover:text-[#8C6527] cursor-pointer transition-colors truncate"
+                          >
+                            {p.nome}
+                          </span>
+                          <span className="text-[11px] font-medium text-[#8C6527] bg-[#FAF4EA] border border-[#E3C89A]/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-[#8C6527]" />
+                            Preenchido em {formatDataPTBR(p.created)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-x-3 gap-y-1 text-xs text-[#73574A] flex-wrap">
+                          {p.telefone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-gray-400" />
+                              {p.telefone}
+                            </span>
+                          )}
+                          {p.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-3 w-3 text-gray-400" />
+                              {p.email}
+                            </span>
+                          )}
+                          {p.motivo_procura && (
+                            <span className="text-gray-600 line-clamp-1 italic max-w-md">
+                              Motivo: {p.motivo_procura}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/pacientes/${p.id}`)}
+                        className="rounded-xl h-9 px-3 text-xs font-semibold border-[#E3C89A] hover:bg-[#FAF4EA] text-[#73574A]"
+                      >
+                        Ver Detalhes
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAtivarPreCadastro(p)}
+                        disabled={isActivating}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-9 px-3.5 text-xs shadow-sm flex items-center gap-1.5 border border-emerald-500"
+                      >
+                        {isActivating ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Ativando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="h-3.5 w-3.5" />
+                            <span>Ativar Cadastro & Abrir Prontuário</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Card Destaque Frontal: Link Público de Pré-Avaliação / Pré-Cadastro */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-[#FAF5EE] via-white to-[#F6EDE0] border-2 border-[#E3C89A] hover:border-[#C9A46A] shadow-xs transition-all duration-200">
