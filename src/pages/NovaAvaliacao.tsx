@@ -34,6 +34,7 @@ import {
   createAvaliacao,
   updateAvaliacao,
   getAvaliacaoById,
+  getRascunhoAbertoPorPaciente,
   createTimelineEvent,
   getCollectionNameByEspecialidade,
   normalizeAvaliacaoFisioterapiaPayload,
@@ -82,6 +83,7 @@ export default function NovaAvaliacao() {
   const [submitting, setSubmitting] = useState(false)
   const [savingRascunho, setSavingRascunho] = useState(false)
   const [loadingInitial, setLoadingInitial] = useState(false)
+  const isSavingServerRef = useRef(false)
 
   // Controle de rascunho local e restauração
   const [rascunhoEncontrado, setRascunhoEncontrado] = useState<RascunhoLocalItem | null>(null)
@@ -155,14 +157,30 @@ export default function NovaAvaliacao() {
           setSelectedPacienteId(res.paciente_id)
           setSelectedEspecialidade(preEspecialidade)
           setFormData(res)
+          setActiveRecordId(editId)
           setStep(2)
         })
         .catch(() => {
           toast({ title: 'Erro ao carregar prontuário para edição', variant: 'destructive' })
         })
         .finally(() => setLoadingInitial(false))
+    } else if (prePacienteId && preEspecialidade && !editId) {
+      // Se não veio editId na URL mas veio paciente + especialidade, verificar se já existe rascunho aberto no servidor
+      getRascunhoAbertoPorPaciente(preEspecialidade, prePacienteId)
+        .then((rascunhoAberto: any) => {
+          if (rascunhoAberto && rascunhoAberto.id) {
+            setActiveRecordId(rascunhoAberto.id)
+            setFormData((prev) => ({
+              ...rascunhoAberto,
+              ...prev,
+              // Preservar dados preenchidos
+              id: rascunhoAberto.id,
+            }))
+          }
+        })
+        .catch(() => {})
     }
-  }, [editId, preEspecialidade])
+  }, [editId, preEspecialidade, prePacienteId])
 
   // Guarda de navegação quando houver dados preenchidos não salvos
   const shouldBlockNavigation = isFormDirty && !isSuccessfullySavedRef.current && !submitting
@@ -260,7 +278,8 @@ export default function NovaAvaliacao() {
   // Ao mudar de etapa, salva o rascunho local imediatamente
   // Salvar no servidor em segundo plano sem sair da página (page-by-page auto-save)
   const salvarRascunhoServidorSilencioso = async (novoFormData: Record<string, any>) => {
-    if (!selectedPacienteId) return
+    if (!selectedPacienteId || isSavingServerRef.current) return
+    isSavingServerRef.current = true
     try {
       const col = getCollectionNameByEspecialidade(selectedEspecialidade)
       const queixaPrincipal =
@@ -330,7 +349,19 @@ export default function NovaAvaliacao() {
         requestData = fd
       }
 
-      const targetRecordId = activeRecordId || editId || novoFormData.id
+      let targetRecordId = activeRecordId || editId || novoFormData.id
+      if (!targetRecordId) {
+        // Checar se já existe rascunho no servidor antes de criar
+        const rascunhoExistente = await getRascunhoAbertoPorPaciente(
+          selectedEspecialidade,
+          selectedPacienteId,
+        )
+        if (rascunhoExistente?.id) {
+          targetRecordId = rascunhoExistente.id
+          setActiveRecordId(rascunhoExistente.id)
+        }
+      }
+
       if (targetRecordId) {
         await updateAvaliacao(col, targetRecordId, requestData)
       } else {
@@ -341,6 +372,8 @@ export default function NovaAvaliacao() {
       }
     } catch (errSilent) {
       console.warn('Salvamento silencioso no servidor (fallback mantido no local):', errSilent)
+    } finally {
+      isSavingServerRef.current = false
     }
   }
 
@@ -713,7 +746,14 @@ export default function NovaAvaliacao() {
 
     const isApenasRascunho = statusFinal === 'Rascunho'
 
+    // Guard anti-corrida: serializar salvamento
+    if (isSavingServerRef.current || submitting || savingRascunho) {
+      console.warn('Salvamento já em processamento. Bloqueando chamada concorrente.')
+      return
+    }
+
     try {
+      isSavingServerRef.current = true
       if (isApenasRascunho) {
         setSavingRascunho(true)
       } else {
@@ -834,6 +874,18 @@ export default function NovaAvaliacao() {
       }
 
       let savedRecordId = activeRecordId || editId || (formData.id ? String(formData.id) : '')
+      if (!savedRecordId) {
+        // Antes de criar, verificar se existe rascunho aberto no backend para este paciente/especialidade
+        const rascunhoExistente = await getRascunhoAbertoPorPaciente(
+          selectedEspecialidade,
+          selectedPacienteId,
+        )
+        if (rascunhoExistente?.id) {
+          savedRecordId = rascunhoExistente.id
+          setActiveRecordId(rascunhoExistente.id)
+        }
+      }
+
       if (savedRecordId) {
         await updateAvaliacao(col, savedRecordId, requestData)
       } else {
@@ -916,6 +968,7 @@ export default function NovaAvaliacao() {
     } finally {
       setSubmitting(false)
       setSavingRascunho(false)
+      isSavingServerRef.current = false
     }
   }
 
@@ -924,6 +977,22 @@ export default function NovaAvaliacao() {
   // Ao trocar de paciente manualmente no select, pré-preencher com dados do pré-cadastro se existirem e formData estiver limpo
   const handleSelectPaciente = (pacienteId: string) => {
     setSelectedPacienteId(pacienteId)
+    // Verificar se já existe rascunho aberto desse paciente para a especialidade selecionada
+    getRascunhoAbertoPorPaciente(selectedEspecialidade, pacienteId)
+      .then((rascunho: any) => {
+        if (rascunho?.id) {
+          setActiveRecordId(rascunho.id)
+          setFormData(rascunho)
+          toast({
+            title: 'Rascunho aberto carregado!',
+            description:
+              'Carregamos o rascunho em andamento deste paciente para que você continue de onde parou.',
+          })
+          return
+        }
+      })
+      .catch(() => {})
+
     const found = pacientes.find((p) => p.id === pacienteId)
     if (
       found &&

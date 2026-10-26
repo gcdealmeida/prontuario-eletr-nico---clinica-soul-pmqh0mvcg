@@ -229,12 +229,27 @@ export default function PacienteDetalhe() {
     if (!paciente) return
     try {
       setActivating(true)
-      const res = await ativarCadastroPaciente(paciente.id)
+      await ativarCadastroPaciente(paciente.id)
       setPaciente((prev) => (prev ? { ...prev, status: 'Ativo' } : prev))
       toast({
         title: 'Cadastro ativado com sucesso!',
         description: 'Redirecionando automaticamente para abertura do prontuário...',
       })
+
+      // Verificar se já existe rascunho aberto no servidor para este paciente
+      try {
+        const { getRascunhoAbertoPorPaciente } = await import('@/services/avaliacoes')
+        const rascunhoAberto = await getRascunhoAbertoPorPaciente('Fisioterapia', paciente.id)
+        if (rascunhoAberto?.id) {
+          navigate(
+            `/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia&edit=${rascunhoAberto.id}`,
+          )
+          return
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
       // Redireciona imediatamente para nova avaliação/prontuário com dados do pré-cadastro
       navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
     } catch (err: any) {
@@ -472,7 +487,21 @@ export default function PacienteDetalhe() {
               Montar Programa
             </Button>
             <Button
-              onClick={() => navigate(`/prontuarios/novo?paciente=${paciente.id}`)}
+              onClick={async () => {
+                try {
+                  const { getRascunhoAbertoPorPaciente } = await import('@/services/avaliacoes')
+                  const rascunho = await getRascunhoAbertoPorPaciente('Fisioterapia', paciente.id)
+                  if (rascunho?.id) {
+                    navigate(
+                      `/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia&edit=${rascunho.id}`,
+                    )
+                    return
+                  }
+                } catch {
+                  /* intentionally ignored */
+                }
+                navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
+              }}
               className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] rounded-xl h-10 px-4 text-xs font-semibold shadow-sm flex items-center gap-1.5 border border-[#DFBF8E]/40"
             >
               <Plus className="h-4 w-4 text-[#33221C]" />
@@ -564,9 +593,21 @@ export default function PacienteDetalhe() {
               </div>
               <Button
                 size="sm"
-                onClick={() =>
+                onClick={async () => {
+                  try {
+                    const { getRascunhoAbertoPorPaciente } = await import('@/services/avaliacoes')
+                    const rascunho = await getRascunhoAbertoPorPaciente('Fisioterapia', paciente.id)
+                    if (rascunho?.id) {
+                      navigate(
+                        `/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia&edit=${rascunho.id}`,
+                      )
+                      return
+                    }
+                  } catch {
+                    /* intentionally ignored */
+                  }
                   navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`)
-                }
+                }}
                 className="bg-[#C9A46A] hover:bg-[#B88E52] text-[#33221C] font-bold text-xs h-8 px-3 rounded-xl shadow-2xs self-start sm:self-auto"
               >
                 Abrir Prontuário com estes Dados →
@@ -961,16 +1002,24 @@ export default function PacienteDetalhe() {
                       </Button>
                     )}
                     <Button
-                      onClick={() =>
-                        navigate(
-                          `/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`,
-                        )
-                      }
+                      onClick={() => {
+                        if (rascunhoFisio) {
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoFisio.id}&especialidade=Fisioterapia`,
+                          )
+                        } else {
+                          navigate(
+                            `/prontuarios/novo?paciente=${paciente.id}&especialidade=Fisioterapia`,
+                          )
+                        }
+                      }}
                       variant="outline"
                       size="sm"
                       className="rounded-xl text-xs font-semibold text-blue-600 border-blue-200 hover:bg-blue-50 w-full"
                     >
-                      + Nova Avaliação de Fisioterapia
+                      {rascunhoFisio
+                        ? 'Continuar Rascunho Aberto'
+                        : '+ Nova Avaliação de Fisioterapia'}
                     </Button>
                   </div>
                 )
@@ -1047,14 +1096,24 @@ export default function PacienteDetalhe() {
                       </Button>
                     )}
                     <Button
-                      onClick={() =>
-                        navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Personal`)
-                      }
+                      onClick={() => {
+                        if (rascunhoPersonal) {
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoPersonal.id}&especialidade=Personal`,
+                          )
+                        } else {
+                          navigate(
+                            `/prontuarios/novo?paciente=${paciente.id}&especialidade=Personal`,
+                          )
+                        }
+                      }}
                       variant="outline"
                       size="sm"
                       className="rounded-xl text-xs font-semibold text-orange-600 border-orange-200 hover:bg-orange-50 w-full"
                     >
-                      + Nova Avaliação de Personal
+                      {rascunhoPersonal
+                        ? 'Continuar Rascunho Aberto'
+                        : '+ Nova Avaliação de Personal'}
                     </Button>
                   </div>
                 )
@@ -1128,14 +1187,22 @@ export default function PacienteDetalhe() {
                       </Button>
                     )}
                     <Button
-                      onClick={() =>
-                        navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Nutrição`)
-                      }
+                      onClick={() => {
+                        if (rascunhoNutri) {
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoNutri.id}&especialidade=Nutrição`,
+                          )
+                        } else {
+                          navigate(
+                            `/prontuarios/novo?paciente=${paciente.id}&especialidade=Nutrição`,
+                          )
+                        }
+                      }}
                       variant="outline"
                       size="sm"
                       className="rounded-xl text-xs font-semibold text-green-600 border-green-200 hover:bg-green-50 w-full"
                     >
-                      + Nova Avaliação de Nutrição
+                      {rascunhoNutri ? 'Continuar Rascunho Aberto' : '+ Nova Avaliação de Nutrição'}
                     </Button>
                   </div>
                 )
@@ -1210,14 +1277,20 @@ export default function PacienteDetalhe() {
                       </Button>
                     )}
                     <Button
-                      onClick={() =>
-                        navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Médico`)
-                      }
+                      onClick={() => {
+                        if (rascunhoMedico) {
+                          navigate(
+                            `/prontuarios/novo?edit=${rascunhoMedico.id}&especialidade=Médico`,
+                          )
+                        } else {
+                          navigate(`/prontuarios/novo?paciente=${paciente.id}&especialidade=Médico`)
+                        }
+                      }}
                       variant="outline"
                       size="sm"
                       className="mt-4 rounded-xl text-xs font-semibold text-purple-600 border-purple-200 hover:bg-purple-50 w-full"
                     >
-                      + Nova Avaliação Médica
+                      {rascunhoMedico ? 'Continuar Rascunho Aberto' : '+ Nova Avaliação Médica'}
                     </Button>
                   </div>
                 )

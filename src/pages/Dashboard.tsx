@@ -40,6 +40,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import pb from '@/lib/pocketbase/client'
 import { getConsultasHoje, getConsultas } from '@/services/consultas'
 import { getPacientes, ativarCadastroPaciente } from '@/services/pacientes'
+import { getRascunhoAbertoPorPaciente } from '@/services/avaliacoes'
 import type { ConsultaRecord, PacienteRecord, EvolucaoRecord } from '@/types/database'
 import { ESPECIALIDADE_COLORS, formatHoraPTBR, formatDataPTBR, getInitials } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -267,6 +268,20 @@ export default function Dashboard() {
       })
       // Atualiza lista local
       setPreCadastrosPendentes((prev) => prev.filter((item) => item.id !== p.id))
+
+      // Verificar se já existe rascunho em aberto para este paciente
+      try {
+        const rascunhoAberto = await getRascunhoAbertoPorPaciente('Fisioterapia', p.id)
+        if (rascunhoAberto?.id) {
+          navigate(
+            `/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia&edit=${rascunhoAberto.id}`,
+          )
+          return
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
       // Redireciona para nova avaliação / prontuário pré-carregado
       navigate(`/prontuarios/novo?paciente=${p.id}&especialidade=Fisioterapia`)
     } catch (err: any) {

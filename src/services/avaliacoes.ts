@@ -103,6 +103,27 @@ export async function getAvaliacaoById(collectionName: string, id: string) {
   })
 }
 
+/**
+ * Busca o rascunho em aberto mais recente do paciente para uma especialidade.
+ * Retorna null se não houver rascunho aberto.
+ */
+export async function getRascunhoAbertoPorPaciente(
+  especialidade: Especialidade,
+  pacienteId: string,
+) {
+  try {
+    const col = getCollectionNameByEspecialidade(especialidade)
+    const list = await pb.collection(col).getList(1, 1, {
+      filter: `paciente_id = "${pacienteId}" && status = "Rascunho"`,
+      sort: '-updated',
+    })
+    return list.items.length > 0 ? list.items[0] : null
+  } catch (err) {
+    console.warn('Erro ao verificar rascunho aberto:', err)
+    return null
+  }
+}
+
 // Lista exata de campos permitidos no schema da coleção avaliacoes_fisioterapia
 export const AVALIACOES_FISIOTERAPIA_ALLOWED_FIELDS = new Set<string>([
   'id',
