@@ -24,16 +24,30 @@ routerAdd(
       const pacienteId = body.paciente_id || ''
       const avaliacaoId = body.avaliacao_id || ''
       const especialidade = body.especialidade || 'Fisioterapia'
+      const tipoRelatorio = body.tipo_relatorio || 'Relatório Clínico' // 'Relatório Clínico' | 'Resumo de Evolução'
       const necessidade = (body.necessidade || '').trim()
       const publicoAlvo = (body.publico_alvo || '').trim()
-      const tituloSugerido = (body.titulo || '').trim() || 'Relatório Clínico Otimizado'
+      const tituloSugerido =
+        (body.titulo || '').trim() ||
+        (tipoRelatorio === 'Resumo de Evolução'
+          ? 'RESUMO DE EVOLUÇÃO CLÍNICA'
+          : 'Relatório Clínico Otimizado')
       const dadosProntuario = body.dados_prontuario || {}
+      const historicoEvolucoes = Array.isArray(body.historico_evolucoes)
+        ? body.historico_evolucoes
+        : []
+      const historicoAvaliacoes = Array.isArray(body.historico_avaliacoes)
+        ? body.historico_avaliacoes
+        : []
 
-      if (!necessidade) {
+      if (!necessidade && tipoRelatorio !== 'Resumo de Evolução') {
         return e.badRequestError(
           'A descrição da necessidade/solicitação do relatório é obrigatória',
         )
       }
+      const necessidadeFinal =
+        necessidade ||
+        'Gerar resumo longitudinal de síntese de todas as avaliações e evoluções do paciente com IA da Clínica SOUL.'
       if (!avaliacaoId || !pacienteId) {
         return e.badRequestError('Identificação do prontuário e paciente é obrigatória')
       }
@@ -85,10 +99,100 @@ routerAdd(
       delete dadosProntuarioFiltrados.collectionName
       delete dadosProntuarioFiltrados.expand
 
-      const promptMensagem = `Gere um Relatório Clínico / Funcional no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
+      // Se não foram passadas evoluções ou avaliações pelo client, buscar no banco PocketBase para garantir
+      let evolucoesCruas = historicoEvolucoes
+      if (evolucoesCruas.length === 0 && pacienteId) {
+        try {
+          const evList = $app.findRecordsByFilter(
+            'evolucoes',
+            `paciente_id = '${pacienteId}'`,
+            'data_evolucao,created',
+            100,
+            0,
+          )
+          evolucoesCruas = evList.map((r) => ({
+            id: r.id,
+            data_evolucao: r.getString('data_evolucao') || r.getString('created'),
+            especialidade: r.getString('especialidade'),
+            profissional: r.getString('assinado_por_nome') || r.getString('profissional'),
+            subjetivo: r.getString('subjetivo'),
+            objetivo: r.getString('objetivo'),
+            avaliacao_clinica: r.getString('avaliacao_clinica'),
+            plano: r.getString('plano'),
+            conduta_procedimentos: r.getString('conduta_procedimentos'),
+            texto_livre: r.getString('texto_livre'),
+            eva_dor: r.getInt('eva_dor'),
+            status: r.getString('status'),
+            numero_registro: r.getString('numero_registro'),
+          }))
+        } catch (_) {}
+      }
+
+      let promptMensagem = ''
+
+      if (tipoRelatorio === 'Resumo de Evolução') {
+        promptMensagem = `Gere um RESUMO DE SÍNTESE DE EVOLUÇÃO CLÍNICA COM IA no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
+
+INSTRUÇÃO / FOCO SOLICITADO:
+"${necessidadeFinal}"
+
+${publicoAlvo ? `PÚBLICO-ALVO / DESTINATÁRIO: ${publicoAlvo}` : ''}
+${tituloSugerido ? `TÍTULO / SUBTÍTULO SUGERIDO: ${tituloSugerido}` : 'TÍTULO: RESUMO DE EVOLUÇÃO CLÍNICA'}
+
+DADOS INSTITUCIONAIS (já presentes no cabeçalho do documento — NÃO DUPLICAR no corpo do texto):
+- Instituição: Clínica SOUL — Saúde e Bem Estar
+- Profissional Emissor: ${userName} (${especialidade})
+- Paciente: ${pacienteNome}${pacienteCpf ? ` (CPF: ${pacienteCpf})` : ''}${pacienteNasc ? ` (Nascimento: ${pacienteNasc})` : ''}
+- Identificação da Avaliação Atual: ${avaliacaoId}
+
+DADOS DA AVALIAÇÃO ATUAL / PRONTUÁRIO:
+${JSON.stringify(dadosProntuarioFiltrados, null, 2)}
+
+HISTÓRICO DE TODAS AS AVALIAÇÕES DO PACIENTE:
+${historicoAvaliacoes.length > 0 ? JSON.stringify(historicoAvaliacoes, null, 2) : 'Apenas a avaliação atual registrada.'}
+
+HISTÓRICO CRONOLÓGICO DE TODAS AS EVOLUÇÕES SOAP (TOTAL: ${evolucoesCruas.length} SESSÕES):
+${evolucoesCruas.length > 0 ? JSON.stringify(evolucoesCruas, null, 2) : 'Nenhuma evolução SOAP cadastrada até o momento. Basear a síntese na avaliação clínica.'}
+
+ESTRUTURA OBRIGATÓRIA — MODELO INSTITUCIONAL DA CLÍNICA SOUL (RESUMO DE SÍNTESE DE EVOLUÇÃO):
+O resumo DEVE ser gerado rigorosamente com as seguintes 6 seções numeradas:
+
+1. OBJETIVO DO RESUMO DE EVOLUÇÃO
+Apresentar de forma concisa e técnica a síntese longitudinal do tratamento do paciente na Clínica SOUL, indicando a data de início do acompanhamento, o período coberto e as especialidades integradas.
+
+2. CRONOLOGIA DO ACOMPANHAMENTO E PRINCIPAIS QUEIXAS TRATADAS
+- Apontar de forma cronológica e detalhada as principais queixas tratadas nesses períodos.
+- Data de início de cada queixa/tratamento, mecanismo desencadeante, padrões de dor e limitações funcionais enfrentadas no dia a dia ou prática esportiva.
+
+3. INCIDÊNCIA DE LESÕES E HISTÓRICO DE RECIDIVAS
+- Mapeamento de todas as lesões registradas ao longo do tempo (entorses, tendinopatias, roturas, fraturas, sobrecargas).
+- Ocorrência de recidivas, episódios agudos durante o acompanhamento e correlações biomecânicas.
+
+4. EVOLUÇÃO FUNCIONAL E TRAJETÓRIA DA DOR (EVA INICIAL VS. ATUAL)
+- Comparação explícita entre a EVA inicial e a EVA atual/recente (mostrar a progressão numérica ao longo do tempo).
+- Evolução de amplitude articular (ADM), força, testes de estabilidade, capacidade funcional e resposta às condutas realizadas.
+
+5. DADOS PERTINENTES SOBRE O ESTADO DE SAÚDE GERAL
+- Comorbidades, hábitos de saúde (qualidade de sono, rotina de exercícios físicos, estresse), medicamentos em uso e intervenções prévias que influenciam o prognóstico.
+
+6. CONSIDERAÇÕES FINAIS E DIRETRIZES DE CONTINUIDADE
+- Conclusão clínica integrada sobre o momento atual do paciente, metas alcançadas, estabilidade dos sintomas e recomendações para continuidade, prevenção de recidivas ou transição entre especialidades.
+
+DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
+1. SEM RÓTULOS MECÂNICOS TIPO "CAMPO:":
+   - É ESTRITAMENTE PROIBIDO prefixos tipo "CAMPO:", "Campo:", "Nome:", "Idade:", "Diagnóstico:".
+   - Nomeie o paciente de forma direta e natural ("${pacienteNome}, ...").
+2. SEM TABELAS MARKDOWN:
+   - É ESTRITAMENTE PROIBIDO o uso de barras verticais e traços ("|---|---|"). Redija em texto corrido clínico ou listas com marcadores simples ("- " ou "• ").
+3. DADOS DE IMAGEM EM SÍNTESE FLUÍDA:
+   - Caso haja menção a exames de imagem, sintetize concisamente em texto corrido (sem "Achado:").
+4. FIDELIDADE AOS DADOS REAIS:
+   - Utilize única e exclusivamente dados reais registrados no prontuário e evoluções do paciente. Se houver poucas sessões, declare o estado inicial com clareza.`
+      } else {
+        promptMensagem = `Gere um Relatório Clínico / Funcional no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
 
 INSTRUÇÃO / NECESSIDADE DO PROFISSIONAL:
-"${necessidade}"
+"${necessidadeFinal}"
 
 ${publicoAlvo ? `PÚBLICO-ALVO / DESTINATÁRIO: ${publicoAlvo}` : ''}
 ${tituloSugerido ? `TÍTULO / SUBTÍTULO SUGERIDO: ${tituloSugerido}` : ''}
@@ -137,6 +241,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
    - É ESTRITAMENTE PROIBIDO GERAR TABELAS MARKDOWN (nunca use separadores "|---|---|", barras verticais ou traços em grade).
    - Todo e qualquer dado comparativo (ADM, dinamometria, lado D vs E, exames) DEVE ser formatado em TEXTO CORRIDO ou em LISTAS SIMPLES COM MARCADORES (ex: "- Ombro D: Flexão 170° | Ombro E: Flexão 180°").
    - Tom elegante, sóbrio e técnico. Sem floreios nem ícones decorativos. Baseie-se 100% nos dados reais do prontuário acima. Não invente dados ausentes.`
+      }
 
       // 4. Chamada síncrona ao agente nativo Skip Cloud
       let agentResult
@@ -174,9 +279,12 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
         relRec.set('autor_id', userId)
         relRec.set('autor_nome', userName)
         relRec.set('titulo', tituloSugerido.slice(0, 5000))
-        relRec.set('necessidade', necessidade)
+        relRec.set('necessidade', necessidadeFinal)
         relRec.set('publico_alvo', publicoAlvo)
         relRec.set('conteudo', conteudoGerado)
+        if (colRelatorios.fields.getByName('tipo_relatorio')) {
+          relRec.set('tipo_relatorio', tipoRelatorio)
+        }
         $app.save(relRec)
       } catch (errSave) {
         console.log('Tentativa 1 ao salvar relatório gerado falhou:', errSave)
@@ -190,9 +298,12 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
           relRec.set('autor_id', userId)
           relRec.set('autor_nome', userName)
           relRec.set('titulo', tituloSugerido.slice(0, 200))
-          relRec.set('necessidade', necessidade.slice(0, 4900))
+          relRec.set('necessidade', necessidadeFinal.slice(0, 4900))
           relRec.set('publico_alvo', (publicoAlvo || '').slice(0, 500))
           relRec.set('conteudo', conteudoGerado.slice(0, 4900))
+          if (colRelatorios.fields.getByName('tipo_relatorio')) {
+            relRec.set('tipo_relatorio', tipoRelatorio)
+          }
           $app.save(relRec)
           avisoSalvamento =
             'Relatório salvo no histórico com versão truncada para compatibilidade. O texto completo gerado está disponível abaixo.'
@@ -205,8 +316,9 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
             paciente_id: pacienteId,
             avaliacao_id: avaliacaoId,
             especialidade: especialidade,
+            tipo_relatorio: tipoRelatorio,
             titulo: tituloSugerido,
-            necessidade: necessidade,
+            necessidade: necessidadeFinal,
             conteudo: conteudoGerado,
             autor_id: userId,
             autor_nome: userName,
@@ -233,10 +345,12 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
         logRec.set('paciente_nome', pacienteNome)
         logRec.set(
           'detalhes',
-          'Emissão de Relatório Clínico com IA: "' +
+          'Emissão de ' +
+            (tipoRelatorio || 'Relatório Clínico') +
+            ' com IA: "' +
             tituloSugerido +
             '" (Foco: ' +
-            necessidade.slice(0, 120) +
+            necessidadeFinal.slice(0, 120) +
             ')',
         )
         $app.save(logRec)
@@ -277,8 +391,9 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
         paciente_id: pacienteId,
         avaliacao_id: avaliacaoId,
         especialidade: especialidade,
+        tipo_relatorio: tipoRelatorio,
         titulo: tituloSugerido,
-        necessidade: necessidade,
+        necessidade: necessidadeFinal,
         conteudo: conteudoGerado,
         autor_id: userId,
         autor_nome: userName,

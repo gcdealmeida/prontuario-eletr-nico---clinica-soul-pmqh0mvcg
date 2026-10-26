@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T19:24:00.221Z",
+  "generatedAt": "2026-10-26T22:44:31.536Z",
   "collections": [
     {
       "name": "users",
@@ -2766,6 +2766,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo_relatorio",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Relatório Clínico", "Resumo de Evolução", "Laudo", "Parecer"]
         }
       ],
       "indexes": [

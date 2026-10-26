@@ -7,6 +7,7 @@ interface DocumentoProntuarioInstitucionalProps {
   avaliacao: any
   especialidade: Especialidade | 'Geral'
   listaEvolucoes?: EvolucaoRecord[]
+  incluirEvolucoes?: boolean
 }
 
 /**
@@ -96,6 +97,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
   avaliacao,
   especialidade,
   listaEvolucoes = [],
+  incluirEvolucoes = true,
 }) => {
   if (!avaliacao) return null
 
@@ -1060,7 +1062,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
       {/* ======================================================================== */}
       {/* HISTÓRICO DE EVOLUÇÕES CLÍNICAS ASSINADAS (se houver sessões)           */}
       {/* ======================================================================== */}
-      {Array.isArray(listaEvolucoes) && listaEvolucoes.length > 0 && (
+      {incluirEvolucoes && Array.isArray(listaEvolucoes) && listaEvolucoes.length > 0 && (
         <section className="pt-6 mb-8 border-t-2 border-[#D5AE6F]/40 page-break-before space-y-4">
           <div className="pb-2 border-b border-[#E9E1D2]">
             <h3 className="font-soul font-bold text-[14pt] text-[#6A402D]">

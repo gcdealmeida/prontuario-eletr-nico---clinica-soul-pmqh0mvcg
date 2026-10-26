@@ -29,6 +29,15 @@ import { VisualizacaoPersonal } from '@/components/personal/VisualizacaoPersonal
 import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
 import { ModalAlertaReavaliacao } from '@/components/ModalAlertaReavaliacao'
 import { ModalRelatorioIa } from '@/components/ModalRelatorioIa'
+import { ModalResumoEvolucaoIa } from '@/components/ModalResumoEvolucaoIa'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ShieldCheck, Lock, Sparkles } from 'lucide-react'
 
 export default function AvaliacaoDetalhe() {
@@ -50,6 +59,10 @@ export default function AvaliacaoDetalhe() {
 
   // Modal Relatório IA
   const [modalRelatorioIaOpen, setModalRelatorioIaOpen] = useState(false)
+  const [modalResumoIaOpen, setModalResumoIaOpen] = useState(false)
+  const [modoImpressaoProntuario, setModoImpressaoProntuario] = useState<
+    'tudo' | 'somente_avaliacao'
+  >('tudo')
   const [preparandoImpressao, setPreparandoImpressao] = useState(false)
   const printTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -97,8 +110,9 @@ export default function AvaliacaoDetalhe() {
     setModalAlertaOpen(true)
   }
 
-  const handlePrint = () => {
+  const dispararImpressao = (modo: 'tudo' | 'somente_avaliacao') => {
     if (preparandoImpressao) return
+    setModoImpressaoProntuario(modo)
     setPreparandoImpressao(true)
 
     // Aplica classe no body para isolar estritamente o modelo institucional SOUL na impressão
@@ -121,11 +135,14 @@ export default function AvaliacaoDetalhe() {
         try {
           window.print()
         } finally {
-          // Fallback de segurança caso afterprint não seja disparado
           printTimeoutRef.current = setTimeout(cleanup, 3000)
         }
       })
     }, 150)
+  }
+
+  const handlePrint = () => {
+    dispararImpressao('tudo')
   }
 
   useEffect(() => {
@@ -175,6 +192,7 @@ export default function AvaliacaoDetalhe() {
               avaliacao={avaliacao}
               especialidade={espParam}
               listaEvolucoes={listaEvolucoesImpressao}
+              incluirEvolucoes={modoImpressaoProntuario === 'tudo'}
             />
           </div>,
           document.body,
@@ -246,20 +264,78 @@ export default function AvaliacaoDetalhe() {
               Editar
             </Button>
 
-            {/* Baixar PDF via window.print */}
-            <Button
-              size="sm"
-              disabled={preparandoImpressao}
-              onClick={handlePrint}
-              className="bg-[#1E2530] hover:bg-black text-white rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
-            >
-              {preparandoImpressao ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#C9A46A]" />
-              ) : (
-                <Printer className="h-3.5 w-3.5" />
-              )}
-              {preparandoImpressao ? 'Preparando...' : 'Baixar PDF / Imprimir'}
-            </Button>
+            {/* Menu Dropdown de Impressão / Relatório com 3 Opções */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  disabled={preparandoImpressao}
+                  className="bg-[#1E2530] hover:bg-black text-white rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                  title="Opções de impressão oficial e síntese de prontuário"
+                >
+                  {preparandoImpressao ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#C9A46A]" />
+                  ) : (
+                    <Printer className="h-3.5 w-3.5" />
+                  )}
+                  <span>{preparandoImpressao ? 'Preparando...' : 'Baixar PDF / Imprimir'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-72 p-2 rounded-2xl border-[#E9E1D2] shadow-xl bg-white"
+              >
+                <DropdownMenuLabel className="text-[11px] font-bold text-[#6A402D] uppercase tracking-wider px-2 py-1">
+                  Opções de Impressão SOUL
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-[#E9E1D2]/60" />
+
+                <DropdownMenuItem
+                  onClick={() => dispararImpressao('somente_avaliacao')}
+                  className="rounded-xl p-2.5 cursor-pointer hover:bg-[#F7F2EC] focus:bg-[#F7F2EC] flex flex-col items-start gap-0.5 group"
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#1F1B18] group-hover:text-[#6A402D]">
+                    <FileText className="h-4 w-4 text-[#8C6527]" />
+                    <span>Somente Avaliação Clínica</span>
+                  </div>
+                  <p className="text-[11px] text-[#5F544F] pl-6 leading-tight">
+                    Imprime apenas a avaliação e o plano de cuidado, sem as evoluções SOAP.
+                  </p>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => dispararImpressao('tudo')}
+                  className="rounded-xl p-2.5 cursor-pointer hover:bg-[#F7F2EC] focus:bg-[#F7F2EC] flex flex-col items-start gap-0.5 group"
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#1F1B18] group-hover:text-[#6A402D]">
+                    <Printer className="h-4 w-4 text-[#8C6527]" />
+                    <span>Avaliação + Evoluções (Tudo)</span>
+                  </div>
+                  <p className="text-[11px] text-[#5F544F] pl-6 leading-tight">
+                    Documento completo: avaliação inicial e todas as evoluções assinadas em ordem.
+                  </p>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-[#E9E1D2]/60" />
+
+                <DropdownMenuItem
+                  onClick={() => setModalResumoIaOpen(true)}
+                  className="rounded-xl p-2.5 cursor-pointer bg-gradient-to-r from-[#FAF5EE] to-[#F7F2EC] hover:from-[#F4ECE1] hover:to-[#EDE3D4] focus:from-[#F4ECE1] focus:to-[#EDE3D4] flex flex-col items-start gap-0.5 group border border-[#D5AE6F]/40"
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#6A402D]">
+                    <Sparkles className="h-4 w-4 text-[#C9A46A] animate-pulse" />
+                    <span>Resumo de Evolução com IA</span>
+                    <span className="text-[9px] bg-[#6A402D] text-white px-1.5 py-0.2 rounded-full font-bold ml-auto">
+                      NOVO
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#5F544F] pl-6 leading-tight">
+                    A IA analisa todas as avaliações e sessões SOAP: queixas, início, lesões, EVA e
+                    saúde geral.
+                  </p>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -592,6 +668,7 @@ export default function AvaliacaoDetalhe() {
               avaliacao={avaliacao}
               especialidade={espParam}
               listaEvolucoes={listaEvolucoesImpressao}
+              incluirEvolucoes={modoImpressaoProntuario === 'tudo'}
             />
           </div>
         </div>
@@ -611,6 +688,19 @@ export default function AvaliacaoDetalhe() {
         <ModalRelatorioIa
           open={modalRelatorioIaOpen}
           onOpenChange={setModalRelatorioIaOpen}
+          pacienteId={avaliacao.paciente_id}
+          pacienteNome={pacNome}
+          pacienteCpf={pacCpf}
+          avaliacaoId={avaliacao.id}
+          especialidade={espParam}
+          dadosProntuario={avaliacao}
+          profissionalResponsavel={avaliacao.profissional_responsavel}
+        />
+
+        {/* MODAL DE RESUMO DE EVOLUÇÃO COM IA (NOVO) */}
+        <ModalResumoEvolucaoIa
+          open={modalResumoIaOpen}
+          onOpenChange={setModalResumoIaOpen}
           pacienteId={avaliacao.paciente_id}
           pacienteNome={pacNome}
           pacienteCpf={pacCpf}

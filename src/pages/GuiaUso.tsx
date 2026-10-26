@@ -761,15 +761,52 @@ export default function GuiaUso() {
                 </div>
               </div>
             </div>
-            {/* Dica de Impressão */}
-            <div className="p-4 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-start gap-3">
-              <Printer className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
-              <div className="text-xs text-gray-700 leading-relaxed">
-                <strong className="text-[#8C6527]">Dica para salvar em PDF:</strong> Ao clicar em{' '}
-                <em>"Baixar PDF / Imprimir"</em>, a janela de impressão do seu navegador abrirá
-                formatada sem os menus laterais nem botões. No destino da impressora, selecione{' '}
-                <strong>"Salvar como PDF"</strong>. O documento sai pronto com o cabeçalho oficial e
-                assinatura digital da clínica.
+            {/* Dica e Opções de Impressão */}
+            <div className="p-5 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] space-y-3">
+              <div className="flex items-start gap-3">
+                <Printer className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
+                <div className="text-xs text-gray-700 leading-relaxed">
+                  <strong className="text-[#8C6527] text-sm block mb-1">
+                    Três Opções Oficiais de Impressão no botão "Baixar PDF / Imprimir":
+                  </strong>
+                  Ao clicar em <em>"Baixar PDF / Imprimir"</em> no topo do prontuário, você tem à
+                  disposição:
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                <div className="p-3 bg-white rounded-xl border border-[#E9E1D2] space-y-1">
+                  <strong className="text-xs text-[#6A402D] block">
+                    1. Somente Avaliação Clínica
+                  </strong>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    Imprime o documento institucional apenas com os dados e seções da
+                    avaliação/prontuário atual, sem as evoluções SOAP. Ideal para laudos e registros
+                    pontuais de entrada ou reavaliação.
+                  </p>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-[#E9E1D2] space-y-1">
+                  <strong className="text-xs text-[#6A402D] block">
+                    2. Avaliação + Evoluções (Tudo)
+                  </strong>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    Imprime no modelo institucional oficial a avaliação clínica completa seguida de
+                    todas as evoluções SOAP assinadas do paciente em ordem cronológica, com quebras
+                    de página limpas e rodapé oficial.
+                  </p>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-[#D5AE6F] bg-gradient-to-br from-[#FAF5EE] to-white space-y-1">
+                  <strong className="text-xs text-[#6A402D] flex items-center gap-1">
+                    <Sparkles className="h-3.5 w-3.5 text-[#C9A46A]" />
+                    3. Resumo de Evolução com IA
+                  </strong>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    A IA analisa todas as avaliações e sessões SOAP do paciente e sintetiza as
+                    principais queixas tratadas, data de início, incidência de lesões, trajetória da
+                    dor (EVA inicial vs. atual), estado de saúde geral e diretrizes. Editável e
+                    imprimível no Modelo Institucional.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

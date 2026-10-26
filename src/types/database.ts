@@ -1025,6 +1025,7 @@ export interface RelatorioIaRecord {
   paciente_id: string
   avaliacao_id: string
   especialidade: Especialidade | 'Geral'
+  tipo_relatorio?: 'Relatório Clínico' | 'Resumo de Evolução' | 'Laudo' | 'Parecer'
   autor_id: string
   autor_nome?: string
   titulo: string

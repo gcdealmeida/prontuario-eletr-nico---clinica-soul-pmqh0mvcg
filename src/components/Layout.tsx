@@ -573,7 +573,7 @@ export default function Layout() {
 
           {/* FOOTER */}
           <footer className="py-4 border-t border-[#E9E1D2] bg-[#FAF7F1] text-center text-xs text-[#73574A]">
-            © {new Date().getFullYear()} Clínica SOUL — Saúde e Bem-Estar · v0.0.49 · Avaliações &
+            © {new Date().getFullYear()} Clínica SOUL — Saúde e Bem-Estar · v0.0.81 · Avaliações &
             Prontuários
           </footer>
         </div>

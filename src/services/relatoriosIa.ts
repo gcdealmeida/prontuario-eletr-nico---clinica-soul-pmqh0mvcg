@@ -5,10 +5,13 @@ export interface GerarRelatorioIaPayload {
   paciente_id: string
   avaliacao_id: string
   especialidade: Especialidade | 'Geral'
+  tipo_relatorio?: 'Relatório Clínico' | 'Resumo de Evolução' | 'Laudo' | 'Parecer'
   necessidade: string
   titulo?: string
   publico_alvo?: string
   dados_prontuario: Record<string, unknown>
+  historico_evolucoes?: Array<Record<string, unknown>>
+  historico_avaliacoes?: Array<Record<string, unknown>>
 }
 
 export interface GerarRelatorioIaResponse {
@@ -16,6 +19,7 @@ export interface GerarRelatorioIaResponse {
   paciente_id: string
   avaliacao_id: string
   especialidade: Especialidade | 'Geral'
+  tipo_relatorio?: 'Relatório Clínico' | 'Resumo de Evolução' | 'Laudo' | 'Parecer'
   titulo: string
   necessidade: string
   conteudo: string
@@ -66,6 +70,23 @@ export async function getRelatoriosByAvaliacao(avaliacaoId: string): Promise<Rel
     return records
   } catch (err) {
     console.error('Erro ao buscar histórico de relatórios:', err)
+    return []
+  }
+}
+
+/**
+ * Busca o histórico de relatórios emitidos para um paciente (incluindo todas as avaliações e resumos)
+ */
+export async function getRelatoriosByPaciente(pacienteId: string): Promise<RelatorioIaRecord[]> {
+  try {
+    const records = await pb.collection('relatorios_ia').getFullList<RelatorioIaRecord>({
+      filter: `paciente_id = '${pacienteId}'`,
+      sort: '-created',
+      expand: 'autor_id,paciente_id',
+    })
+    return records
+  } catch (err) {
+    console.error('Erro ao buscar histórico de relatórios do paciente:', err)
     return []
   }
 }
