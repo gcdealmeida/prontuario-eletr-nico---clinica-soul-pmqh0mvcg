@@ -141,6 +141,13 @@ routerAdd('POST', '/backend/v1/public/pre-cadastro', (e) => {
       duracao_treino: data.duracao_treino || '',
       controle_alimentar: data.controle_alimentar || '',
       observacoes_formulario: data.observacoes_formulario || '',
+      endereco_rua: data.endereco_rua || '',
+      endereco_numero: data.endereco_numero || '',
+      endereco_complemento: data.endereco_complemento || '',
+      endereco_bairro: data.endereco_bairro || '',
+      endereco_cidade: data.endereco_cidade || '',
+      endereco_estado: data.endereco_estado || '',
+      endereco_cep: data.endereco_cep || '',
       submitted_at: new Date().toISOString(),
     }
 
@@ -168,6 +175,27 @@ routerAdd('POST', '/backend/v1/public/pre-cadastro', (e) => {
       }
       if (!existingRecord.getString('genero') && data.genero) {
         existingRecord.set('genero', data.genero)
+      }
+      if (!existingRecord.getString('endereco_rua') && data.endereco_rua) {
+        existingRecord.set('endereco_rua', data.endereco_rua)
+      }
+      if (!existingRecord.getString('endereco_numero') && data.endereco_numero) {
+        existingRecord.set('endereco_numero', data.endereco_numero)
+      }
+      if (!existingRecord.getString('endereco_complemento') && data.endereco_complemento) {
+        existingRecord.set('endereco_complemento', data.endereco_complemento)
+      }
+      if (!existingRecord.getString('endereco_bairro') && data.endereco_bairro) {
+        existingRecord.set('endereco_bairro', data.endereco_bairro)
+      }
+      if (!existingRecord.getString('endereco_cidade') && data.endereco_cidade) {
+        existingRecord.set('endereco_cidade', data.endereco_cidade)
+      }
+      if (!existingRecord.getString('endereco_estado') && data.endereco_estado) {
+        existingRecord.set('endereco_estado', data.endereco_estado)
+      }
+      if (!existingRecord.getString('endereco_cep') && data.endereco_cep) {
+        existingRecord.set('endereco_cep', data.endereco_cep)
       }
       if (!existingRecord.getString('endereco') && data.endereco) {
         existingRecord.set('endereco', data.endereco)
@@ -277,6 +305,13 @@ routerAdd('POST', '/backend/v1/public/pre-cadastro', (e) => {
     if (data.telefone) newRecord.set('telefone', data.telefone)
     if (data.email) newRecord.set('email', data.email)
     if (data.genero) newRecord.set('genero', data.genero)
+    if (data.endereco_rua) newRecord.set('endereco_rua', data.endereco_rua)
+    if (data.endereco_numero) newRecord.set('endereco_numero', data.endereco_numero)
+    if (data.endereco_complemento) newRecord.set('endereco_complemento', data.endereco_complemento)
+    if (data.endereco_bairro) newRecord.set('endereco_bairro', data.endereco_bairro)
+    if (data.endereco_cidade) newRecord.set('endereco_cidade', data.endereco_cidade)
+    if (data.endereco_estado) newRecord.set('endereco_estado', data.endereco_estado)
+    if (data.endereco_cep) newRecord.set('endereco_cep', data.endereco_cep)
     if (data.endereco) newRecord.set('endereco', data.endereco)
     newRecord.set('status', 'Pré-cadastro')
 

@@ -23,14 +23,54 @@ export interface PreCadastroPayload {
   cpf?: string
   data_nascimento?: string
   telefone: string
-  endereco?: string
   email?: string
+  endereco?: string
+  endereco_rua?: string
+  endereco_numero?: string
+  endereco_complemento?: string
+  endereco_bairro?: string
+  endereco_cidade?: string
+  endereco_estado?: string
+  endereco_cep?: string
   origem_como_chegou: string
   motivo_procura: string
   limitacoes_incomodo: string
   tratamentos_anteriores: string
   resultado_esperado: string
   diagnostico_medico?: string
+}
+
+export function formatarEnderecoCompleto(p: {
+  endereco?: string
+  endereco_rua?: string
+  endereco_numero?: string
+  endereco_complemento?: string
+  endereco_bairro?: string
+  endereco_cidade?: string
+  endereco_estado?: string
+  endereco_cep?: string
+}): string {
+  const partes: string[] = []
+  const ruaNumero = [p.endereco_rua, p.endereco_numero].filter(Boolean).join(', ')
+  if (ruaNumero) {
+    if (p.endereco_complemento) {
+      partes.push(`${ruaNumero} (${p.endereco_complemento})`)
+    } else {
+      partes.push(ruaNumero)
+    }
+  } else if (p.endereco_complemento) {
+    partes.push(p.endereco_complemento)
+  }
+
+  if (p.endereco_bairro) partes.push(p.endereco_bairro)
+
+  const cidadeUf = [p.endereco_cidade, p.endereco_estado].filter(Boolean).join(' - ')
+  if (cidadeUf) partes.push(cidadeUf)
+
+  if (p.endereco_cep) partes.push(`CEP ${p.endereco_cep}`)
+
+  const montado = partes.join(' • ')
+  return montado || (p.endereco || '').trim()
 }
 
 export interface PreCadastroSubmitResponse {

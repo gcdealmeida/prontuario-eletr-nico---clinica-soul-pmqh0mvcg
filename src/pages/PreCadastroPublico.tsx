@@ -14,6 +14,7 @@ import {
   Heart,
   ArrowRight,
   ShieldCheck,
+  Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { LogoSOUL } from '@/components/LogoSOUL'
-import { submitPreCadastro } from '@/services/pacientes'
+import { submitPreCadastro, formatarEnderecoCompleto } from '@/services/pacientes'
 
 export default function PreCadastroPublico() {
   const { token } = useParams<{ token?: string }>()
@@ -76,10 +77,20 @@ export default function PreCadastroPublico() {
   // Form states
   const [nome, setNome] = useState('')
   const [dataNascimento, setDataNascimento] = useState('')
-  const [endereco, setEndereco] = useState('')
   const [cpf, setCpf] = useState('')
   const [telefone, setTelefone] = useState('')
   const [email, setEmail] = useState('')
+
+  // Endereço estruturado
+  const [cep, setCep] = useState('')
+  const [rua, setRua] = useState('')
+  const [numero, setNumero] = useState('')
+  const [complemento, setComplemento] = useState('')
+  const [bairro, setBairro] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [estado, setEstado] = useState('')
+  const [loadingCep, setLoadingCep] = useState(false)
+  const [cepFeedback, setCepFeedback] = useState<string | null>(null)
 
   // Perguntas específicas pedidas pelo usuário
   const [origem, setOrigem] = useState<'Indicação' | 'Google' | 'Instagram' | 'Outro'>('Indicação')
@@ -108,14 +119,78 @@ export default function PreCadastroPublico() {
   const handleTelefoneChange = (val: string) => {
     const raw = val.replace(/\D/g, '').slice(0, 11)
     if (raw.length <= 2) setTelefone(raw ? `(${raw}` : '')
-    else if (raw.length <= 7) setTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2)}`)
+    else if (raw.length <= 6) setTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2)}`)
+    else if (raw.length <= 10)
+      setTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2, 6)}-${raw.slice(6)}`)
     else setTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7, 11)}`)
+  }
+
+  // CEP: 00000-000 e auto-busca via ViaCEP
+  const handleCepChange = (val: string) => {
+    const raw = val.replace(/\D/g, '').slice(0, 8)
+    const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw
+    setCep(formatted)
+    setCepFeedback(null)
+
+    if (raw.length === 8) {
+      buscarCep(raw)
+    }
+  }
+
+  const buscarCep = async (cepDigits: string) => {
+    const raw = cepDigits.replace(/\D/g, '')
+    if (raw.length !== 8) return
+    setLoadingCep(true)
+    setCepFeedback(null)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
+      if (!res.ok) throw new Error('Falha ao consultar CEP')
+      const data = await res.json()
+      if (data.erro) {
+        setCepFeedback('CEP não encontrado. Preencha o endereço manualmente.')
+        return
+      }
+      if (data.logradouro && !rua) setRua(data.logradouro)
+      else if (data.logradouro) setRua(data.logradouro)
+
+      if (data.bairro) setBairro(data.bairro)
+      if (data.localidade) setCidade(data.localidade)
+      if (data.uf) setEstado(String(data.uf).toUpperCase())
+      setCepFeedback('Endereço localizado pelo CEP!')
+    } catch (_) {
+      setCepFeedback('Não foi possível buscar o CEP automaticamente. Preencha manualmente.')
+    } finally {
+      setLoadingCep(false)
+    }
   }
 
   const validate = () => {
     const errs: Record<string, string> = {}
     if (!nome.trim()) errs.nome = 'Nome completo é obrigatório.'
-    if (!telefone.trim()) errs.telefone = 'Telefone para contato é obrigatório.'
+
+    const telDigits = telefone.replace(/\D/g, '')
+    if (!telDigits) {
+      errs.telefone = 'Celular/WhatsApp para contato é obrigatório.'
+    } else if (telDigits.length < 10) {
+      errs.telefone = 'Informe o celular completo com DDD (mínimo 10 dígitos).'
+    }
+
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email.trim())) {
+        errs.email = 'Informe um endereço de e-mail válido.'
+      }
+    }
+
+    const cepDigits = cep.replace(/\D/g, '')
+    if (cepDigits && cepDigits.length !== 8) {
+      errs.cep = 'CEP deve conter 8 dígitos (00000-000).'
+    }
+
+    if (estado.trim() && estado.trim().length !== 2) {
+      errs.estado = 'UF deve ter 2 letras (ex: SP, RJ).'
+    }
+
     if (!motivoProcura.trim())
       errs.motivoProcura = 'Por favor, informe o real motivo que te trouxe.'
     if (!limitacoesIncomodo.trim())
@@ -141,13 +216,30 @@ export default function PreCadastroPublico() {
       const origemFinal =
         origem === 'Outro' && origemOutro.trim() ? `Outro: ${origemOutro.trim()}` : origem
 
+      const enderecoMontado = formatarEnderecoCompleto({
+        endereco_rua: rua.trim() || undefined,
+        endereco_numero: numero.trim() || undefined,
+        endereco_complemento: complemento.trim() || undefined,
+        endereco_bairro: bairro.trim() || undefined,
+        endereco_cidade: cidade.trim() || undefined,
+        endereco_estado: estado.trim() ? estado.trim().toUpperCase() : undefined,
+        endereco_cep: cep.trim() || undefined,
+      })
+
       const res = await submitPreCadastro({
         nome: nome.trim(),
         cpf: cpf.trim() || undefined,
         data_nascimento: dataNascimento ? `${dataNascimento} 00:00:00.000Z` : undefined,
         telefone: telefone.trim(),
-        endereco: endereco.trim() || undefined,
         email: email.trim() || undefined,
+        endereco: enderecoMontado || undefined,
+        endereco_rua: rua.trim() || undefined,
+        endereco_numero: numero.trim() || undefined,
+        endereco_complemento: complemento.trim() || undefined,
+        endereco_bairro: bairro.trim() || undefined,
+        endereco_cidade: cidade.trim() || undefined,
+        endereco_estado: estado.trim() ? estado.trim().toUpperCase() : undefined,
+        endereco_cep: cep.trim() || undefined,
         origem_como_chegou: origemFinal,
         motivo_procura: motivoProcura.trim(),
         limitacoes_incomodo: limitacoesIncomodo.trim(),
@@ -244,7 +336,14 @@ export default function PreCadastroPublico() {
                     setDataNascimento('')
                     setTelefone('')
                     setEmail('')
-                    setEndereco('')
+                    setCep('')
+                    setRua('')
+                    setNumero('')
+                    setComplemento('')
+                    setBairro('')
+                    setCidade('')
+                    setEstado('')
+                    setCepFeedback(null)
                     setMotivoProcura('')
                     setLimitacoesIncomodo('')
                     setTratamentosAnteriores('')
@@ -328,14 +427,16 @@ export default function PreCadastroPublico() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* Telefone / Contato */}
+                    {/* Celular / WhatsApp */}
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold text-[#5C4033] flex items-center gap-1.5">
                         <Phone className="h-3.5 w-3.5 text-[#8C6527]" />
-                        Telefone / WhatsApp *
+                        Celular / WhatsApp *
                       </Label>
                       <Input
                         required
+                        type="tel"
+                        inputMode="numeric"
                         placeholder="(00) 00000-0000"
                         value={telefone}
                         onChange={(e) => handleTelefoneChange(e.target.value)}
@@ -344,7 +445,7 @@ export default function PreCadastroPublico() {
                       {errors.telefone && <p className="text-xs text-red-600">{errors.telefone}</p>}
                     </div>
 
-                    {/* E-mail (opcional) */}
+                    {/* E-mail */}
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold text-[#5C4033] flex items-center gap-1.5">
                         <Mail className="h-3.5 w-3.5 text-[#8C6527]" />
@@ -352,26 +453,139 @@ export default function PreCadastroPublico() {
                       </Label>
                       <Input
                         type="email"
+                        inputMode="email"
                         placeholder="seu.email@exemplo.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="h-11 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-[#FAF8F5]/50 text-sm"
                       />
+                      {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
                     </div>
                   </div>
 
-                  {/* Endereço */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-[#5C4033] flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-[#8C6527]" />
-                      Endereço
-                    </Label>
-                    <Input
-                      placeholder="Rua, número, bairro, cidade - estado"
-                      value={endereco}
-                      onChange={(e) => setEndereco(e.target.value)}
-                      className="h-11 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-[#FAF8F5]/50 text-sm"
-                    />
+                  {/* ENDEREÇO COMPLETO */}
+                  <div className="pt-2">
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E9E1D2] space-y-3.5">
+                      <div className="flex items-center justify-between pb-1 border-b border-[#E9E1D2]/70">
+                        <Label className="text-xs font-bold text-[#5C4033] flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-[#8C6527]" />
+                          Endereço Completo
+                        </Label>
+                        <span className="text-[11px] text-[#73574A]">
+                          Digite o CEP para autocompletar
+                        </span>
+                      </div>
+
+                      {/* CEP */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1.5 sm:col-span-1">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">CEP</Label>
+                          <div className="relative">
+                            <Input
+                              type="tel"
+                              inputMode="numeric"
+                              placeholder="00000-000"
+                              value={cep}
+                              onChange={(e) => handleCepChange(e.target.value)}
+                              className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm font-mono pr-8"
+                            />
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C6527]">
+                              {loadingCep ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-[#8C6527]" />
+                              ) : (
+                                <Search className="h-3.5 w-3.5 text-[#8C6527]/60" />
+                              )}
+                            </div>
+                          </div>
+                          {errors.cep && <p className="text-[11px] text-red-600">{errors.cep}</p>}
+                        </div>
+
+                        {cepFeedback && (
+                          <div className="sm:col-span-2 flex items-center text-xs text-[#8C6527] font-medium pt-5">
+                            {cepFeedback}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Rua e Número */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div className="space-y-1.5 sm:col-span-3">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">
+                            Rua / Avenida / Logradouro
+                          </Label>
+                          <Input
+                            placeholder="Ex: Rua das Flores"
+                            value={rua}
+                            onChange={(e) => setRua(e.target.value)}
+                            className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5 sm:col-span-1">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">Número</Label>
+                          <Input
+                            placeholder="Ex: 123"
+                            value={numero}
+                            onChange={(e) => setNumero(e.target.value)}
+                            className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Complemento e Bairro */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">
+                            Complemento
+                          </Label>
+                          <Input
+                            placeholder="Apto, Bloco, Casa 2..."
+                            value={complemento}
+                            onChange={(e) => setComplemento(e.target.value)}
+                            className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">Bairro</Label>
+                          <Input
+                            placeholder="Ex: Centro"
+                            value={bairro}
+                            onChange={(e) => setBairro(e.target.value)}
+                            className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cidade e Estado */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div className="space-y-1.5 sm:col-span-3">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">Cidade</Label>
+                          <Input
+                            placeholder="Ex: Taubaté"
+                            value={cidade}
+                            onChange={(e) => setCidade(e.target.value)}
+                            className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5 sm:col-span-1">
+                          <Label className="text-[11px] font-semibold text-[#5C4033]">
+                            Estado (UF)
+                          </Label>
+                          <Input
+                            maxLength={2}
+                            placeholder="SP"
+                            value={estado}
+                            onChange={(e) => setEstado(e.target.value.toUpperCase())}
+                            className="h-10 rounded-xl border-[#E9E1D2] focus-visible:ring-[#C9A46A] bg-white text-sm uppercase font-mono"
+                          />
+                          {errors.estado && (
+                            <p className="text-[11px] text-red-600">{errors.estado}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

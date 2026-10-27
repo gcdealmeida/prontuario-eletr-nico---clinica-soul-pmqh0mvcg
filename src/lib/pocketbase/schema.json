@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T13:24:14.278Z",
+  "generatedAt": "2026-10-27T16:01:33.913Z",
   "collections": [
     {
       "name": "users",
@@ -263,6 +263,48 @@
         {
           "name": "ficha_pre_cadastro",
           "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_rua",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_complemento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_bairro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_cep",
+          "type": "text",
           "required": false,
           "system": false
         }
