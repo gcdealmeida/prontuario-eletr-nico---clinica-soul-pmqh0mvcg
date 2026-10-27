@@ -130,14 +130,21 @@ routerAdd(
 
       let promptMensagem = ''
 
+      // Sanitiza tituloSugerido caso ainda contenha o subtítulo legado a ser removido
+      const tituloSugeridoLimpo = (tituloSugerido || 'RESUMO DE EVOLUÇÃO CLÍNICA')
+        .replace(/\s*[-—–]\s*S[ií]ntese\s+Longitudinal\s+Multidisciplinar(?:\s+com\s+IA)?/gi, '')
+        .trim()
+
       if (tipoRelatorio === 'Resumo de Evolução') {
-        promptMensagem = `Gere um RESUMO DE SÍNTESE DE EVOLUÇÃO CLÍNICA COM IA no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
+        promptMensagem = `Gere um RESUMO DE EVOLUÇÃO CLÍNICA no MODELO INSTITUCIONAL OFICIAL DA CLÍNICA SOUL conforme a instrução:
 
 INSTRUÇÃO / FOCO SOLICITADO:
 "${necessidadeFinal}"
 
 ${publicoAlvo ? `PÚBLICO-ALVO / DESTINATÁRIO: ${publicoAlvo}` : ''}
-${tituloSugerido ? `TÍTULO / SUBTÍTULO SUGERIDO: ${tituloSugerido}` : 'TÍTULO: RESUMO DE EVOLUÇÃO CLÍNICA'}
+${tituloSugeridoLimpo ? `TÍTULO DO DOCUMENTO: ${tituloSugeridoLimpo}` : 'TÍTULO DO DOCUMENTO: RESUMO DE EVOLUÇÃO CLÍNICA'}
+
+ATENÇÃO: NÃO inclua o subtítulo "Síntese Longitudinal Multidisciplinar com IA" no documento. O documento deve ter apenas o título "RESUMO DE EVOLUÇÃO CLÍNICA" e seguir diretamente para as seções clínicas numeradas 1 a 6.
 
 DADOS INSTITUCIONAIS (já presentes no cabeçalho do documento — NÃO DUPLICAR no corpo do texto):
 - Instituição: Clínica SOUL — Saúde e Bem Estar
@@ -278,7 +285,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
         relRec.set('especialidade', especialidade)
         relRec.set('autor_id', userId)
         relRec.set('autor_nome', userName)
-        relRec.set('titulo', tituloSugerido.slice(0, 5000))
+        relRec.set('titulo', tituloSugeridoLimpo.slice(0, 5000))
         relRec.set('necessidade', necessidadeFinal)
         relRec.set('publico_alvo', publicoAlvo)
         relRec.set('conteudo', conteudoGerado)
@@ -297,7 +304,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
           relRec.set('especialidade', especialidade)
           relRec.set('autor_id', userId)
           relRec.set('autor_nome', userName)
-          relRec.set('titulo', tituloSugerido.slice(0, 200))
+          relRec.set('titulo', tituloSugeridoLimpo.slice(0, 200))
           relRec.set('necessidade', necessidadeFinal.slice(0, 4900))
           relRec.set('publico_alvo', (publicoAlvo || '').slice(0, 500))
           relRec.set('conteudo', conteudoGerado.slice(0, 4900))
@@ -317,7 +324,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
             avaliacao_id: avaliacaoId,
             especialidade: especialidade,
             tipo_relatorio: tipoRelatorio,
-            titulo: tituloSugerido,
+            titulo: tituloSugeridoLimpo,
             necessidade: necessidadeFinal,
             conteudo: conteudoGerado,
             autor_id: userId,
@@ -348,7 +355,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
           'Emissão de ' +
             (tipoRelatorio || 'Relatório Clínico') +
             ' com IA: "' +
-            tituloSugerido +
+            tituloSugeridoLimpo +
             '" (Foco: ' +
             necessidadeFinal.slice(0, 120) +
             ')',
@@ -369,7 +376,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
                   ' emitiu um relatório com IA para ' +
                   pacienteNome +
                   ': "' +
-                  tituloSugerido +
+                  tituloSugeridoLimpo +
                   '".',
               )
               notif.set('tipo', 'clinical_update')
@@ -392,7 +399,7 @@ DIRETRIZES MANDATÓRIAS DE REDAÇÃO:
         avaliacao_id: avaliacaoId,
         especialidade: especialidade,
         tipo_relatorio: tipoRelatorio,
-        titulo: tituloSugerido,
+        titulo: tituloSugeridoLimpo,
         necessidade: necessidadeFinal,
         conteudo: conteudoGerado,
         autor_id: userId,

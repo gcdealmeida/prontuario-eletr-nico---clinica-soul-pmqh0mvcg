@@ -250,7 +250,7 @@ export function ModalResumoEvolucaoIa({
   const [modoVisualizacao, setModoVisualizacao] = useState<'modelo' | 'edicao'>('modelo')
   const [focoPersonalizado, setFocoPersonalizado] = useState('')
   const [titulo, setTitulo] = useState('RESUMO DE EVOLUÇÃO CLÍNICA')
-  const [subtitulo, setSubtitulo] = useState('Síntese Longitudinal Multidisciplinar com IA')
+  const [subtitulo, setSubtitulo] = useState('')
   const [publicoAlvo, setPublicoAlvo] = useState('')
   const [gerando, setGerando] = useState(false)
   const [erroGeracao, setErroGeracao] = useState<string | null>(null)
@@ -375,12 +375,13 @@ export function ModalResumoEvolucaoIa({
       }))
 
       const necessidadeFinal = focoPersonalizado.trim()
-        ? `Resumo longitudinal de síntese de todas as avaliações e evoluções do paciente com IA da Clínica SOUL. Foco adicional do profissional: ${focoPersonalizado.trim()}`
-        : 'Gerar resumo longitudinal de síntese de todas as avaliações e evoluções do paciente com IA da Clínica SOUL, destacando queixas tratadas, data de início, incidência de lesões, evolução funcional/dor e saúde geral.'
+        ? `Resumo de evolução clínica compilando todas as avaliações e evoluções do paciente com IA da Clínica SOUL. Foco adicional do profissional: ${focoPersonalizado.trim()}`
+        : 'Gerar resumo de evolução clínica compilando todas as avaliações e evoluções do paciente com IA da Clínica SOUL, destacando queixas tratadas, data de início, incidência de lesões, evolução funcional/dor e saúde geral.'
 
-      const tituloFinal = subtitulo.trim()
-        ? `${titulo.trim()} — ${subtitulo.trim()}`
-        : titulo.trim()
+      const subtituloLimpo = subtitulo
+        .replace(/S[ií]ntese\s+Longitudinal\s+Multidisciplinar(?:\s+com\s+IA)?/gi, '')
+        .trim()
+      const tituloFinal = subtituloLimpo ? `${titulo.trim()} — ${subtituloLimpo}` : titulo.trim()
 
       const res = await gerarRelatorioIa({
         paciente_id: pacienteId,
@@ -493,8 +494,12 @@ export function ModalResumoEvolucaoIa({
 
     if (item.titulo.includes(' — ')) {
       const [t, ...sub] = item.titulo.split(' — ')
-      setTitulo(t)
-      setSubtitulo(sub.join(' — '))
+      const subRestante = sub
+        .join(' — ')
+        .replace(/S[ií]ntese\s+Longitudinal\s+Multidisciplinar(?:\s+com\s+IA)?/gi, '')
+        .trim()
+      setTitulo(t.trim())
+      setSubtitulo(subRestante)
     } else {
       setTitulo(item.titulo || 'RESUMO DE EVOLUÇÃO CLÍNICA')
       setSubtitulo('')
@@ -581,7 +586,7 @@ export function ModalResumoEvolucaoIa({
               >
                 {titulo || 'RESUMO DE EVOLUÇÃO CLÍNICA'}
               </h1>
-              {subtitulo && (
+              {subtitulo && !/S[ií]ntese\s+Longitudinal\s+Multidisciplinar/i.test(subtitulo) && (
                 <p className="font-montserrat italic text-[#B86545]" style={{ fontSize: '10.5pt' }}>
                   {subtitulo}
                 </p>
@@ -862,9 +867,10 @@ export function ModalResumoEvolucaoIa({
                         <div>
                           <h4 className="text-xs sm:text-sm font-bold text-[#6A402D]">
                             {titulo}
-                            {subtitulo && (
-                              <span className="font-normal text-[#5F544F]"> — {subtitulo}</span>
-                            )}
+                            {subtitulo &&
+                              !/S[ií]ntese\s+Longitudinal\s+Multidisciplinar/i.test(subtitulo) && (
+                                <span className="font-normal text-[#5F544F]"> — {subtitulo}</span>
+                              )}
                           </h4>
                           <span className="text-[10px] text-gray-400">
                             {relatorioAtual?.created
@@ -983,11 +989,12 @@ export function ModalResumoEvolucaoIa({
                             >
                               {titulo}
                             </h2>
-                            {subtitulo && (
-                              <p className="font-montserrat italic text-xs sm:text-sm text-[#B86545] mt-0.5">
-                                {subtitulo}
-                              </p>
-                            )}
+                            {subtitulo &&
+                              !/S[ií]ntese\s+Longitudinal\s+Multidisciplinar/i.test(subtitulo) && (
+                                <p className="font-montserrat italic text-xs sm:text-sm text-[#B86545] mt-0.5">
+                                  {subtitulo}
+                                </p>
+                              )}
                             <div
                               className="w-16 h-[1px] mx-auto mt-2"
                               style={{ backgroundColor: '#D5AE6F' }}
@@ -1156,51 +1163,59 @@ export function ModalResumoEvolucaoIa({
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {historicoResumos.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-3.5 bg-white rounded-2xl border border-[#D5AE6F]/30 hover:border-[#D5AE6F] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs sm:text-sm text-[#6A402D]">
-                              {item.titulo}
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] bg-[#F7F2EC] text-[#6A402D] border border-[#E9E1D2]"
-                            >
-                              Resumo com IA
-                            </Badge>
+                    {historicoResumos.map((item) => {
+                      const tituloExibicao = (item.titulo || 'RESUMO DE EVOLUÇÃO CLÍNICA')
+                        .replace(
+                          /\s*[-—–]\s*S[ií]ntese\s+Longitudinal\s+Multidisciplinar(?:\s+com\s+IA)?/gi,
+                          '',
+                        )
+                        .trim()
+                      return (
+                        <div
+                          key={item.id}
+                          className="p-3.5 bg-white rounded-2xl border border-[#D5AE6F]/30 hover:border-[#D5AE6F] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs sm:text-sm text-[#6A402D]">
+                                {tituloExibicao}
+                              </span>
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] bg-[#F7F2EC] text-[#6A402D] border border-[#E9E1D2]"
+                              >
+                                Resumo com IA
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-[#5F544F] line-clamp-1 italic">
+                              "{item.necessidade}"
+                            </p>
+                            <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                              <span>
+                                Emissor:{' '}
+                                <strong className="text-gray-600">
+                                  {item.autor_nome || item.expand?.autor_id?.name || 'Profissional'}
+                                </strong>
+                              </span>
+                              <span>•</span>
+                              <span>{formatDataHoraPTBR(item.created)}</span>
+                            </div>
                           </div>
-                          <p className="text-xs text-[#5F544F] line-clamp-1 italic">
-                            "{item.necessidade}"
-                          </p>
-                          <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                            <span>
-                              Emissor:{' '}
-                              <strong className="text-gray-600">
-                                {item.autor_nome || item.expand?.autor_id?.name || 'Profissional'}
-                              </strong>
-                            </span>
-                            <span>•</span>
-                            <span>{formatDataHoraPTBR(item.created)}</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => handleSelecionarDoHistorico(item)}
-                            className="bg-[#6A402D] hover:bg-[#523122] text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 shadow-xs"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 text-[#D5AE6F]" />
-                            <span>Abrir / Imprimir</span>
-                          </Button>
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => handleSelecionarDoHistorico(item)}
+                              className="bg-[#6A402D] hover:bg-[#523122] text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 text-[#D5AE6F]" />
+                              <span>Abrir / Imprimir</span>
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}{' '}
                   </div>
                 )}
               </div>

@@ -211,6 +211,13 @@ export function normalizarConteudoRelatorio(textoBruto: string): string {
   // 3. Limpar rótulos redundantes de formulário e prefixos tipo "CAMPO:", "Nome:" duplicado e "Achado:"
   texto = limparRotulosRedundantes(texto)
 
+  // 4. Limpar subtítulo residual do Resumo de Evolução ("Síntese Longitudinal Multidisciplinar com IA")
+  // caso o modelo antigo o tenha gerado no início do texto ou como cabeçalho
+  texto = texto.replace(
+    /(?:^|\n)\s*(?:#+\s*|\*\*\s*|[-•*]\s*)?(?:RESUMO\s+DE\s+EVOLU[CÇ][AÃ]O\s+CL[IÍ]NICA\s*[-—–]\s*)?S[ií]ntese\s+Longitudinal\s+Multidisciplinar(?:\s+com\s+IA)?(?:\s*\*\*)?:?\s*(?:\n|$)/gi,
+    '\n',
+  )
+
   // 4. Normalizar espaçamentos e quebras de linha excessivas (mais de 2 saltos consecutivos)
   texto = texto.replace(/\n{3,}/g, '\n\n')
 
