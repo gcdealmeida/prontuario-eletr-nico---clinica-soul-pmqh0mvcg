@@ -41,7 +41,12 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { getPacientes, createPaciente, updatePaciente } from '@/services/pacientes'
+import {
+  getPacientes,
+  createPaciente,
+  updatePaciente,
+  formatarEnderecoCompleto,
+} from '@/services/pacientes'
 import type { PacienteRecord, Especialidade, StatusPaciente } from '@/types/database'
 import { formatCPF, formatTelefone, formatDataPTBR, getInitials } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -93,6 +98,15 @@ export default function Pacientes() {
   const [formTelefone, setFormTelefone] = useState('')
   const [formEmail, setFormEmail] = useState('')
   const [formEndereco, setFormEndereco] = useState('')
+  const [formRua, setFormRua] = useState('')
+  const [formNumero, setFormNumero] = useState('')
+  const [formComplemento, setFormComplemento] = useState('')
+  const [formBairro, setFormBairro] = useState('')
+  const [formCidade, setFormCidade] = useState('')
+  const [formEstado, setFormEstado] = useState('')
+  const [formCep, setFormCep] = useState('')
+  const [loadingCep, setLoadingCep] = useState(false)
+  const [cepFeedback, setCepFeedback] = useState<string | null>(null)
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formStatus, setFormStatus] = useState<StatusPaciente>('Ativo')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -189,6 +203,36 @@ export default function Pacientes() {
     fetchPacientesList()
   })
 
+  const handleCepChange = async (val: string) => {
+    const raw = val.replace(/\D/g, '').slice(0, 8)
+    const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw
+    setFormCep(formatted)
+    setCepFeedback(null)
+
+    if (raw.length === 8) {
+      setLoadingCep(true)
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
+        if (res.ok) {
+          const data = await res.json()
+          if (!data.erro) {
+            if (data.logradouro) setFormRua(data.logradouro)
+            if (data.bairro) setFormBairro(data.bairro)
+            if (data.localidade) setFormCidade(data.localidade)
+            if (data.uf) setFormEstado(String(data.uf).toUpperCase())
+            setCepFeedback('Endereço localizado pelo CEP!')
+          } else {
+            setCepFeedback('CEP não localizado.')
+          }
+        }
+      } catch {
+        setCepFeedback('Falha ao consultar CEP.')
+      } finally {
+        setLoadingCep(false)
+      }
+    }
+  }
+
   const openNewPacienteModal = () => {
     setEditingPaciente(null)
     setFormNome('')
@@ -197,6 +241,14 @@ export default function Pacientes() {
     setFormTelefone('')
     setFormEmail('')
     setFormEndereco('')
+    setFormRua('')
+    setFormNumero('')
+    setFormComplemento('')
+    setFormBairro('')
+    setFormCidade('')
+    setFormEstado('')
+    setFormCep('')
+    setCepFeedback(null)
     setFormObservacoes('')
     setFormStatus('Ativo')
     setFormErrors({})
@@ -211,6 +263,14 @@ export default function Pacientes() {
     setFormTelefone(p.telefone || '')
     setFormEmail(p.email || '')
     setFormEndereco(p.endereco || '')
+    setFormRua(p.endereco_rua || '')
+    setFormNumero(p.endereco_numero || '')
+    setFormComplemento(p.endereco_complemento || '')
+    setFormBairro(p.endereco_bairro || '')
+    setFormCidade(p.endereco_cidade || '')
+    setFormEstado(p.endereco_estado || '')
+    setFormCep(p.endereco_cep || '')
+    setCepFeedback(null)
     setFormObservacoes(p.observacoes || '')
     setFormStatus(p.status || 'Ativo')
     setFormErrors({})
@@ -228,13 +288,31 @@ export default function Pacientes() {
 
     try {
       setSavingPaciente(true)
+      const enderecoCompletoMontado = formatarEnderecoCompleto({
+        endereco: formEndereco.trim() || undefined,
+        endereco_rua: formRua.trim() || undefined,
+        endereco_numero: formNumero.trim() || undefined,
+        endereco_complemento: formComplemento.trim() || undefined,
+        endereco_bairro: formBairro.trim() || undefined,
+        endereco_cidade: formCidade.trim() || undefined,
+        endereco_estado: formEstado.trim() ? formEstado.trim().toUpperCase() : undefined,
+        endereco_cep: formCep.trim() || undefined,
+      })
+
       const payload: Partial<PacienteRecord> = {
         nome: formNome.trim(),
         cpf: formCpf.trim() || undefined,
         data_nascimento: formDataNasc ? `${formDataNasc} 00:00:00.000Z` : undefined,
         telefone: formTelefone.trim() || undefined,
         email: formEmail.trim() || undefined,
-        endereco: formEndereco.trim() || undefined,
+        endereco: enderecoCompletoMontado || undefined,
+        endereco_rua: formRua.trim() || undefined,
+        endereco_numero: formNumero.trim() || undefined,
+        endereco_complemento: formComplemento.trim() || undefined,
+        endereco_bairro: formBairro.trim() || undefined,
+        endereco_cidade: formCidade.trim() || undefined,
+        endereco_estado: formEstado.trim() ? formEstado.trim().toUpperCase() : undefined,
+        endereco_cep: formCep.trim() || undefined,
         observacoes: formObservacoes.trim() || undefined,
         status: formStatus,
       }
@@ -761,12 +839,21 @@ export default function Pacientes() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-700">Telefone / WhatsApp</Label>
+                <Label className="text-xs font-semibold text-gray-700">Celular / WhatsApp</Label>
                 <Input
                   placeholder="(11) 98765-4321"
                   value={formTelefone}
-                  onChange={(e) => setFormTelefone(e.target.value)}
-                  className="h-10 rounded-xl border-gray-200"
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').slice(0, 11)
+                    if (raw.length <= 2) setFormTelefone(raw)
+                    else if (raw.length <= 6)
+                      setFormTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2)}`)
+                    else if (raw.length <= 10)
+                      setFormTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2, 6)}-${raw.slice(6)}`)
+                    else
+                      setFormTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7, 11)}`)
+                  }}
+                  className="h-10 rounded-xl border-gray-200 font-mono text-xs sm:text-sm"
                 />
               </div>
 
@@ -777,19 +864,105 @@ export default function Pacientes() {
                   placeholder="paciente@email.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  className="h-10 rounded-xl border-gray-200"
+                  className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-gray-700">Endereço Completo</Label>
-              <Input
-                placeholder="Rua, número, complemento, bairro, cidade - UF"
-                value={formEndereco}
-                onChange={(e) => setFormEndereco(e.target.value)}
-                className="h-10 rounded-xl border-gray-200"
-              />
+            {/* Bloco de Endereço Estruturado */}
+            <div className="p-3.5 rounded-xl bg-gray-50/70 border border-gray-200/70 space-y-3">
+              <div className="flex items-center justify-between pb-1 border-b border-gray-200/50">
+                <span className="text-xs font-bold text-[#8C6527] uppercase tracking-wider">
+                  Endereço Residencial
+                </span>
+                {cepFeedback && (
+                  <span className="text-[11px] text-[#8C6527] font-medium">{cepFeedback}</span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-gray-600">CEP</Label>
+                  <div className="relative">
+                    <Input
+                      placeholder="00000-000"
+                      value={formCep}
+                      onChange={(e) => handleCepChange(e.target.value)}
+                      className="h-9 rounded-xl border-gray-200 bg-white font-mono text-xs pr-7"
+                    />
+                    {loadingCep && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8C6527] absolute right-2 top-2.5" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[11px] font-semibold text-gray-600">
+                    Rua / Logradouro
+                  </Label>
+                  <Input
+                    placeholder="Ex: Rua das Flores"
+                    value={formRua}
+                    onChange={(e) => setFormRua(e.target.value)}
+                    className="h-9 rounded-xl border-gray-200 bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-gray-600">Número</Label>
+                  <Input
+                    placeholder="Ex: 123"
+                    value={formNumero}
+                    onChange={(e) => setFormNumero(e.target.value)}
+                    className="h-9 rounded-xl border-gray-200 bg-white text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-gray-600">Complemento</Label>
+                  <Input
+                    placeholder="Apto, Bloco..."
+                    value={formComplemento}
+                    onChange={(e) => setFormComplemento(e.target.value)}
+                    className="h-9 rounded-xl border-gray-200 bg-white text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-gray-600">Bairro</Label>
+                  <Input
+                    placeholder="Ex: Centro"
+                    value={formBairro}
+                    onChange={(e) => setFormBairro(e.target.value)}
+                    className="h-9 rounded-xl border-gray-200 bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[11px] font-semibold text-gray-600">Cidade</Label>
+                  <Input
+                    placeholder="Ex: Vinhedo"
+                    value={formCidade}
+                    onChange={(e) => setFormCidade(e.target.value)}
+                    className="h-9 rounded-xl border-gray-200 bg-white text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-gray-600">Estado (UF)</Label>
+                  <Input
+                    maxLength={2}
+                    placeholder="SP"
+                    value={formEstado}
+                    onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
+                    className="h-9 rounded-xl border-gray-200 bg-white font-mono uppercase text-xs"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

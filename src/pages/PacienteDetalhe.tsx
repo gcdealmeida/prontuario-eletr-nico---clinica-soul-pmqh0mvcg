@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getPacienteById, updatePaciente } from '@/services/pacientes'
+import { getPacienteById, updatePaciente, formatarEnderecoCompleto } from '@/services/pacientes'
 import { getTimelineByPaciente, getAvaliacoesByPaciente } from '@/services/avaliacoes'
 import type {
   PacienteRecord,
@@ -104,6 +104,15 @@ export default function PacienteDetalhe() {
   const [editTelefone, setEditTelefone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editEndereco, setEditEndereco] = useState('')
+  const [editRua, setEditRua] = useState('')
+  const [editNumero, setEditNumero] = useState('')
+  const [editComplemento, setEditComplemento] = useState('')
+  const [editBairro, setEditBairro] = useState('')
+  const [editCidade, setEditCidade] = useState('')
+  const [editEstado, setEditEstado] = useState('')
+  const [editCep, setEditCep] = useState('')
+  const [loadingCep, setLoadingCep] = useState(false)
+  const [cepFeedback, setCepFeedback] = useState<string | null>(null)
   const [editObs, setEditObs] = useState('')
   const [editStatus, setEditStatus] = useState<StatusPaciente>('Ativo')
   const [editOrigem, setEditOrigem] = useState('')
@@ -134,6 +143,14 @@ export default function PacienteDetalhe() {
       setEditTelefone(p.telefone || '')
       setEditEmail(p.email || '')
       setEditEndereco(p.endereco || '')
+      setEditRua(p.endereco_rua || '')
+      setEditNumero(p.endereco_numero || '')
+      setEditComplemento(p.endereco_complemento || '')
+      setEditBairro(p.endereco_bairro || '')
+      setEditCidade(p.endereco_cidade || '')
+      setEditEstado(p.endereco_estado || '')
+      setEditCep(p.endereco_cep || '')
+      setCepFeedback(null)
       setEditObs(p.observacoes || '')
       setEditStatus(p.status || 'Ativo')
       setEditOrigem(p.origem_como_chegou || '')
@@ -264,19 +281,67 @@ export default function PacienteDetalhe() {
     }
   }
 
+  const handleCepChange = async (val: string) => {
+    const raw = val.replace(/\D/g, '').slice(0, 8)
+    const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw
+    setEditCep(formatted)
+    setCepFeedback(null)
+
+    if (raw.length === 8) {
+      setLoadingCep(true)
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
+        if (res.ok) {
+          const data = await res.json()
+          if (!data.erro) {
+            if (data.logradouro) setEditRua(data.logradouro)
+            if (data.bairro) setEditBairro(data.bairro)
+            if (data.localidade) setEditCidade(data.localidade)
+            if (data.uf) setEditEstado(String(data.uf).toUpperCase())
+            setCepFeedback('Endereço localizado pelo CEP!')
+          } else {
+            setCepFeedback('CEP não localizado.')
+          }
+        }
+      } catch {
+        setCepFeedback('Falha ao consultar CEP.')
+      } finally {
+        setLoadingCep(false)
+      }
+    }
+  }
+
   const handleSaveDadosPessoais = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!id || !paciente) return
 
     try {
       setSavingDados(true)
+      const enderecoMontado = formatarEnderecoCompleto({
+        endereco: editEndereco.trim() || undefined,
+        endereco_rua: editRua.trim() || undefined,
+        endereco_numero: editNumero.trim() || undefined,
+        endereco_complemento: editComplemento.trim() || undefined,
+        endereco_bairro: editBairro.trim() || undefined,
+        endereco_cidade: editCidade.trim() || undefined,
+        endereco_estado: editEstado.trim() ? editEstado.trim().toUpperCase() : undefined,
+        endereco_cep: editCep.trim() || undefined,
+      })
+
       const updated = await updatePaciente(id, {
         nome: editNome.trim(),
         cpf: editCpf.trim() || undefined,
         data_nascimento: editDataNasc ? `${editDataNasc} 00:00:00.000Z` : undefined,
         telefone: editTelefone.trim() || undefined,
         email: editEmail.trim() || undefined,
-        endereco: editEndereco.trim() || undefined,
+        endereco: enderecoMontado || undefined,
+        endereco_rua: editRua.trim() || undefined,
+        endereco_numero: editNumero.trim() || undefined,
+        endereco_complemento: editComplemento.trim() || undefined,
+        endereco_bairro: editBairro.trim() || undefined,
+        endereco_cidade: editCidade.trim() || undefined,
+        endereco_estado: editEstado.trim() ? editEstado.trim().toUpperCase() : undefined,
+        endereco_cep: editCep.trim() || undefined,
         observacoes: editObs.trim() || undefined,
         status: editStatus,
         origem_como_chegou: editOrigem.trim() || undefined,
@@ -394,10 +459,10 @@ export default function PacienteDetalhe() {
                     {paciente.email}
                   </span>
                 )}
-                {paciente.endereco && (
+                {(formatarEnderecoCompleto(paciente) || paciente.endereco) && (
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3 w-3 text-gray-400" />
-                    {paciente.endereco}
+                    {formatarEnderecoCompleto(paciente) || paciente.endereco}
                   </span>
                 )}
               </div>
@@ -1340,11 +1405,22 @@ export default function PacienteDetalhe() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-700">Telefone / WhatsApp</Label>
+                  <Label className="text-xs font-semibold text-gray-700">Celular / WhatsApp</Label>
                   <Input
                     value={editTelefone}
-                    onChange={(e) => setEditTelefone(e.target.value)}
-                    className="h-10 rounded-xl border-gray-200"
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '').slice(0, 11)
+                      if (raw.length <= 2) setEditTelefone(raw)
+                      else if (raw.length <= 6)
+                        setEditTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2)}`)
+                      else if (raw.length <= 10)
+                        setEditTelefone(`(${raw.slice(0, 2)}) ${raw.slice(2, 6)}-${raw.slice(6)}`)
+                      else
+                        setEditTelefone(
+                          `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7, 11)}`,
+                        )
+                    }}
+                    className="h-10 rounded-xl border-gray-200 font-mono text-xs sm:text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -1353,18 +1429,105 @@ export default function PacienteDetalhe() {
                     type="email"
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
-                    className="h-10 rounded-xl border-gray-200"
+                    className="h-10 rounded-xl border-gray-200 text-xs sm:text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-700">Endereço</Label>
-                <Input
-                  value={editEndereco}
-                  onChange={(e) => setEditEndereco(e.target.value)}
-                  className="h-10 rounded-xl border-gray-200"
-                />
+              {/* Bloco de Endereço Estruturado */}
+              <div className="p-4 rounded-2xl bg-gray-50/70 border border-gray-200/70 space-y-3.5">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-200/50">
+                  <span className="text-xs font-bold text-[#8C6527] uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" /> Endereço Residencial Completo
+                  </span>
+                  {cepFeedback && (
+                    <span className="text-[11px] text-[#8C6527] font-medium">{cepFeedback}</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-gray-600">CEP</Label>
+                    <div className="relative">
+                      <Input
+                        placeholder="00000-000"
+                        value={editCep}
+                        onChange={(e) => handleCepChange(e.target.value)}
+                        className="h-10 rounded-xl border-gray-200 bg-white font-mono text-xs pr-7"
+                      />
+                      {loadingCep && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8C6527] absolute right-2.5 top-3" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-[11px] font-semibold text-gray-600">
+                      Rua / Logradouro
+                    </Label>
+                    <Input
+                      placeholder="Ex: Rua das Flores"
+                      value={editRua}
+                      onChange={(e) => setEditRua(e.target.value)}
+                      className="h-10 rounded-xl border-gray-200 bg-white text-xs sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-gray-600">Número</Label>
+                    <Input
+                      placeholder="Ex: 123"
+                      value={editNumero}
+                      onChange={(e) => setEditNumero(e.target.value)}
+                      className="h-10 rounded-xl border-gray-200 bg-white text-xs sm:text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-gray-600">Complemento</Label>
+                    <Input
+                      placeholder="Apto, Bloco..."
+                      value={editComplemento}
+                      onChange={(e) => setEditComplemento(e.target.value)}
+                      className="h-10 rounded-xl border-gray-200 bg-white text-xs sm:text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-gray-600">Bairro</Label>
+                    <Input
+                      placeholder="Ex: Centro"
+                      value={editBairro}
+                      onChange={(e) => setEditBairro(e.target.value)}
+                      className="h-10 rounded-xl border-gray-200 bg-white text-xs sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-[11px] font-semibold text-gray-600">Cidade</Label>
+                    <Input
+                      placeholder="Ex: Vinhedo"
+                      value={editCidade}
+                      onChange={(e) => setEditCidade(e.target.value)}
+                      className="h-10 rounded-xl border-gray-200 bg-white text-xs sm:text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-gray-600">Estado (UF)</Label>
+                    <Input
+                      maxLength={2}
+                      placeholder="SP"
+                      value={editEstado}
+                      onChange={(e) => setEditEstado(e.target.value.toUpperCase())}
+                      className="h-10 rounded-xl border-gray-200 bg-white font-mono uppercase text-xs sm:text-sm"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-1.5">

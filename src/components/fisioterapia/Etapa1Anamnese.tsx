@@ -11,7 +11,9 @@ import type {
   ViscerasSistemicas,
   HabitosSaude,
 } from '@/types/database'
-import { User, Activity, AlertCircle, Heart, Moon, Coffee } from 'lucide-react'
+import { User, Activity, AlertCircle, Heart, Moon, Coffee, Phone, Mail, MapPin } from 'lucide-react'
+import { formatCPF, formatTelefone } from '@/lib/constants'
+import { formatarEnderecoCompleto } from '@/services/pacientes'
 
 interface Etapa1AnamneseProps {
   formData: Record<string, any>
@@ -166,9 +168,43 @@ export const Etapa1Anamnese: React.FC<Etapa1AnamneseProps> = ({ formData, onChan
           <div>
             <Label className="text-gray-600 font-semibold">CPF</Label>
             <Input
-              value={paciente?.cpf || '—'}
+              value={paciente?.cpf ? formatCPF(paciente.cpf) : '—'}
               readOnly
               className="mt-1 h-9 rounded-xl bg-gray-50 font-mono text-gray-700"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-600 font-semibold flex items-center gap-1">
+              <Phone className="h-3 w-3 text-[#8C6527]" /> Celular / WhatsApp
+            </Label>
+            <Input
+              value={paciente?.telefone ? formatTelefone(paciente.telefone) : '—'}
+              readOnly
+              className="mt-1 h-9 rounded-xl bg-gray-50 font-mono text-gray-700"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-600 font-semibold flex items-center gap-1">
+              <Mail className="h-3 w-3 text-[#8C6527]" /> E-mail
+            </Label>
+            <Input
+              value={paciente?.email || '—'}
+              readOnly
+              className="mt-1 h-9 rounded-xl bg-gray-50 text-gray-700 truncate"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <Label className="text-gray-600 font-semibold flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-[#8C6527]" /> Endereço Completo
+            </Label>
+            <Input
+              value={(paciente && (formatarEnderecoCompleto(paciente) || paciente.endereco)) || '—'}
+              readOnly
+              className="mt-1 h-9 rounded-xl bg-gray-50 text-gray-700 truncate"
+              title={(paciente && (formatarEnderecoCompleto(paciente) || paciente.endereco)) || '—'}
             />
           </div>
 

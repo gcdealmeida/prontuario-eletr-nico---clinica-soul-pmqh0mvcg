@@ -1998,7 +1998,6 @@ export default function GuiaUso() {
                 no painel geral para ativação e abertura do prontuário oficial.
               </p>
             </div>
-
             <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E3C89A] flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
               <div className="text-xs text-gray-700 leading-relaxed">
@@ -2007,21 +2006,26 @@ export default function GuiaUso() {
                 <code>/pre-cadastro</code>), o card{' '}
                 <strong>"Pré-Cadastros Aguardando Abertura de Prontuário"</strong> aparece em
                 destaque logo no início do Dashboard. Ele mostra o nome do cliente, data de
-                preenchimento, contato e o botão direto{' '}
+                preenchimento, contato, endereço completo e o botão direto{' '}
                 <strong>"Ativar Cadastro & Abrir Prontuário"</strong>.
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
-                  1. Link Público
+                  1. Link Público Completo
                 </span>
                 <h4 className="font-bold text-sm text-[#4A322A]">Envio ao Cliente</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  No Dashboard, utilize o botão <strong>"Copiar Link"</strong> ou{' '}
-                  <strong>"WhatsApp"</strong> no card de Pré-Avaliação. O paciente acessa sem login
-                  e preenche seus dados cadastrais, motivo da procura, dores e histórico.
+                  No Dashboard ou em Pacientes, clique em <strong>"Copiar Link"</strong> ou{' '}
+                  <strong>"WhatsApp"</strong>. O paciente acessa sem login e preenche seus dados
+                  completos de identificação e contato (<strong>Celular/WhatsApp</strong> e{' '}
+                  <strong>E-mail</strong>), endereço completo estruturado (
+                  <strong>
+                    Rua, Número, Complemento, Bairro, Cidade, Estado e CEP com busca automática
+                    ViaCEP
+                  </strong>
+                  ), além do motivo da procura, histórico de dores e expectativas.
                 </p>
               </div>
 
@@ -2031,9 +2035,10 @@ export default function GuiaUso() {
                 </span>
                 <h4 className="font-bold text-sm text-[#4A322A]">Notificação & Card no Painel</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Assim que enviado, o cadastro entra com status <em>"Pré-cadastro"</em>. O card
-                  dourado surge no Painel Geral e os administradores recebem notificação no sino
-                  para que nenhum novo cliente fique sem acolhimento.
+                  Assim que enviado, o cadastro entra com status <em>"Pré-cadastro"</em> com todos
+                  os dados estruturados de contato e endereço preservados. O card dourado surge no
+                  Painel Geral e os administradores recebem notificação no sino para que nenhum novo
+                  cliente fique sem acolhimento.
                 </p>
               </div>
 
@@ -2045,10 +2050,11 @@ export default function GuiaUso() {
                 <p className="text-xs text-gray-600 leading-relaxed">
                   Ao clicar em <strong>"Ativar Cadastro & Abrir Prontuário"</strong>, o status do
                   paciente muda imediatamente para <em>"Ativo"</em> e o formulário clínico é aberto
-                  com todos os dados da pré-avaliação já integrados.
+                  com o cabeçalho de identificação (endereço completo, celular e e-mail) e respostas
+                  da anamnese automaticamente integrados.
                 </p>
               </div>
-            </div>
+            </div>{' '}
           </div>
         </TabsContent>
 

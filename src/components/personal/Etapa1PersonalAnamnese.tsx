@@ -9,7 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { User, Activity, Heart, Scale, Ruler, AlertCircle } from 'lucide-react'
+import { User, Activity, Heart, Scale, Ruler, AlertCircle, Phone, Mail, MapPin } from 'lucide-react'
+import { formatCPF, formatTelefone } from '@/lib/constants'
+import { formatarEnderecoCompleto } from '@/services/pacientes'
 import {
   calcularIMC,
   calcularRCQ,
@@ -108,28 +110,58 @@ export const Etapa1PersonalAnamnese: React.FC<Etapa1PersonalAnamneseProps> = ({
       </div>
 
       {/* Dados do Paciente (Herdados) */}
-      <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-        <div>
-          <span className="text-gray-500 block">Nome do Aluno/Paciente</span>
-          <span className="font-bold text-gray-900 text-sm">{paciente?.nome || 'Aluno SOUL'}</span>
+      <div className="p-4 rounded-2xl bg-[#FAF5EE] border border-[#E9E1D2] space-y-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <span className="text-gray-500 block">Nome do Aluno/Paciente</span>
+            <span className="font-bold text-gray-900 text-sm">
+              {paciente?.nome || 'Aluno SOUL'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500 block">CPF</span>
+            <span className="font-semibold font-mono text-gray-800">
+              {paciente?.cpf ? formatCPF(paciente.cpf) : '—'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500 block">Data de Nasc. / Idade</span>
+            <span className="font-semibold text-gray-800">
+              {paciente?.data_nascimento
+                ? `${new Date(paciente.data_nascimento).toLocaleDateString('pt-BR')} (${anamnese.idade || idadeCalculada || '—'} anos)`
+                : 'Não informada'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500 block flex items-center gap-1">
+              <Phone className="h-3 w-3 text-[#8C6527]" /> Celular / WhatsApp
+            </span>
+            <span className="font-semibold font-mono text-gray-800">
+              {paciente?.telefone ? formatTelefone(paciente.telefone) : '—'}
+            </span>
+          </div>
         </div>
-        <div>
-          <span className="text-gray-500 block">Data de Nascimento</span>
-          <span className="font-semibold text-gray-800">
-            {paciente?.data_nascimento
-              ? new Date(paciente.data_nascimento).toLocaleDateString('pt-BR')
-              : 'Não informada'}
-          </span>
-        </div>
-        <div>
-          <span className="text-gray-500 block">Idade Atual</span>
-          <span className="font-bold text-[#8C6527] text-sm">
-            {anamnese.idade || idadeCalculada} anos
-          </span>
-        </div>
-        <div>
-          <span className="text-gray-500 block">Telefone / Contato</span>
-          <span className="font-semibold text-gray-800">{paciente?.telefone || '—'}</span>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-[#E9E1D2]/70">
+          <div>
+            <span className="text-gray-500 block flex items-center gap-1">
+              <Mail className="h-3 w-3 text-[#8C6527]" /> E-mail
+            </span>
+            <span className="font-semibold text-gray-800 truncate block">
+              {paciente?.email || '—'}
+            </span>
+          </div>
+          <div className="sm:col-span-2">
+            <span className="text-gray-500 block flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-[#8C6527]" /> Endereço Residencial Completo
+            </span>
+            <span
+              className="font-semibold text-gray-800 truncate block"
+              title={(paciente && (formatarEnderecoCompleto(paciente) || paciente.endereco)) || '—'}
+            >
+              {(paciente && (formatarEnderecoCompleto(paciente) || paciente.endereco)) || '—'}
+            </span>
+          </div>
         </div>
       </div>
 

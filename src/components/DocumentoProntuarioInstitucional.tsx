@@ -1,6 +1,7 @@
 import React from 'react'
 import { LogoSOUL } from '@/components/LogoSOUL'
-import { formatDataPTBR } from '@/lib/constants'
+import { formatDataPTBR, formatTelefone } from '@/lib/constants'
+import { formatarEnderecoCompleto } from '@/services/pacientes'
 import type { EvolucaoRecord, Especialidade } from '@/types/database'
 
 interface DocumentoProntuarioInstitucionalProps {
@@ -118,6 +119,11 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
     avaliacao.diagnostico_medico ||
     avaliacao.hipotese_diagnostica ||
     '—'
+
+  // Contato e Endereço do Paciente
+  const telefonePaciente = pac.telefone ? formatTelefone(pac.telefone) : ''
+  const emailPaciente = pac.email || ''
+  const enderecoPaciente = formatarEnderecoCompleto(pac) || pac.endereco || ''
 
   const dataAvaliacao = avaliacao.data_avaliacao || avaliacao.created || new Date().toISOString()
   const dataAvaliacaoFormatada = formatDataPTBR(dataAvaliacao)
@@ -330,6 +336,29 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
               <span className="text-[#1F1B18] font-medium">{diagnosticoMedico}</span>
             </span>
           </div>
+          {(telefonePaciente || emailPaciente) && (
+            <div className="flex flex-wrap items-center gap-x-2">
+              {telefonePaciente && (
+                <span>
+                  <strong className="text-[#6A402D]">Contato:</strong>{' '}
+                  <span className="text-[#1F1B18] font-mono">{telefonePaciente}</span>
+                </span>
+              )}
+              {telefonePaciente && emailPaciente && <span>|</span>}
+              {emailPaciente && (
+                <span>
+                  <strong className="text-[#6A402D]">E-mail:</strong>{' '}
+                  <span className="text-[#1F1B18]">{emailPaciente}</span>
+                </span>
+              )}
+            </div>
+          )}
+          {enderecoPaciente && (
+            <div>
+              <strong className="text-[#6A402D]">Endereço:</strong>{' '}
+              <span className="text-[#1F1B18]">{enderecoPaciente}</span>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-x-2">
             <span>
               <strong className="text-[#6A402D]">Data da avaliação:</strong>{' '}
