@@ -141,6 +141,10 @@ onRecordAfterCreateSuccess((e) => {
             presRec.set('paciente_id', pacienteId)
             presRec.set('profissional_id', profId)
             presRec.set('data_atendimento', dataAtend)
+            const horEvo = rec.getString('horario')
+            if (horEvo) {
+              presRec.set('horario', horEvo)
+            }
             presRec.set('area_servico', areaServico)
             presRec.set('detalhe_servico', esp)
             presRec.set('observacoes', obsTexto)
@@ -282,6 +286,10 @@ onRecordAfterUpdateSuccess((e) => {
             presRec.set('paciente_id', pacienteId)
             presRec.set('profissional_id', profId)
             presRec.set('data_atendimento', dataAtend)
+            const horEvo = rec.getString('horario')
+            if (horEvo) {
+              presRec.set('horario', horEvo)
+            }
             presRec.set('area_servico', areaServico)
             presRec.set('detalhe_servico', esp)
             presRec.set('observacoes', obsTexto)

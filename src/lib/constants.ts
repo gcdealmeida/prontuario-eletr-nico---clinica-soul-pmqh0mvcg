@@ -77,24 +77,67 @@ export function formatTelefone(val?: string) {
 export function formatDataPTBR(dateString?: string) {
   if (!dateString) return '—'
   try {
+    // Se a string contiver formato de data YYYY-MM-DD (com ou sem horário), extrair componentes diretamente
+    // para NUNCA sofrer deslocamento de fuso horário em datas puras ou UTC 00:00:00
+    const m = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (m) {
+      const [, ano, mes, dia] = m
+      return `${dia}/${mes}/${ano}`
+    }
     const d = new Date(dateString)
+    if (isNaN(d.getTime())) return dateString
     return d.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+      timeZone: 'America/Sao_Paulo',
     })
   } catch {
     return dateString
   }
 }
 
+/**
+ * Retorna a data de hoje no fuso horário do Brasil (America/Sao_Paulo) no formato YYYY-MM-DD
+ */
+export function getHojeBrasilYMD(): string {
+  try {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  } catch {
+    return new Date().toISOString().split('T')[0]
+  }
+}
+
+/**
+ * Retorna o horário atual no fuso horário do Brasil (America/Sao_Paulo) no formato HH:mm
+ */
+export function getAgoraBrasilHora(): string {
+  try {
+    return new Date().toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+  } catch {
+    const d = new Date()
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+}
+
 export function formatHoraPTBR(dateString?: string) {
   if (!dateString) return '—'
+  // Se for apenas uma string HH:mm ou HH:mm:ss
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(dateString.trim())) {
+    return dateString.trim().substring(0, 5)
+  }
   try {
     const d = new Date(dateString)
+    if (isNaN(d.getTime())) return dateString
     return d.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'America/Sao_Paulo',
     })
   } catch {
     return dateString
@@ -105,12 +148,14 @@ export function formatDataHoraPTBR(dateString?: string) {
   if (!dateString) return '—'
   try {
     const d = new Date(dateString)
+    if (isNaN(d.getTime())) return dateString
     return d.toLocaleString('pt-BR', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'America/Sao_Paulo',
     })
   } catch {
     return dateString

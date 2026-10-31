@@ -946,7 +946,7 @@ export default function NovaAvaliacao() {
           pacienteNome: selectedPaciente?.nome,
           profissionalId: user?.id,
           profissionalNome: basePayload.profissional_responsavel || user?.name,
-          dataAtendimento: basePayload.data_avaliacao || new Date().toISOString(),
+          dataAtendimento: basePayload.data_avaliacao || undefined,
           areaServico: area,
           detalheServico: detalhe,
           identificadorOrigem: origemId,

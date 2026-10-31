@@ -69,7 +69,14 @@ import {
   mapearEspecialidadeParaServicoPresenca,
 } from '@/services/presencas'
 import type { EvolucaoRecord, Especialidade, StatusEvolucao } from '@/types/database'
-import { ESPECIALIDADE_COLORS, formatDataPTBR, formatDataHoraPTBR } from '@/lib/constants'
+import {
+  ESPECIALIDADE_COLORS,
+  formatDataPTBR,
+  formatHoraPTBR,
+  formatDataHoraPTBR,
+  getHojeBrasilYMD,
+  getAgoraBrasilHora,
+} from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { ReguaEva, EvaBadge } from '@/components/ReguaEva'
@@ -120,7 +127,8 @@ export function SecaoEvolucoes({
   // Form states
   const [formTipo, setFormTipo] = useState<'soap' | 'rapida'>('soap')
   const [formEspecialidade, setFormEspecialidade] = useState<Especialidade>(especialidade)
-  const [formData, setFormData] = useState(new Date().toISOString().substring(0, 16))
+  const [formData, setFormData] = useState(() => `${getHojeBrasilYMD()}T${getAgoraBrasilHora()}`)
+  const [formHorario, setFormHorario] = useState(() => getAgoraBrasilHora())
   const [formProfissional, setFormProfissional] = useState(profissionalPadrao || 'SOUL Clínica')
   const [formStatus, setFormStatus] = useState<StatusEvolucao>('Finalizada')
   const [tipoEvolucao, setTipoEvolucao] = useState<'Rotina' | 'Corretiva'>('Rotina')
@@ -295,7 +303,10 @@ export function SecaoEvolucoes({
     setEvolucaoReferenciaId(null)
     setFormTipo('soap')
     setFormEspecialidade(especialidade)
-    setFormData(new Date().toISOString().substring(0, 16))
+    const hojeYmd = getHojeBrasilYMD()
+    const agoraHora = getAgoraBrasilHora()
+    setFormData(`${hojeYmd}T${agoraHora}`)
+    setFormHorario(agoraHora)
     setFormProfissional(profissionalPadrao || 'SOUL Clínica')
     setFormStatus('Finalizada')
     setSubjetivo('')
@@ -343,11 +354,29 @@ export function SecaoEvolucoes({
     setTipoEvolucao(evo.tipo_evolucao || 'Rotina')
     setEvolucaoReferenciaId(evo.evolucao_referencia_id || null)
     setFormEspecialidade(evo.especialidade)
-    setFormData(
-      evo.data_evolucao
-        ? new Date(evo.data_evolucao).toISOString().substring(0, 16)
-        : new Date().toISOString().substring(0, 16),
-    )
+    const rawDataEvo = evo.data_evolucao || ''
+    let dataYmd = ''
+    let horaExtraida = evo.horario || ''
+    if (rawDataEvo.includes('T')) {
+      const p = rawDataEvo.split('T')
+      dataYmd = p[0]
+      if (!horaExtraida && p[1]) {
+        horaExtraida = p[1].substring(0, 5)
+      }
+    } else if (rawDataEvo.includes(' ')) {
+      const p = rawDataEvo.split(' ')
+      dataYmd = p[0]
+      if (!horaExtraida && p[1] && p[1] !== '12:00:00' && p[1] !== '00:00:00') {
+        horaExtraida = p[1].substring(0, 5)
+      }
+    } else if (rawDataEvo.length >= 10) {
+      dataYmd = rawDataEvo.substring(0, 10)
+    }
+    if (!dataYmd) dataYmd = getHojeBrasilYMD()
+    if (!horaExtraida) horaExtraida = getAgoraBrasilHora()
+
+    setFormData(`${dataYmd}T${horaExtraida}`)
+    setFormHorario(horaExtraida)
     setFormProfissional(evo.profissional || profissionalPadrao || 'SOUL Clínica')
     setFormStatus(evo.status || 'Rascunho')
 
@@ -434,13 +463,31 @@ export function SecaoEvolucoes({
 
     try {
       setSaving(true)
-      const dataHoraIso = new Date(formData).toISOString()
+      // Extrai data YYYY-MM-DD e horário HH:mm garantindo fuso local
+      let dataYmd = ''
+      let horaStr = formHorario.trim()
+      if (formData.includes('T')) {
+        const partes = formData.split('T')
+        dataYmd = partes[0]
+        if (!horaStr && partes[1]) {
+          horaStr = partes[1].substring(0, 5)
+        }
+      } else {
+        dataYmd = formData.substring(0, 10)
+      }
+      if (!dataYmd) dataYmd = getHojeBrasilYMD()
+      if (!horaStr) horaStr = getAgoraBrasilHora()
+
+      // Para data_evolucao (campo date do PocketBase), gravamos no meio-dia local 'YYYY-MM-DD 12:00:00'
+      // para NUNCA sofrer deslocamento de fuso de dia
+      const dataHoraPocketBase = `${dataYmd} 12:00:00`
 
       const payload: Partial<EvolucaoRecord> = {
         paciente_id: pacienteId,
         avaliacao_id: avaliacaoId,
         especialidade: formEspecialidade,
-        data_evolucao: dataHoraIso,
+        data_evolucao: dataHoraPocketBase,
+        horario: horaStr || undefined,
         profissional: formProfissional.trim(),
         subjetivo: subjetivo.trim() || undefined,
         objetivo: objetivo.trim() || undefined,
@@ -500,7 +547,8 @@ export function SecaoEvolucoes({
             pacienteId,
             pacienteNome,
             profissionalNome: formProfissional.trim(),
-            dataAtendimento: dataHoraIso,
+            dataAtendimento: dataYmd,
+            horario: horaStr,
             areaServico: area,
             detalheServico: detalhe,
             identificadorOrigem: regNum,
@@ -749,7 +797,13 @@ export function SecaoEvolucoes({
                           <span className="text-xs text-gray-400">•</span>
                           <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                            {formatDataHoraPTBR(evo.data_evolucao || evo.created)}
+                            <span>{formatDataPTBR(evo.data_evolucao || evo.created)}</span>
+                            {evo.horario ? (
+                              <span className="inline-flex items-center gap-0.5 text-[#8C6527] font-semibold ml-1">
+                                <Clock className="h-3 w-3 text-[#C9A46A]" />
+                                {formatHoraPTBR(evo.horario)}
+                              </span>
+                            ) : null}
                           </span>
                         </div>
 
@@ -1015,7 +1069,8 @@ export function SecaoEvolucoes({
                                 </p>
                                 <p>
                                   <strong>Carimbo Temporal da Assinatura:</strong>{' '}
-                                  {formatDataHoraPTBR(evo.assinado_em || evo.data_evolucao)}
+                                  {formatDataPTBR(evo.data_evolucao || evo.assinado_em)}
+                                  {evo.horario ? ` às ${formatHoraPTBR(evo.horario)}` : ''}
                                 </p>
                                 {evo.numero_registro && (
                                   <p className="font-mono text-[10px] text-gray-500">
@@ -1130,9 +1185,11 @@ export function SecaoEvolucoes({
 
           <form onSubmit={handleSubmitForm} className="space-y-4 pt-2">
             {/* Metadados da Sessão */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-gray-700">Data e Hora *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[11px] font-semibold text-gray-700">
+                  Data e Hora da Sessão *
+                </Label>
                 <Input
                   type="datetime-local"
                   required
@@ -1140,9 +1197,33 @@ export function SecaoEvolucoes({
                   onChange={(e) => {
                     setIsModalDirty(true)
                     setFormData(e.target.value)
+                    if (e.target.value && e.target.value.includes('T')) {
+                      setFormHorario(e.target.value.split('T')[1].substring(0, 5))
+                    }
                   }}
                   className="h-9 rounded-xl border-gray-200 text-xs"
-                />{' '}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-gray-700 flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-[#8C6527]" />
+                  <span>Horário (HH:mm)</span>
+                </Label>
+                <Input
+                  type="time"
+                  value={formHorario}
+                  onChange={(e) => {
+                    setIsModalDirty(true)
+                    setFormHorario(e.target.value)
+                    if (formData.includes('T')) {
+                      const dataPart = formData.split('T')[0]
+                      setFormData(`${dataPart}T${e.target.value}`)
+                    }
+                  }}
+                  className="h-9 rounded-xl border-gray-200 text-xs"
+                  placeholder="14:30"
+                />
               </div>
 
               <div className="space-y-1">

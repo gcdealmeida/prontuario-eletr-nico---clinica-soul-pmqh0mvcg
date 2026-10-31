@@ -17,6 +17,7 @@ export interface EvolucaoRecord {
   avaliacao_id?: string
   especialidade: Especialidade
   data_evolucao: string
+  horario?: string
   profissional: string
   // SOAP
   subjetivo?: string
@@ -861,7 +862,8 @@ export interface PresencaRecord {
   id: string
   paciente_id: string
   profissional_id: string
-  data_atendimento: string // ISO date/datetime (YYYY-MM-DD ou YYYY-MM-DD HH:mm:ss)
+  data_atendimento: string
+  horario?: string
   area_servico: string // ex: Sessão Fisioterapia, Personal Individual, Assessoria Esportiva, etc.
   detalhe_servico?: string // detalhamento opcional do serviço
   observacoes?: string
@@ -875,7 +877,6 @@ export interface PresencaRecord {
     profissional_id?: UserRecord
   }
 }
-
 export interface ClinicalUpdateLogRecord {
   id: string
   user_id: string

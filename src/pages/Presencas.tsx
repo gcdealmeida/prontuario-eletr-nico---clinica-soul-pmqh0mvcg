@@ -20,6 +20,7 @@ import {
   Sparkles,
   User,
   Calendar,
+  Clock,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
@@ -67,7 +68,13 @@ import {
   type PresencaPayload,
 } from '@/services/presencas'
 import type { PresencaRecord, PacienteRecord, UserRecord, StatusPresenca } from '@/types/database'
-import { formatDataPTBR, SERVICOS_PRESENCA_PADRAO } from '@/lib/constants'
+import {
+  formatDataPTBR,
+  formatHoraPTBR,
+  getHojeBrasilYMD,
+  getAgoraBrasilHora,
+  SERVICOS_PRESENCA_PADRAO,
+} from '@/lib/constants'
 
 // Opções padrão de áreas/serviços SOUL (13 opções oficiais da clínica)
 const SERVICOS_SUGERIDOS: readonly string[] = SERVICOS_PRESENCA_PADRAO
@@ -203,9 +210,8 @@ export default function Presencas() {
   // Form de Lançamento / Edição
   const [formPacienteId, setFormPacienteId] = useState('')
   const [formPacienteBusca, setFormPacienteBusca] = useState('')
-  const [formDataAtendimento, setFormDataAtendimento] = useState(
-    () => new Date().toISOString().split('T')[0],
-  )
+  const [formDataAtendimento, setFormDataAtendimento] = useState(() => getHojeBrasilYMD())
+  const [formHorario, setFormHorario] = useState(() => getAgoraBrasilHora())
   const [formAreaServico, setFormAreaServico] = useState<string>(SERVICOS_PRESENCA_PADRAO[0])
   const [formAreaPersonalizada, setFormAreaPersonalizada] = useState('')
   const [formDetalheServico, setFormDetalheServico] = useState('')
@@ -522,19 +528,19 @@ export default function Presencas() {
     setFormPacienteId('')
     setFormPacienteBusca('')
 
-    // Data padrão para novo lançamento: hoje se estiver dentro do período ativo, ou o início do período
-    const now = new Date()
-    const todayISO = now.toISOString().split('T')[0]
-    let defaultDate = todayISO
+    // Data padrão para novo lançamento: hoje no fuso do Brasil se estiver dentro do período ativo, ou o início do período
+    const todayYMD = getHojeBrasilYMD()
+    let defaultDate = todayYMD
     if (activeRange.inicio && activeRange.fim) {
-      if (todayISO >= activeRange.inicio && todayISO <= activeRange.fim) {
-        defaultDate = todayISO
+      if (todayYMD >= activeRange.inicio && todayYMD <= activeRange.fim) {
+        defaultDate = todayYMD
       } else {
         defaultDate = activeRange.inicio
       }
     }
 
     setFormDataAtendimento(defaultDate)
+    setFormHorario(getAgoraBrasilHora())
     // Se o usuário logado tiver uma especialidade que corresponda diretamente a um dos serviços, usa ela; senão o 1º da lista padrão
     let defaultServico: string = SERVICOS_PRESENCA_PADRAO[0]
     if (user?.especialidade) {
@@ -570,10 +576,9 @@ export default function Presencas() {
     const pacNome = item.paciente_nome || item.expand?.paciente_id?.nome || ''
     setFormPacienteBusca(pacNome)
     setFormDataAtendimento(
-      item.data_atendimento
-        ? item.data_atendimento.split(' ')[0]
-        : new Date().toISOString().split('T')[0],
+      item.data_atendimento ? item.data_atendimento.split(' ')[0] : getHojeBrasilYMD(),
     )
+    setFormHorario(item.horario || getAgoraBrasilHora())
 
     if (SERVICOS_SUGERIDOS.includes(item.area_servico)) {
       setFormAreaServico(item.area_servico)
@@ -653,6 +658,7 @@ export default function Presencas() {
       profissional_id: profIdFinal,
       profissional_nome: profNomeFinal,
       data_atendimento: `${formDataAtendimento} 12:00:00`,
+      horario: formHorario.trim() || undefined,
       area_servico: areaFinal,
       detalhe_servico: formDetalheServico.trim() || undefined,
       observacoes: formObservacoes.trim() || undefined,
@@ -752,6 +758,7 @@ export default function Presencas() {
         return {
           Nº: index + 1,
           Data: dataFmt,
+          Horário: item.horario || '',
           Paciente: pacNome,
           'Área / Especialidade': item.area_servico || '',
           'Detalhe do Serviço': item.detalhe_servico || '',
@@ -769,6 +776,7 @@ export default function Presencas() {
       worksheet['!cols'] = [
         { wch: 5 }, // Nº
         { wch: 12 }, // Data
+        { wch: 10 }, // Horário
         { wch: 32 }, // Paciente
         { wch: 22 }, // Área
         { wch: 26 }, // Detalhe
@@ -1367,7 +1375,7 @@ export default function Presencas() {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[#FAF7F1] border-b border-[#E9E1D2] text-[#5C4033] uppercase tracking-wider text-[10px] font-bold">
                         <tr>
-                          <th className="py-3 px-4">Data</th>
+                          <th className="py-3 px-4">Data / Hora</th>
                           <th className="py-3 px-4">Paciente</th>
                           <th className="py-3 px-4">Área / Serviço</th>
                           <th className="py-3 px-4">Profissional</th>
@@ -1395,7 +1403,13 @@ export default function Presencas() {
                               className="hover:bg-[#FAF7F1]/60 transition-colors group"
                             >
                               <td className="py-3 px-4 font-mono font-medium text-[#4A322A] whitespace-nowrap">
-                                {dataFmt}
+                                <div>{dataFmt}</div>
+                                {item.horario && (
+                                  <div className="text-[11px] text-[#8C6527] font-semibold flex items-center gap-1 mt-0.5">
+                                    <Clock className="h-3 w-3 inline text-[#C9A46A]" />
+                                    <span>{formatHoraPTBR(item.horario)}</span>
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 px-4">
                                 <span className="font-bold text-[#33221C] block">{pacNome}</span>
@@ -1513,9 +1527,14 @@ export default function Presencas() {
                               className="p-3.5 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors gap-3"
                             >
                               <div className="flex items-center gap-4 min-w-0">
-                                <span className="font-mono text-xs font-semibold text-[#5C4033] shrink-0">
-                                  {dataFmt}
-                                </span>
+                                <div className="shrink-0 font-mono text-xs font-semibold text-[#5C4033]">
+                                  <span>{dataFmt}</span>
+                                  {item.horario && (
+                                    <span className="block text-[10px] text-[#8C6527]">
+                                      {formatHoraPTBR(item.horario)}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="min-w-0">
                                   <p className="font-bold text-xs text-[#33221C] truncate">
                                     {pacNome}
@@ -1611,9 +1630,14 @@ export default function Presencas() {
                               className="p-3.5 px-4 flex items-center justify-between hover:bg-[#FAF7F1]/40 transition-colors gap-3"
                             >
                               <div className="flex items-center gap-4 min-w-0">
-                                <span className="font-mono text-xs font-semibold text-[#5C4033] shrink-0">
-                                  {dataFmt}
-                                </span>
+                                <div className="shrink-0 font-mono text-xs font-semibold text-[#5C4033]">
+                                  <span>{dataFmt}</span>
+                                  {item.horario && (
+                                    <span className="block text-[10px] text-[#8C6527]">
+                                      {formatHoraPTBR(item.horario)}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="min-w-0">
                                   <p className="font-bold text-xs text-[#8C6527]">
                                     {item.area_servico}
@@ -1724,7 +1748,9 @@ export default function Presencas() {
                                 <div className="min-w-0">
                                   <p className="font-bold text-[#33221C] truncate">{pacNome}</p>
                                   <p className="text-[11px] text-gray-500">
-                                    {dataFmt} · {profNome}
+                                    {dataFmt}
+                                    {item.horario ? ` às ${formatHoraPTBR(item.horario)}` : ''} ·{' '}
+                                    {profNome}
                                     {item.detalhe_servico ? ` · ${item.detalhe_servico}` : ''}
                                   </p>
                                 </div>
@@ -1852,8 +1878,15 @@ export default function Presencas() {
                             <span className="font-bold text-sm text-[#33221C] truncate">
                               {pacNome}
                             </span>
-                            <span className="font-mono text-xs font-semibold text-[#8C6527] bg-[#FAF4EA] px-2 py-0.5 rounded-md border border-[#E3C89A]/40">
-                              {dataFmt}
+                            <span className="font-mono text-xs font-semibold text-[#8C6527] bg-[#FAF4EA] px-2 py-0.5 rounded-md border border-[#E3C89A]/40 inline-flex items-center gap-1">
+                              <span>{dataFmt}</span>
+                              {item.horario && (
+                                <>
+                                  <span className="text-[#C9A46A]">·</span>
+                                  <Clock className="h-3 w-3 text-[#8C6527]" />
+                                  <span>{formatHoraPTBR(item.horario)}</span>
+                                </>
+                              )}
                             </span>
                           </div>
 
@@ -2010,8 +2043,8 @@ export default function Presencas() {
               )}
             </div>
 
-            {/* DATA DO ATENDIMENTO & STATUS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* DATA DO ATENDIMENTO, HORÁRIO & STATUS */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-[#4A322A]">
                   Data do Atendimento <span className="text-red-500">*</span>
@@ -2022,6 +2055,20 @@ export default function Presencas() {
                   onChange={(e) => setFormDataAtendimento(e.target.value)}
                   className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
                   required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-[#4A322A] flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-[#8C6527]" />
+                  <span>Horário (HH:mm)</span>
+                </Label>
+                <Input
+                  type="time"
+                  value={formHorario}
+                  onChange={(e) => setFormHorario(e.target.value)}
+                  className="h-9 text-xs bg-[#FAF7F1] border-[#E9E1D2] rounded-xl focus:bg-white"
+                  placeholder="Ex: 14:30"
                 />
               </div>
 

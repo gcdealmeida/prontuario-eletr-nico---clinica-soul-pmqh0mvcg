@@ -991,6 +991,11 @@ export default function GuiaUso() {
                     Clique em <strong>"Nova Evolução"</strong> para abrir o modal clínico
                     padronizado (mesmo padrão dos principais softwares como Amplimed, Ninsaúde e
                     iClinic):
+                    <br />• <strong>Data e Horário do Atendimento:</strong> defina a data da sessão
+                    e o<strong>horário exato</strong> (hora e minuto, ex: 14:30) determinado pelo
+                    prestador de serviço. O horário é registrado com precisão no fuso horário do
+                    Brasil (sem desvio de fuso), exibido no histórico de sessões do paciente e
+                    incluído nos documentos oficiais de impressão.
                     <br />• <strong>Régua de EVA da Dor (0 a 10):</strong> logo acima do bloco
                     Subjetivo, selecione o nível de dor relatado na sessão com cores padronizadas da
                     SOUL (verde/azul para 0–3 Sem dor/Leve, âmbar 4–6 Moderada, vermelho 7–10
@@ -1952,7 +1957,10 @@ export default function GuiaUso() {
                     <code>Gerado automaticamente pela evolução EVO-2026-XXXX</code>).
                     <br />• <strong>Manual:</strong> Se precisar registrar um atendimento avulso sem
                     prontuário, clique no botão dourado <strong>"+ Lançar Presença"</strong>,
-                    selecione o paciente, confirme a data, serviço oficial e status.
+                    selecione o paciente, confirme a data, o <strong>horário exato</strong> (hora e
+                    minuto, ex: 14:30 determinado pelo prestador, com padrão do momento atual no
+                    fuso de São Paulo), serviço oficial e status. A data selecionada é salva com
+                    absoluta fidelidade sem desvios de fuso horário.
                   </div>
                 </div>
 

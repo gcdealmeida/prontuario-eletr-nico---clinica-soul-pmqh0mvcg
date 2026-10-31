@@ -16,6 +16,7 @@ export interface PresencaPayload {
   paciente_id: string
   profissional_id: string
   data_atendimento: string // YYYY-MM-DD ou YYYY-MM-DD HH:mm:ss
+  horario?: string // HH:mm (horário local do atendimento no Brasil)
   area_servico: string
   detalhe_servico?: string
   observacoes?: string
@@ -182,6 +183,7 @@ export interface GarantirPresencaAutomaticaParams {
   profissionalId?: string
   profissionalNome?: string
   dataAtendimento?: string
+  horario?: string
   areaServico: ServicoPresencaPadrao
   detalheServico?: string
   identificadorOrigem: string
@@ -203,6 +205,7 @@ export async function garantirPresencaAutomatica(
       profissionalId,
       profissionalNome,
       dataAtendimento,
+      horario,
       areaServico,
       detalheServico,
       identificadorOrigem,
@@ -211,15 +214,53 @@ export async function garantirPresencaAutomatica(
 
     if (!pacienteId) return null
 
-    // 1. Extrair data no formato YYYY-MM-DD
+    // 1. Extrair data no formato YYYY-MM-DD e horário HH:mm sem conversão indevida de fuso
     let dataYmd = ''
+    let horarioFinal = (horario || '').trim()
+
     if (dataAtendimento) {
-      if (dataAtendimento.includes('T')) dataYmd = dataAtendimento.split('T')[0]
-      else if (dataAtendimento.includes(' ')) dataYmd = dataAtendimento.split(' ')[0]
-      else dataYmd = dataAtendimento.slice(0, 10)
+      // Se contiver horário (ex: YYYY-MM-DD HH:mm ou T) e não tivermos horario explicito
+      if (!horarioFinal) {
+        if (dataAtendimento.includes('T')) {
+          const partesT = dataAtendimento.split('T')
+          dataYmd = partesT[0]
+          const tempo = partesT[1] || ''
+          if (tempo.length >= 5) {
+            horarioFinal = tempo.substring(0, 5)
+          }
+        } else if (dataAtendimento.includes(' ')) {
+          const partesEsp = dataAtendimento.split(' ')
+          dataYmd = partesEsp[0]
+          const tempo = partesEsp[1] || ''
+          if (tempo.length >= 5 && tempo !== '12:00:00' && tempo !== '00:00:00') {
+            horarioFinal = tempo.substring(0, 5)
+          }
+        } else {
+          dataYmd = dataAtendimento.slice(0, 10)
+        }
+      } else {
+        dataYmd = dataAtendimento.includes('T')
+          ? dataAtendimento.split('T')[0]
+          : dataAtendimento.includes(' ')
+            ? dataAtendimento.split(' ')[0]
+            : dataAtendimento.slice(0, 10)
+      }
     }
+
     if (!dataYmd) {
-      dataYmd = new Date().toISOString().split('T')[0]
+      // Data atual no fuso de São Paulo
+      const agora = new Date()
+      dataYmd = agora.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    }
+
+    if (!horarioFinal) {
+      const agora = new Date()
+      horarioFinal = agora.toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
     }
 
     const obsTexto =
@@ -282,6 +323,7 @@ export async function garantirPresencaAutomatica(
       paciente_id: pacienteId,
       profissional_id: finalProfId,
       data_atendimento: `${dataYmd} 12:00:00`,
+      horario: horarioFinal || undefined,
       area_servico: areaServico,
       detalhe_servico: detalheServico || undefined,
       observacoes: obsTexto,

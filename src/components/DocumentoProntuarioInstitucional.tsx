@@ -1117,6 +1117,7 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
                     </span>
                     <span className="text-[#5F544F] text-[8.5pt]">
                       Sessão em: <strong>{formatDataPTBR(evo.data_evolucao || evo.created)}</strong>
+                      {evo.horario ? ` às ${evo.horario}` : ''}
                     </span>
                   </div>
 
