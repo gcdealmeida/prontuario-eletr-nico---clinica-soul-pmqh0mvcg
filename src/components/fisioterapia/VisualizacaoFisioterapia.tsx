@@ -169,16 +169,147 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
                       Alívio: {q.o_que_alivia}
                     </span>
                   )}
+                  {(q.observacoes_gerais || (idx === 0 && anamnese?.observacoes_gerais)) && (
+                    <div className="pt-1 mt-1 border-t border-gray-200/80">
+                      <span className="text-[10px] font-bold text-gray-600 block uppercase tracking-wider">
+                        Observações Gerais:
+                      </span>
+                      <p className="text-gray-800 text-[11px] whitespace-pre-wrap mt-0.5 leading-relaxed">
+                        {q.observacoes_gerais || (idx === 0 ? anamnese?.observacoes_gerais : '')}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-3 bg-gray-50 rounded-xl text-xs">
+            <div className="p-3 bg-gray-50 rounded-xl text-xs space-y-1">
               <span className="font-bold text-gray-700 block">Queixa Principal:</span>
               <p className="text-gray-900 mt-0.5">{avaliacao.queixa_principal || '—'}</p>
+              {anamnese?.observacoes_gerais && (
+                <div className="pt-1 mt-1 border-t border-gray-200/80">
+                  <span className="text-[10px] font-bold text-gray-600 block uppercase tracking-wider">
+                    Observações Gerais:
+                  </span>
+                  <p className="text-gray-800 text-[11px] whitespace-pre-wrap mt-0.5 leading-relaxed">
+                    {anamnese.observacoes_gerais}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {/* Hábitos de Vida & Acompanhamento Nutricional */}
+        {habitos &&
+          (habitos.acompanhamento_nutricional ||
+            habitos.acompanhamento_nutricional_obs ||
+            habitos.refeicoes_cafe ||
+            habitos.refeicoes_almoco ||
+            habitos.refeicoes_jantar ||
+            habitos.agua ||
+            habitos.sono_horas ||
+            habitos.sono_qualidade ||
+            habitos.stress_trabalho) && (
+            <div className="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-100 text-xs space-y-3">
+              <span className="font-bold text-gray-700 uppercase tracking-wider block text-[11px]">
+                Hábitos de Saúde & Estilo de Vida
+              </span>
+
+              {/* Alimentação e Acompanhamento Nutricional */}
+              {(habitos.acompanhamento_nutricional ||
+                habitos.acompanhamento_nutricional_obs ||
+                habitos.refeicoes_cafe ||
+                habitos.refeicoes_almoco ||
+                habitos.refeicoes_jantar ||
+                habitos.agua) && (
+                <div className="p-3 bg-white rounded-xl border border-gray-100 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-bold text-gray-800 text-[11px]">
+                      Alimentação & Ingestão
+                    </span>
+                    {habitos.acompanhamento_nutricional && (
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          habitos.acompanhamento_nutricional === 'Sim'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
+                      >
+                        Acompanhamento nutricional:{' '}
+                        {habitos.acompanhamento_nutricional.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+
+                  {habitos.acompanhamento_nutricional_obs && (
+                    <div className="text-[11px] text-gray-700 bg-amber-50/50 p-2 rounded-lg border border-amber-100/80">
+                      <strong className="text-[#8C6527] block mb-0.5">
+                        Observações Nutricionais:
+                      </strong>
+                      <p className="whitespace-pre-wrap">
+                        {habitos.acompanhamento_nutricional_obs}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
+                    {habitos.refeicoes_cafe && (
+                      <div>
+                        <span className="text-gray-500 font-medium block">Café da Manhã:</span>
+                        <span className="text-gray-800">{habitos.refeicoes_cafe}</span>
+                      </div>
+                    )}
+                    {habitos.refeicoes_almoco && (
+                      <div>
+                        <span className="text-gray-500 font-medium block">Almoço:</span>
+                        <span className="text-gray-800">{habitos.refeicoes_almoco}</span>
+                      </div>
+                    )}
+                    {habitos.refeicoes_jantar && (
+                      <div>
+                        <span className="text-gray-500 font-medium block">Jantar:</span>
+                        <span className="text-gray-800">{habitos.refeicoes_jantar}</span>
+                      </div>
+                    )}
+                    {habitos.agua && (
+                      <div>
+                        <span className="text-gray-500 font-medium block">Água:</span>
+                        <span className="text-gray-800">{habitos.agua}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Sono e Stress se preenchidos */}
+              {(habitos.sono_horas || habitos.sono_qualidade || habitos.stress_trabalho) && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+                  {habitos.sono_horas && (
+                    <div className="bg-white p-2 rounded-lg border border-gray-100">
+                      <span className="text-gray-500 font-medium block">Sono:</span>
+                      <span className="text-gray-800 font-medium">
+                        {habitos.sono_horas}h/noite{' '}
+                        {habitos.sono_qualidade ? `(${habitos.sono_qualidade})` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {habitos.stress_trabalho && (
+                    <div className="bg-white p-2 rounded-lg border border-gray-100">
+                      <span className="text-gray-500 font-medium block">Stress no Trabalho:</span>
+                      <span className="text-gray-800 font-medium">{habitos.stress_trabalho}</span>
+                    </div>
+                  )}
+                  {habitos.stress_pessoal && (
+                    <div className="bg-white p-2 rounded-lg border border-gray-100">
+                      <span className="text-gray-500 font-medium block">Stress Pessoal:</span>
+                      <span className="text-gray-800 font-medium">{habitos.stress_pessoal}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Vísceras & Questões Sistêmicas */}
         {visceras && Object.values(visceras).some(Boolean) && (

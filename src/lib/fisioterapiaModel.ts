@@ -306,6 +306,7 @@ export const QUEIXAS_INICIAIS_PADRAO: QueixaItem[] = [
     pior_momento_dia: '',
     movimento_piora: '',
     o_que_alivia: '',
+    observacoes_gerais: '',
   },
   {
     titulo: 'Secundária',
@@ -317,6 +318,7 @@ export const QUEIXAS_INICIAIS_PADRAO: QueixaItem[] = [
     pior_momento_dia: '',
     movimento_piora: '',
     o_que_alivia: '',
+    observacoes_gerais: '',
   },
   {
     titulo: 'Terciária',
@@ -328,6 +330,7 @@ export const QUEIXAS_INICIAIS_PADRAO: QueixaItem[] = [
     pior_momento_dia: '',
     movimento_piora: '',
     o_que_alivia: '',
+    observacoes_gerais: '',
   },
 ]
 

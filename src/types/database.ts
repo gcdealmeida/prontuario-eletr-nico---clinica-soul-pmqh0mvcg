@@ -243,6 +243,7 @@ export interface AnamneseDetalhadaFisio {
   cirurgias?: string
   medicamentos?: string
   tratamentos_anteriores_tipo?: string
+  observacoes_gerais?: string
 }
 
 export interface QueixaItem {
@@ -255,6 +256,7 @@ export interface QueixaItem {
   pior_momento_dia: string
   movimento_piora: string
   o_que_alivia: string
+  observacoes_gerais?: string
 }
 
 export interface ViscerasSistemicas {
@@ -295,6 +297,8 @@ export interface HabitosSaude {
   stress_trabalho?: string
   stress_familia?: string
   stress_pessoal?: string
+  acompanhamento_nutricional?: 'Sim' | 'Não'
+  acompanhamento_nutricional_obs?: string
 }
 
 export interface AdmItem {

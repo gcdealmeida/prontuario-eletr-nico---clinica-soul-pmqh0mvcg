@@ -190,13 +190,20 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
 
   const expectativaPaciente = anamneseFisio.vida_resolvida_3_6_meses || pac.resultado_esperado || ''
 
-  const habitosSono = avaliacao.habitos_saude?.horas_sono
-    ? `${avaliacao.habitos_saude.horas_sono} horas por noite${
-        avaliacao.habitos_saude.qualidade_sono
-          ? ` (qualidade: ${avaliacao.habitos_saude.qualidade_sono})`
-          : ''
-      }`
-    : ''
+  const habitosSono =
+    avaliacao.habitos_saude?.horas_sono || avaliacao.habitos_saude?.sono_horas
+      ? `${avaliacao.habitos_saude.horas_sono || avaliacao.habitos_saude.sono_horas} horas por noite${
+          avaliacao.habitos_saude.qualidade_sono || avaliacao.habitos_saude.sono_qualidade
+            ? ` (qualidade: ${avaliacao.habitos_saude.qualidade_sono || avaliacao.habitos_saude.sono_qualidade})`
+            : ''
+        }`
+      : ''
+
+  const observacoesGeraisQueixa =
+    queixasFisio[0]?.observacoes_gerais || anamneseFisio.observacoes_gerais || ''
+
+  const acompanhamentoNutricional = avaliacao.habitos_saude?.acompanhamento_nutricional || ''
+  const acompanhamentoNutricionalObs = avaliacao.habitos_saude?.acompanhamento_nutricional_obs || ''
 
   const atividadeFisica =
     avaliacao.habitos_saude?.atividade_fisica ||
@@ -448,6 +455,15 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
             .
           </p>
 
+          {observacoesGeraisQueixa && (
+            <div className="p-2.5 rounded-md bg-[#FAF7F1] border border-[#E9E1D2] text-[9.5pt] my-1">
+              <strong className="text-[#6A402D] block mb-0.5">Observações Gerais da Queixa:</strong>
+              <p className="text-[#1F1B18] whitespace-pre-wrap leading-relaxed">
+                {observacoesGeraisQueixa}
+              </p>
+            </div>
+          )}
+
           {/* Lista de queixas múltiplas se houver mais de uma */}
           {queixasFisio.length > 1 && (
             <div className="pt-1">
@@ -523,6 +539,23 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
                 <span className="text-[#D5AE6F] font-bold select-none">•</span>
                 <p>
                   <strong className="text-[#6A402D]">Sono e recuperação:</strong> {habitosSono}
+                </p>
+              </li>
+            )}
+
+            {(acompanhamentoNutricional || acompanhamentoNutricionalObs) && (
+              <li className="flex items-start gap-2">
+                <span className="text-[#D5AE6F] font-bold select-none">•</span>
+                <p>
+                  <strong className="text-[#6A402D]">Acompanhamento nutricional:</strong>{' '}
+                  {acompanhamentoNutricional
+                    ? `Faz acompanhamento: ${acompanhamentoNutricional}`
+                    : ''}
+                  {acompanhamentoNutricional && acompanhamentoNutricionalObs ? '. ' : ''}
+                  {acompanhamentoNutricionalObs
+                    ? `Observações: ${acompanhamentoNutricionalObs}`
+                    : ''}
+                  .
                 </p>
               </li>
             )}

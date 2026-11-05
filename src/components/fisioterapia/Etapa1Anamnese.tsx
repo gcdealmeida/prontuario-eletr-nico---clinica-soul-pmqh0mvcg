@@ -99,6 +99,12 @@ export const Etapa1Anamnese: React.FC<Etapa1AnamneseProps> = ({ formData, onChan
     if (index === 0 && key === 'queixa') {
       onChange('queixa_principal', val)
     }
+    if (index === 0 && key === 'observacoes_gerais') {
+      onChange('anamnese_detalhada', {
+        ...anamnese,
+        observacoes_gerais: val,
+      })
+    }
   }
 
   const handleVisceraChange = (key: keyof ViscerasSistemicas, val: string) => {
@@ -627,6 +633,29 @@ export const Etapa1Anamnese: React.FC<Etapa1AnamneseProps> = ({ formData, onChan
                     className="mt-1 h-9 rounded-xl bg-white"
                   />
                 </div>
+
+                <div className="sm:col-span-2 lg:col-span-4 pt-1">
+                  <Label className="text-gray-600">
+                    Observações Gerais {idx === 0 && '(Detalhes, Histórico e Evolução das Dores)'}
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    value={
+                      q.observacoes_gerais !== undefined
+                        ? q.observacoes_gerais
+                        : idx === 0
+                          ? anamnese.observacoes_gerais || ''
+                          : ''
+                    }
+                    onChange={(e) => handleQueixaChange(idx, 'observacoes_gerais', e.target.value)}
+                    placeholder={
+                      idx === 0
+                        ? 'Descreva detalhes, histórico e evolução das dores, fatores associados e contexto clínico da queixa principal...'
+                        : 'Observações adicionais sobre esta queixa...'
+                    }
+                    className="mt-1 rounded-xl text-xs bg-white resize-y"
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -857,6 +886,60 @@ export const Etapa1Anamnese: React.FC<Etapa1AnamneseProps> = ({ formData, onChan
                 onChange={(e) => handleHabitoChange('bebida_alcoolica', e.target.value)}
                 placeholder="Frequência e tipo..."
                 className="mt-1 h-9 rounded-xl bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Acompanhamento Nutricional */}
+          <div className="pt-3 border-t border-gray-200/80 space-y-2 text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <Label className="text-gray-700 font-semibold">Faz acompanhamento nutricional?</Label>
+              <div className="inline-flex rounded-xl bg-white p-1 border border-gray-200 shadow-sm gap-1 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleHabitoChange(
+                      'acompanhamento_nutricional',
+                      habitos.acompanhamento_nutricional === 'Sim' ? undefined : 'Sim',
+                    )
+                  }
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                    habitos.acompanhamento_nutricional === 'Sim'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  SIM
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleHabitoChange(
+                      'acompanhamento_nutricional',
+                      habitos.acompanhamento_nutricional === 'Não' ? undefined : 'Não',
+                    )
+                  }
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                    habitos.acompanhamento_nutricional === 'Não'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  NÃO
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-gray-600">Observações (opcional)</Label>
+              <Textarea
+                rows={2}
+                value={habitos.acompanhamento_nutricional_obs || ''}
+                onChange={(e) =>
+                  handleHabitoChange('acompanhamento_nutricional_obs', e.target.value)
+                }
+                placeholder="Ex: Acompanhamento com nutricionista esportivo há 6 meses, foco em hipertrofia e controle inflamatório..."
+                className="mt-1 rounded-xl text-xs bg-white resize-y"
               />
             </div>
           </div>
