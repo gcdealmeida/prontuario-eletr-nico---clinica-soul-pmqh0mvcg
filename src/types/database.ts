@@ -350,6 +350,12 @@ export interface TesteEspecialItem {
   observacao?: string
 }
 
+export interface EstrelaDorItem {
+  segmento: string
+  amplitude_movimento: string
+  qualidade_movimento: string
+}
+
 export interface TestesEspeciaisSegmento {
   segmento: string
   ativo: boolean
@@ -568,6 +574,7 @@ export interface AvaliacaoFisioterapiaRecord {
   forca_muscular_grupos?: ForcaGrupoItem[]
   forca_core_tabela?: ForcaCoreTabela
   testes_especiais_segmentos?: TestesEspeciaisSegmento[]
+  estrela_dor?: EstrelaDorItem[]
   secoes_complementares?: SecoesComplementaresFisio
   diagnostico_disfuncional?: string
   forca_muscular_descricao?: string

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { SEGMENTOS_ADM_PADRAO } from '@/lib/fisioterapiaModel'
 import type { AdmSegmento } from '@/types/database'
 import { Activity, Sparkles, CheckSquare, Square } from 'lucide-react'
+import { EstrelaAvaliacaoDor } from '@/components/fisioterapia/EstrelaAvaliacaoDor'
 
 interface Etapa2ExameFisicoProps {
   formData: Record<string, any>
@@ -65,9 +66,7 @@ export const Etapa2ExameFisico: React.FC<Etapa2ExameFisicoProps> = ({ formData, 
         <div className="flex items-center gap-2 pb-2 border-b border-[#E9E1D2]">
           <Activity className="h-5 w-5 text-[#8C6527]" />
           <div>
-            <h4 className="text-base font-bold text-gray-900">
-              1. Inspeção Postural Estática e Dinâmica
-            </h4>
+            <h4 className="text-base font-bold text-gray-900">1. Exame Físico</h4>
             <p className="text-xs text-gray-500">
               Assimetrias funcionais e estruturais, curvaturas da coluna, pés, pelve e centro de
               gravidade
@@ -240,6 +239,9 @@ export const Etapa2ExameFisico: React.FC<Etapa2ExameFisicoProps> = ({ formData, 
           )}
         </div>
       </div>
+
+      {/* Estrela da Avaliação da Dor */}
+      <EstrelaAvaliacaoDor formData={formData} onChange={onChange} />
     </div>
   )
 }

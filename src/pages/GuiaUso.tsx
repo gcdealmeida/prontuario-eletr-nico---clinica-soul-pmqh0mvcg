@@ -540,8 +540,10 @@ export default function GuiaUso() {
                       histórico, bandeiras vermelhas, vísceras e hábitos.
                     </li>
                     <li>
-                      <strong>ADM optativa por segmento:</strong> ombro, quadril, joelho, coluna ou
-                      tornozelo, apenas os segmentos avaliados no dia.
+                      <strong>Exame Físico com ADM optativa por segmento:</strong> ombro, quadril,
+                      joelho, coluna ou tornozelo, apenas os segmentos avaliados no dia, além da{' '}
+                      <strong>Estrela da Avaliação da Dor</strong> (segmento avaliado, amplitude e
+                      qualidade do movimento).
                     </li>
                     <li>
                       <strong>Força muscular & Dinamômetro:</strong> valores em kgf com ferramenta

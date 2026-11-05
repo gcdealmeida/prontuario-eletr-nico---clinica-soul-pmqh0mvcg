@@ -5,6 +5,7 @@ import type {
   ForcaGrupoItem,
   ForcaCoreTabela,
   TestesEspeciaisSegmento,
+  EstrelaDorItem,
   SecoesComplementaresFisio,
   PlanoSemanalItem,
   QueixaItem,
@@ -53,6 +54,13 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
   const core: ForcaCoreTabela | undefined = avaliacao.forca_core_tabela
   const testesEsp: TestesEspeciaisSegmento[] = (avaliacao.testes_especiais_segmentos || []).filter(
     (s) => s.ativo,
+  )
+  const estrelaDor: EstrelaDorItem[] = (avaliacao.estrela_dor || []).filter(
+    (e) =>
+      e &&
+      ((e.segmento && e.segmento.trim()) ||
+        (e.amplitude_movimento && e.amplitude_movimento.trim()) ||
+        (e.qualidade_movimento && e.qualidade_movimento.trim())),
   )
   const comp: SecoesComplementaresFisio | undefined = avaliacao.secoes_complementares
   const planoSemanal: PlanoSemanalItem[] = avaliacao.plano_semanal_detalhado || []
@@ -481,6 +489,44 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
                 {avaliacao.adm_coluna ?? '—'}°
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Estrela da Avaliação da Dor */}
+        {estrelaDor.length > 0 && (
+          <div className="space-y-3">
+            <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+              Estrela da Avaliação da Dor
+            </span>
+            {estrelaDor.map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl border border-gray-200 bg-white text-xs p-4 space-y-2"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#8C6527]" />
+                  <span className="font-bold text-gray-900">
+                    {item.segmento || `Registro ${idx + 1}`}
+                  </span>
+                </div>
+                {item.amplitude_movimento && (
+                  <div>
+                    <span className="font-bold text-gray-700 block">Amplitude do Movimento:</span>
+                    <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">
+                      {item.amplitude_movimento}
+                    </p>
+                  </div>
+                )}
+                {item.qualidade_movimento && (
+                  <div>
+                    <span className="font-bold text-gray-700 block">Qualidade do Movimento:</span>
+                    <p className="text-gray-900 mt-0.5 whitespace-pre-wrap">
+                      {item.qualidade_movimento}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

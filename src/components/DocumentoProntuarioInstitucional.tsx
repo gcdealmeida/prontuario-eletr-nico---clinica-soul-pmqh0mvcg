@@ -230,6 +230,15 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
   const testesEsp = Array.isArray(avaliacao.testes_especiais_segmentos)
     ? avaliacao.testes_especiais_segmentos.filter((s: any) => s && s.ativo)
     : []
+  const estrelaDor = Array.isArray(avaliacao.estrela_dor)
+    ? avaliacao.estrela_dor.filter(
+        (e: any) =>
+          e &&
+          ((e.segmento && e.segmento.trim()) ||
+            (e.amplitude_movimento && e.amplitude_movimento.trim()) ||
+            (e.qualidade_movimento && e.qualidade_movimento.trim())),
+      )
+    : []
   const comp = avaliacao.secoes_complementares || {}
   const planoSemanal = Array.isArray(avaliacao.plano_semanal_detalhado)
     ? avaliacao.plano_semanal_detalhado
@@ -951,6 +960,43 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
               )}
             </div>
           )}
+
+        {/* Estrela da Avaliação da Dor (sempre exibida quando preenchida) */}
+        {estrelaDor.length > 0 && (
+          <div className="space-y-2 page-break-inside-avoid">
+            <h3 className="font-montserrat font-bold text-[10.5pt] text-[#6A402D]">
+              3.5 Estrela da Avaliação da Dor
+            </h3>
+            {estrelaDor.map((item: any, idx: number) => (
+              <div
+                key={idx}
+                className="p-3 bg-[#FAF7F1] rounded-md border border-[#E9E1D2] text-[9pt] space-y-1"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full inline-block"
+                    style={{ backgroundColor: '#8C6527' }}
+                  />
+                  <strong className="text-[#6A402D]">
+                    Segmento avaliado: {item.segmento || 'Não registrado'}
+                  </strong>
+                </div>
+                {item.amplitude_movimento && (
+                  <p className="text-[#1F1B18]">
+                    <strong className="text-[#6A402D]">Amplitude do Movimento:</strong>{' '}
+                    <span className="whitespace-pre-wrap">{item.amplitude_movimento}</span>
+                  </p>
+                )}
+                {item.qualidade_movimento && (
+                  <p className="text-[#1F1B18]">
+                    <strong className="text-[#6A402D]">Qualidade do Movimento:</strong>{' '}
+                    <span className="whitespace-pre-wrap">{item.qualidade_movimento}</span>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Anexos de exames se houver */}
         {avaliacao.anexos_exames && avaliacao.anexos_exames.length > 0 && (

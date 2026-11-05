@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T16:11:29.768Z",
+  "generatedAt": "2026-11-05T17:06:12.774Z",
   "collections": [
     {
       "name": "users",
@@ -776,6 +776,12 @@
         {
           "name": "fundamentacao_cientifica_ia",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estrela_dor",
+          "type": "json",
           "required": false,
           "system": false
         }
