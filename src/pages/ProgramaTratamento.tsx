@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -42,7 +42,7 @@ import {
 import { DocumentoPropostaTratamento } from '@/components/DocumentoPropostaTratamento'
 import { Trash2, Printer, Plus, Save, FileText, Search, History } from 'lucide-react'
 
-interface ItemFormState extends ItemServicoProposta {}
+type ItemFormState = ItemServicoProposta
 
 const ITEM_VAZIO: ItemFormState = {
   nome: '',
@@ -89,8 +89,9 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
     let ativo = true
     ;(async () => {
       try {
-        const todos = await getPacientes()
+        const resposta = await getPacientes()
         if (!ativo) return
+        const todos: PacienteRecord[] = resposta.items || []
         setListaPacientes(todos)
         if (programa) {
           const pac = programa.expand?.paciente_id
@@ -881,8 +882,9 @@ const HistoricoProgramas: React.FC<PropsHistorico> = ({ pacienteId, onEditar, on
  */
 export const ProgramaTratamento: React.FC = () => {
   const { id } = useParams<{ id?: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [pacienteId, setPacienteId] = useState<string>('')
+  const [pacienteId, setPacienteId] = useState<string>(searchParams.get('paciente') || '')
   const [programaEdicao, setProgramaEdicao] = useState<ProgramaTratamentoRecord | null>(null)
   const [modo, setModo] = useState<'selecao' | 'form'>('selecao')
   const [carregandoPrograma, setCarregandoPrograma] = useState(false)
@@ -964,8 +966,8 @@ const SelecaoPaciente: React.FC<PropsSelecao> = ({ onSelecionado }) => {
     let ativo = true
     ;(async () => {
       try {
-        const lista = await getPacientes()
-        if (ativo) setPacientes(lista)
+        const resposta = await getPacientes()
+        if (ativo) setPacientes(resposta.items || [])
       } catch (err) {
         console.error('Erro ao carregar pacientes:', err)
       } finally {

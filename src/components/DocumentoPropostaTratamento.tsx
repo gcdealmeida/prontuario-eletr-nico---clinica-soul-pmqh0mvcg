@@ -25,11 +25,11 @@ export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoPr
 }) => {
   if (!programa) return null
 
-  const pac = programa.expand?.paciente_id || {}
-  const nomePaciente = programa.paciente_nome || pac.nome || '—'
-  const cpfPaciente = pac.cpf ? formatCPF(pac.cpf) : ''
-  const telefonePaciente = pac.telefone ? formatTelefone(pac.telefone) : ''
-  const emailPaciente = pac.email || ''
+  const pac = programa.expand?.paciente_id
+  const nomePaciente = programa.paciente_nome || pac?.nome || '—'
+  const cpfPaciente = pac?.cpf ? formatCPF(pac.cpf) : ''
+  const telefonePaciente = pac?.telefone ? formatTelefone(pac.telefone) : ''
+  const emailPaciente = pac?.email || ''
 
   const itens: ItemServicoProposta[] = Array.isArray(programa.itens) ? programa.itens : []
 

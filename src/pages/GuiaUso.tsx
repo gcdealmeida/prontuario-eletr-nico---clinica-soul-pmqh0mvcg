@@ -36,6 +36,7 @@ import {
   CalendarCheck2,
   Zap,
   GitMerge,
+  Receipt,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -281,6 +282,13 @@ export default function GuiaUso() {
           >
             <Dumbbell className="h-4 w-4 text-[#C9A46A]" />
             7. Programas de Acompanhamento & Treinos A/B/C
+          </TabsTrigger>
+          <TabsTrigger
+            value="programa-tratamento"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <Receipt className="h-4 w-4 text-[#C9A46A]" />
+            9. Programa de Tratamento (Proposta)
           </TabsTrigger>
           <TabsTrigger
             value="importador-planilha"
@@ -1656,6 +1664,108 @@ export default function GuiaUso() {
                   quando o exercício faz parte de um treino específico.
                 </li>
               </ul>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB: PROGRAMA DE TRATAMENTO (PROPOSTA COMERCIAL) */}
+        <TabsContent value="programa-tratamento" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-2">
+                <Receipt className="h-3.5 w-3.5" />
+                <span>Módulo Administrativo · Proposta Comercial</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                Programa de Tratamento: monte a proposta comercial e apresente ao cliente
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Ferramenta exclusiva do painel administrador: selecione o paciente, insira serviços,
+                quantidades, valores e descontos — o sistema calcula o total automaticamente e gera
+                o documento institucional SOUL pronto para imprimir ou salvar em PDF.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] px-2 py-0.5 rounded-md bg-[#FAF4EA] border border-[#E3C89A]">
+                  Etapa 1 · Selecionar Paciente
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">Pacientes já cadastrados</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Em <strong>Programa de Tratamento</strong> (menu do administrador), escolha o
+                  paciente na lista dos pacientes e prontuários já existentes. Os dados dele (nome,
+                  endereço, nascimento) são preenchidos automaticamente no documento.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#B87355] px-2 py-0.5 rounded-md bg-[#FDF2EE] border border-[#E7BFB0]">
+                  Etapa 2 · Serviços, Valores e Descontos
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">Insira o programa</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Adicione cada serviço com nome, quantidade e valor unitário. Cada item aceita
+                  desconto em percentual ou valor fixo, e há um desconto geral sobre o total.
+                  Quantidade x valor x desconto geram o subtotal; o total em R$ aparece
+                  automaticamente no resumo.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#477A53] px-2 py-0.5 rounded-md bg-[#F2F6F1] border border-[#C1D7C4]">
+                  Etapa 3 · Gerar e Apresentar
+                </span>
+                <h4 className="font-bold text-sm text-[#4A322A] mt-2">
+                  Proposta pronta em papel SOUL
+                </h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Ao finalizar, o documento institucional (logo, linha dourada, blocos bege, tabela
+                  de serviços, condições e assinaturas) é montado no formato A4 para imprimir ou
+                  salvar em PDF e apresentar ao cliente.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                Recursos Chave do Programa de Tratamento:
+              </h4>
+
+              <ul className="text-xs text-gray-700 space-y-2 list-disc pl-5 leading-relaxed">
+                <li>
+                  <strong>Histórico no Perfil do Paciente:</strong> na aba{' '}
+                  <em>Programas de Treino</em> do perfil, o administrador vê todas as propostas já
+                  geradas, com status (rascunho/finalizada), valor e data — pode reabrir, editar,
+                  reimprimir a proposta ou excluir.
+                </li>
+                <li>
+                  <strong>Sugestões Inteligentes:</strong> ao digitar o nome do serviço, o campo
+                  sugere serviços já usados em presenças e em propostas anteriores da clínica.
+                </li>
+                <li>
+                  <strong>Cálculo Automático:</strong> subtotal por item, desconto por item
+                  (percentual ou R$), desconto geral sobre o total e valor final em reais — tudo
+                  recalculado em tempo real, sem digitação manual de valores.
+                </li>
+                <li>
+                  <strong>Acesso Restrito:</strong> apenas administradores veem o menu e acessam a
+                  rota da ferramenta; a proposta finalizada não permite mais edição, preservando o
+                  valor acordado com o cliente.
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-4 border-t border-[#E9E1D2] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <p className="text-xs text-gray-500">
+                Acesse pelo menu do administrador → <strong>Programa de Tratamento</strong>.
+              </p>
+              <Button
+                onClick={() => navigate('/programas-tratamento')}
+                className="bg-gradient-to-r from-[#C9A46A] to-[#B88E52] hover:brightness-105 text-[#33221C] font-bold text-xs rounded-xl h-9 px-4 flex items-center gap-2"
+              >
+                <Receipt className="h-4 w-4" /> Abrir Programa de Tratamento
+              </Button>
             </div>
           </div>
         </TabsContent>
