@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T17:06:12.774Z",
+  "generatedAt": "2026-11-06T23:30:45.020Z",
   "collections": [
     {
       "name": "users",
@@ -2839,6 +2839,120 @@
         "CREATE INDEX idx_rel_ia_avaliacao ON relatorios_ia (avaliacao_id, created DESC)",
         "CREATE INDEX idx_rel_ia_paciente ON relatorios_ia (paciente_id, created DESC)",
         "CREATE INDEX idx_rel_ia_autor ON relatorios_ia (autor_id, created DESC)"
+      ]
+    },
+    {
+      "name": "programas_tratamento",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "view": "@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "create": "@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "update": "@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "delete": "@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_fim",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "duracao_semanas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "itens",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "desconto_geral_tipo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["nenhum", "percentual", "valor"]
+        },
+        {
+          "name": "desconto_geral_valor",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_total",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "condicoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["rascunho", "finalizada"]
+        },
+        {
+          "name": "paciente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criado_por",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_progtrat_paciente ON programas_tratamento (paciente_id)",
+        "CREATE INDEX idx_progtrat_status ON programas_tratamento (status)",
+        "CREATE INDEX idx_progtrat_created ON programas_tratamento (created DESC)"
       ]
     }
   ]
