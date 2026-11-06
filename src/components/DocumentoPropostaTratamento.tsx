@@ -5,6 +5,9 @@ import {
   calcularSubtotalItem,
   calcularTotalPrograma,
   formatarMoedaBRL,
+  getCapaFotoUrl,
+  parseCapaConfig,
+  type CapaFotoConfig,
   type ItemServicoProposta,
   type ProgramaTratamentoRecord,
 } from '@/services/programasTratamento'
@@ -13,18 +16,119 @@ interface DocumentoPropostaTratamentoProps {
   programa: ProgramaTratamentoRecord
 }
 
-/**
- * Documento institucional SOUL — Proposta Comercial de Programa de Tratamento.
- * Mesma identidade visual do impresso A4 dos prontuários (logo, linha dourada,
- * blocos em bege #F7F2EC com borda #E9E1D2, tom #6A402D, rodapé institucional,
- * assinatura em Vinhedo/SP). Renderiza SOMENTE os dados inseridos pelo admin:
- * campos vazios saem como "—" ou a seção é omitida. Nada de markdown cru.
- */
-export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoProps> = ({
-  programa,
-}) => {
-  if (!programa) return null
+/** Estilo da foto da capa a partir dos ajustes (posição/zoom/intensidade) */
+export function estiloFotoCapa(cfg: CapaFotoConfig): React.CSSProperties {
+  const largura = 100 * Math.max(1, cfg.z || 1)
+  const deslocX = ((cfg.x ?? 50) / 100 - 0.5) * (largura - 100)
+  const deslocY = ((cfg.y ?? 50) / 100 - 0.5) * (largura - 100)
+  return {
+    position: 'absolute',
+    inset: 0,
+    width: `${largura}%`,
+    height: '100%',
+    objectFit: 'cover',
+    transform: `translate(calc(-50% + ${deslocX}px), calc(-50% + ${deslocY}px))`,
+    left: '50%',
+    top: '50%',
+    opacity: Math.min(1, Math.max(0.15, (cfg.o ?? 100) / 100)),
+  }
+}
 
+/** Página 1 (capa A4): fundo #f7f2eb, foto à direita, título e paciente à esquerda */
+const CapaProposta: React.FC<{ programa: ProgramaTratamentoRecord }> = ({ programa }) => {
+  const cfg = parseCapaConfig(programa.capa_config)
+  const fotoUrl = getCapaFotoUrl(programa)
+  const nomePaciente = programa.paciente_nome || programa.expand?.paciente_id?.nome || 'Cliente'
+
+  return (
+    <div
+      className="capa-proposta-soul relative overflow-hidden"
+      style={{ width: 794, height: 1123, backgroundColor: '#f7f2eb', color: '#3e2b1f' }}
+    >
+      {/* Foto da capa (metade direita, com ajustes) */}
+      {fotoUrl && (
+        <div className="absolute inset-y-0 right-0 overflow-hidden" style={{ width: 484 }}>
+          <img src={fotoUrl} alt="" style={estiloFotoCapa(cfg)} crossOrigin="anonymous" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to right, #f7f2eb 0%, rgba(247,242,235,0.55) 18%, rgba(247,242,235,0) 60%)',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Conteúdo da capa (coluna esquerda) */}
+      <div className="absolute inset-0 flex flex-col" style={{ padding: '56px 48px 40px' }}>
+        <div style={{ width: 120 }}>
+          <LogoSOUL variant="full" size="sm" theme="light" />
+        </div>
+
+        <div style={{ marginTop: 96, maxWidth: 300 }}>
+          <p
+            className="uppercase"
+            style={{ fontSize: 11, letterSpacing: 3, color: '#B86545', fontWeight: 700 }}
+          >
+            Proposta de Tratamento
+          </p>
+          <h1
+            className="uppercase"
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: 44,
+              lineHeight: 1.1,
+              fontWeight: 600,
+              marginTop: 14,
+              whiteSpace: 'pre-line',
+            }}
+          >
+            {programa.titulo || 'Programa de Tratamento'}
+          </h1>
+          <div style={{ width: 54, height: 2, backgroundColor: '#C9A46A', marginTop: 22 }} />
+          {(programa.mes_referencia || '').trim() && (
+            <p style={{ marginTop: 18, fontSize: 13, letterSpacing: 1, color: '#6A402D' }}>
+              {programa.mes_referencia}
+            </p>
+          )}
+        </div>
+
+        <div style={{ marginTop: 'auto' }}>
+          <p
+            style={{
+              fontSize: 10,
+              letterSpacing: 2.4,
+              color: '#B08A55',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
+            Preparado para
+          </p>
+          <p
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: 30,
+              fontWeight: 600,
+              marginTop: 6,
+            }}
+          >
+            {nomePaciente}
+          </p>
+          <p style={{ marginTop: 14, fontSize: 10.5, color: '#6A402D' }}>
+            Clínica SOUL — Saúde e Bem Estar
+          </p>
+          <p style={{ marginTop: 2, fontSize: 9.5, color: '#8A7A6E' }}>
+            Vinhedo/SP • (19)9 9895-0080 • @clinicasoul.saudeebemestar
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Página 2 (proposta, A4): fundo #faf6f0 — apresentação, serviços, condições */
+const PaginaProposta: React.FC<{ programa: ProgramaTratamentoRecord }> = ({ programa }) => {
   const pac = programa.expand?.paciente_id
   const nomePaciente = programa.paciente_nome || pac?.nome || '—'
   const cpfPaciente = pac?.cpf ? formatCPF(pac.cpf) : ''
@@ -65,123 +169,204 @@ export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoPr
       ? `${programa.duracao_semanas} ${programa.duracao_semanas === 1 ? 'semana' : 'semanas'}`
       : ''
 
-  const condicoes = (programa.condicoes || '').trim()
+  const apresentacao = (programa.texto_apresentacao || '').trim()
+  const introducao = (programa.texto_introducao || '').trim()
+  const condicoesPagamento = (programa.condicoes_pagamento || programa.condicoes || '').trim()
+  const observacoes = (programa.observacoes || '').trim()
 
   return (
     <div
-      className="bg-white text-[#1F1B18] w-full font-montserrat text-[10pt] leading-relaxed mx-auto print:p-0 print:m-0"
-      style={{
-        WebkitPrintColorAdjust: 'exact',
-        printColorAdjust: 'exact',
-      }}
+      className="relative overflow-hidden"
+      style={{ width: 794, height: 1123, backgroundColor: '#faf6f0', color: '#3e2b1f' }}
     >
-      {/* CABEÇALHO INSTITUCIONAL */}
-      <header className="pt-2 pb-4 text-center space-y-3">
-        <div className="flex justify-center items-center py-1">
-          <LogoSOUL variant="full" size="md" theme="light" className="mx-auto" />
-        </div>
-        <div className="w-full h-[1px]" style={{ backgroundColor: '#D5AE6F' }} />
-      </header>
-
-      {/* TÍTULO */}
-      <div className="text-center space-y-1 mb-6">
-        <h1
-          className="font-soul font-semibold tracking-wide text-[#6A402D] uppercase"
-          style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: '22pt',
-            lineHeight: 1.2,
-          }}
-        >
-          PROPOSTA DE PROGRAMA DE TRATAMENTO
-        </h1>
-        <p className="font-montserrat italic text-[#B86545] text-[10.5pt]">
-          Clínica SOUL — Saúde e Bem Estar
-        </p>
-        <div className="w-16 h-[1px] mx-auto mt-2" style={{ backgroundColor: '#D5AE6F' }} />
-      </div>
-
-      {/* BLOCO PACIENTE */}
       <div
-        className="p-4 mb-6 rounded-lg text-[9.5pt] leading-relaxed page-break-inside-avoid"
         style={{
-          backgroundColor: '#F7F2EC',
-          border: '1px solid #E9E1D2',
+          padding: '44px 46px 30px',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
         }}
       >
-        <div className="font-montserrat font-bold text-[10pt] uppercase tracking-wider text-[#6A402D] mb-2 pb-1 border-b border-[#D5AE6F]/30">
-          PACIENTE
-        </div>
-        <div className="space-y-1.5 text-[#5F544F]">
-          <div>
-            <strong className="text-[#6A402D]">Nome:</strong>{' '}
-            <span className="text-[#1F1B18] font-medium text-[10pt]">{nomePaciente}</span>
-            {cpfPaciente && (
-              <span className="text-gray-500 font-mono text-[8.5pt]"> (CPF: {cpfPaciente})</span>
+        {/* Cabeçalho */}
+        <div className="flex items-end gap-4" style={{ marginBottom: 22 }}>
+          <div style={{ width: 104, flexShrink: 0 }}>
+            <LogoSOUL variant="full" size="sm" theme="light" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p
+              style={{
+                fontSize: 9.5,
+                letterSpacing: 2.6,
+                color: '#B08A55',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+              }}
+            >
+              Programa de Tratamento
+            </p>
+            <p
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: 25,
+                fontWeight: 600,
+                lineHeight: 1.15,
+                whiteSpace: 'pre-line',
+              }}
+            >
+              {programa.titulo || 'Programa de Tratamento'}
+            </p>
+            {(periodoTexto || semanasTexto) && (
+              <p style={{ fontSize: 10.5, color: '#6A402D', marginTop: 4 }}>
+                {[periodoTexto, semanasTexto].filter(Boolean).join(' • ')}
+              </p>
             )}
           </div>
-          {(telefonePaciente || emailPaciente) && (
-            <div className="flex flex-wrap items-center gap-x-2">
-              {telefonePaciente && (
-                <span>
-                  <strong className="text-[#6A402D]">Contato:</strong>{' '}
-                  <span className="text-[#1F1B18] font-mono">{telefonePaciente}</span>
-                </span>
-              )}
-              {telefonePaciente && emailPaciente && <span>|</span>}
-              {emailPaciente && (
-                <span>
-                  <strong className="text-[#6A402D]">E-mail:</strong>{' '}
-                  <span className="text-[#1F1B18]">{emailPaciente}</span>
-                </span>
-              )}
-            </div>
-          )}
-          <div>
-            <strong className="text-[#6A402D]">Data da proposta:</strong>{' '}
-            <span className="text-[#1F1B18]">{formatDataPTBR(programa.created)}</span>
-          </div>
         </div>
-      </div>
+        <div style={{ height: 1, backgroundColor: '#D5AE6F', opacity: 0.6, marginBottom: 24 }} />
 
-      {/* PROGRAMA E PERÍODO */}
-      <section className="mb-6 page-break-inside-avoid">
-        <h2
-          className="font-soul font-bold text-[13pt] text-[#6A402D] uppercase tracking-wide"
-          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+        {/* Cliente */}
+        <div
+          style={{
+            backgroundColor: '#f3ede2',
+            border: '1px solid #E9E1D2',
+            borderRadius: 10,
+            padding: '14px 18px',
+            marginBottom: 24,
+            fontSize: 10.5,
+          }}
         >
-          {programa.titulo || 'Programa de Tratamento'}
-        </h2>
-        {(periodoTexto || semanasTexto) && (
-          <p className="text-[9.5pt] text-[#5F544F] mt-1">
-            <strong className="text-[#6A402D]">Período / vigência:</strong>{' '}
-            {[periodoTexto, semanasTexto].filter(Boolean).join(' • ') || '—'}
+          <p
+            style={{
+              fontSize: 9,
+              letterSpacing: 2,
+              color: '#B08A55',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              marginBottom: 6,
+            }}
+          >
+            Cliente
           </p>
-        )}
-        <div className="w-full h-[1px] mt-2 mb-3" style={{ backgroundColor: '#E9E1D2' }} />
-      </section>
+          <p style={{ fontWeight: 600, fontSize: 12.5 }}>
+            {nomePaciente}
+            {cpfPaciente && (
+              <span style={{ fontWeight: 400, fontSize: 9.5, color: '#8A7A6E' }}>
+                {' '}
+                · CPF {cpfPaciente}
+              </span>
+            )}
+          </p>
+          {(telefonePaciente || emailPaciente) && (
+            <p style={{ fontSize: 10, color: '#6A402D', marginTop: 2 }}>
+              {[telefonePaciente, emailPaciente].filter(Boolean).join(' • ')}
+            </p>
+          )}
+        </div>
 
-      {/* TABELA DE SERVIÇOS */}
-      <section className="mb-6 page-break-inside-avoid">
-        <h3 className="font-montserrat font-bold text-[10.5pt] text-[#6A402D] mb-2 uppercase tracking-wide">
-          Serviços Compreendidos no Programa
-        </h3>
-        {itens.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[9pt]">
+        {/* Apresentação */}
+        {apresentacao && (
+          <div style={{ marginBottom: 24 }}>
+            <p
+              style={{
+                fontSize: 9,
+                letterSpacing: 2,
+                color: '#B08A55',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
+              Apresentação
+            </p>
+            <p style={{ fontSize: 11, lineHeight: 1.75, whiteSpace: 'pre-line' }}>{apresentacao}</p>
+          </div>
+        )}
+
+        {/* Introdução / objetivos */}
+        {introducao && (
+          <div style={{ marginBottom: 24 }}>
+            <p
+              style={{
+                fontSize: 9,
+                letterSpacing: 2,
+                color: '#B08A55',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
+              O Programa
+            </p>
+            <p style={{ fontSize: 11, lineHeight: 1.75, whiteSpace: 'pre-line' }}>{introducao}</p>
+          </div>
+        )}
+
+        {/* Tabela de serviços */}
+        <div style={{ marginBottom: 24 }}>
+          <p
+            style={{
+              fontSize: 9,
+              letterSpacing: 2,
+              color: '#B08A55',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            Serviços compreendidos
+          </p>
+          {itens.length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
               <thead>
-                <tr className="bg-[#F7F2EC] text-[#6A402D] font-bold border-b border-[#E9E1D2]">
-                  <th className="py-2 px-3 text-left">Serviço</th>
-                  <th className="py-2 px-2 text-center w-20">Qtd.</th>
-                  <th className="py-2 px-2 text-right w-28">Valor Unitário</th>
-                  <th className="py-2 px-2 text-center w-24">Desconto</th>
-                  <th className="py-2 px-3 text-right w-28">Subtotal</th>
+                <tr style={{ backgroundColor: '#f3ede2', color: '#6A402D', fontWeight: 700 }}>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #E9E1D2' }}>
+                    Serviço
+                  </td>
+                  <td
+                    style={{
+                      padding: '8px 6px',
+                      borderBottom: '1px solid #E9E1D2',
+                      textAlign: 'center',
+                      width: 44,
+                    }}
+                  >
+                    Qtd.
+                  </td>
+                  <td
+                    style={{
+                      padding: '8px 6px',
+                      borderBottom: '1px solid #E9E1D2',
+                      textAlign: 'right',
+                      width: 74,
+                    }}
+                  >
+                    Unitário
+                  </td>
+                  <td
+                    style={{
+                      padding: '8px 6px',
+                      borderBottom: '1px solid #E9E1D2',
+                      textAlign: 'center',
+                      width: 62,
+                    }}
+                  >
+                    Desc.
+                  </td>
+                  <td
+                    style={{
+                      padding: '8px 10px',
+                      borderBottom: '1px solid #E9E1D2',
+                      textAlign: 'right',
+                      width: 80,
+                    }}
+                  >
+                    Subtotal
+                  </td>
                 </tr>
               </thead>
               <tbody>
                 {itens.map((item, idx) => {
                   const sub = calcularSubtotalItem(item)
-                  const bruto = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0)
                   const descTexto =
                     item.tipoDesconto === 'percentual' && Number(item.desconto) > 0
                       ? `${formatarMoedaBRL(item.desconto)}%`
@@ -189,14 +374,25 @@ export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoPr
                         ? `R$ ${formatarMoedaBRL(item.desconto)}`
                         : '—'
                   return (
-                    <tr key={idx} className="border-b border-[#F0EAE0]">
-                      <td className="py-2 px-3 text-[#1F1B18] font-medium">{item.nome || '—'}</td>
-                      <td className="py-2 px-2 text-center font-mono">{item.quantidade || '—'}</td>
-                      <td className="py-2 px-2 text-right font-mono">
+                    <tr key={idx} style={{ borderBottom: '1px solid #EFE7DA' }}>
+                      <td style={{ padding: '7px 10px' }}>{item.nome || '—'}</td>
+                      <td style={{ padding: '7px 6px', textAlign: 'center' }}>
+                        {item.quantidade || '—'}
+                      </td>
+                      <td style={{ padding: '7px 6px', textAlign: 'right' }}>
                         R$ {formatarMoedaBRL(item.valorUnitario)}
                       </td>
-                      <td className="py-2 px-2 text-center text-[#5F544F]">{descTexto}</td>
-                      <td className="py-2 px-3 text-right font-mono font-semibold text-[#6A402D]">
+                      <td style={{ padding: '7px 6px', textAlign: 'center', color: '#6A402D' }}>
+                        {descTexto}
+                      </td>
+                      <td
+                        style={{
+                          padding: '7px 10px',
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          color: '#6A402D',
+                        }}
+                      >
                         R$ {formatarMoedaBRL(sub)}
                       </td>
                     </tr>
@@ -204,20 +400,22 @@ export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoPr
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t border-[#E9E1D2]">
-                  <td colSpan={4} className="py-2 px-3 text-right font-semibold text-[#5F544F]">
-                    Subtotal dos serviços
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono font-semibold text-[#1F1B18]">
-                    R$ {formatarMoedaBRL(somaSubtotais)}
-                  </td>
-                </tr>
                 {descontoGeralTipo !== 'nenhum' && descontoGeralValor > 0 && (
                   <tr>
-                    <td colSpan={4} className="py-2 px-3 text-right font-semibold text-[#5F544F]">
+                    <td
+                      colSpan={4}
+                      style={{ padding: '8px 10px', textAlign: 'right', color: '#6A402D' }}
+                    >
                       Desconto geral ({descontoGeralTexto})
                     </td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-[#B86545]">
+                    <td
+                      style={{
+                        padding: '8px 10px',
+                        textAlign: 'right',
+                        color: '#B86545',
+                        fontWeight: 600,
+                      }}
+                    >
                       − R$ {formatarMoedaBRL(descontoGeralReal)}
                     </td>
                   </tr>
@@ -225,90 +423,134 @@ export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoPr
                 <tr>
                   <td
                     colSpan={4}
-                    className="py-3 px-3 text-right font-montserrat font-bold text-[11pt] text-[#6A402D] uppercase tracking-wide"
+                    style={{
+                      padding: '10px 10px',
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: 1,
+                      fontSize: 11,
+                      color: '#6A402D',
+                    }}
                   >
-                    Investimento Total
+                    Investimento total
                   </td>
                   <td
-                    className="py-3 px-3 text-right font-bold text-[13pt] text-[#6A402D]"
-                    style={{ fontFamily: 'Georgia, serif' }}
+                    style={{
+                      padding: '10px',
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      fontSize: 15,
+                      color: '#6A402D',
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    }}
                   >
                     R$ {formatarMoedaBRL(totalGeral)}
                   </td>
                 </tr>
               </tfoot>
             </table>
-          </div>
-        ) : (
-          <p className="text-[#5F544F] italic text-[9.5pt]">— Nenhum serviço incluído —</p>
-        )}
-      </section>
-
-      {/* CONDIÇÕES / OBSERVAÇÕES */}
-      {condicoes && (
-        <section className="mb-6 page-break-inside-avoid">
-          <h3 className="font-montserrat font-bold text-[10.5pt] text-[#6A402D] mb-2 uppercase tracking-wide">
-            Condições e Observações
-          </h3>
-          <div
-            className="p-4 rounded-lg text-[9.5pt] leading-relaxed whitespace-pre-line text-[#5F544F]"
-            style={{
-              backgroundColor: '#F7F2EC',
-              border: '1px solid #E9E1D2',
-            }}
-          >
-            {condicoes}
-          </div>
-        </section>
-      )}
-
-      {/* ASSINATURAS */}
-      <section className="pt-10 mt-12 page-break-inside-avoid">
-        <div className="flex flex-col sm:flex-row justify-between gap-12 max-w-2xl mx-auto">
-          <div className="flex-1 text-center">
-            <div className="border-t border-[#6A402D] pt-2 mx-6">
-              <p className="font-montserrat font-bold text-[9.5pt] text-[#6A402D]">
-                Clínica SOUL — Saúde e Bem Estar
-              </p>
-              <p className="font-montserrat text-[8.5pt] text-[#5F544F]">
-                Responsável pela proposta
-              </p>
-            </div>
-          </div>
-          <div className="flex-1 text-center">
-            <div className="border-t border-[#6A402D] pt-2 mx-6">
-              <p className="font-montserrat font-bold text-[9.5pt] text-[#6A402D]">
-                {nomePaciente !== '—' ? nomePaciente : 'Cliente'}
-              </p>
-              <p className="font-montserrat text-[8.5pt] text-[#5F544F]">
-                De acordo com o programa proposto
-              </p>
-            </div>
-          </div>
+          ) : (
+            <p style={{ fontSize: 10.5, fontStyle: 'italic', color: '#8A7A6E' }}>
+              — Nenhum serviço incluído —
+            </p>
+          )}
         </div>
-        <p className="text-center font-montserrat text-[9pt] text-[#5F544F] pt-8">
-          Vinhedo,{' '}
-          {new Date().toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </p>
-      </section>
 
-      {/* RODAPÉ INSTITUCIONAL */}
-      <footer className="pt-6 mt-10 border-t border-[#D5AE6F]/40 flex flex-col sm:flex-row items-center justify-between text-[8.5pt] text-[#5F544F] font-montserrat print:hidden">
-        <p>Clínica SOUL • Saúde e Bem Estar | (19)9 9895-0080 • @clinicasoul.saudeebemestar</p>
-        <p className="font-medium text-[#6A402D]">Proposta Comercial — Programa de Tratamento</p>
-      </footer>
+        {/* Condições de pagamento */}
+        {condicoesPagamento && (
+          <div style={{ marginBottom: 20 }}>
+            <p
+              style={{
+                fontSize: 9,
+                letterSpacing: 2,
+                color: '#B08A55',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
+              Condições de pagamento
+            </p>
+            <p style={{ fontSize: 10.5, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+              {condicoesPagamento}
+            </p>
+          </div>
+        )}
 
-      {/* Rodapé fixo de impressão por página (mesma mecânica dos prontuários) */}
-      <div id="rodape-fixo-prontuario-soul" aria-hidden="true">
-        <span className="rodape-linha-institucional">
-          Clínica SOUL • Saúde e Bem Estar | (19)9 9895-0080 • @clinicasoul.saudeebemestar
-        </span>
-        <span className="rodape-pagina">Página 1</span>
+        {/* Observações */}
+        {observacoes && (
+          <div style={{ marginBottom: 20 }}>
+            <p
+              style={{
+                fontSize: 9,
+                letterSpacing: 2,
+                color: '#B08A55',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
+              Observações
+            </p>
+            <p style={{ fontSize: 10.5, lineHeight: 1.7, whiteSpace: 'pre-line' }}>{observacoes}</p>
+          </div>
+        )}
+
+        {/* Assinaturas */}
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <div className="flex justify-between" style={{ gap: 40 }}>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ borderTop: '1px solid #3e2b1f', paddingTop: 6, margin: '0 18px' }}>
+                <p style={{ fontSize: 10, fontWeight: 700 }}>Clínica SOUL — Saúde e Bem Estar</p>
+                <p style={{ fontSize: 8.5, color: '#8A7A6E' }}>Responsável pela proposta</p>
+              </div>
+            </div>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ borderTop: '1px solid #3e2b1f', paddingTop: 6, margin: '0 18px' }}>
+                <p style={{ fontSize: 10, fontWeight: 700 }}>
+                  {nomePaciente !== '—' ? nomePaciente : 'Cliente'}
+                </p>
+                <p style={{ fontSize: 8.5, color: '#8A7A6E' }}>De acordo com o programa proposto</p>
+              </div>
+            </div>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 9, color: '#8A7A6E', marginTop: 22 }}>
+            Vinhedo,{' '}
+            {new Date().toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </p>
+          <p style={{ textAlign: 'center', fontSize: 8.5, color: '#B08A55', marginTop: 14 }}>
+            Clínica SOUL • Saúde e Bem Estar | (19)9 9895-0080 • @clinicasoul.saudeebemestar
+          </p>
+        </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Documento institucional SOUL — Proposta Comercial de Programa de Tratamento.
+ * Capa (página 1) com foto ajustável + página 2 com proposta completa.
+ * Também é a PRÉVIA ao vivo no formulário (encolhida por transform).
+ * Renderiza SOMENTE os dados inseridos pelo admin: campos vazios omitem a seção.
+ */
+export const DocumentoPropostaTratamento: React.FC<DocumentoPropostaTratamentoProps> = ({
+  programa,
+}) => {
+  if (!programa) return null
+
+  return (
+    <div
+      className="documento-proposta-soul"
+      style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
+      data-documento-proposta="1"
+    >
+      <CapaProposta programa={programa} />
+      <PaginaProposta programa={programa} />
     </div>
   )
 }

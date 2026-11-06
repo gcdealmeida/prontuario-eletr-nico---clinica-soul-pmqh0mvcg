@@ -27,20 +27,37 @@ import { formatCPF, formatDataPTBR } from '@/lib/constants'
 import { getPacientes } from '@/services/pacientes'
 import type { PacienteRecord } from '@/types/database'
 import {
+  CAPA_CONFIG_PADRAO,
   calcularSubtotalItem,
   calcularTotalPrograma,
   createProgramaTratamento,
   deleteProgramaTratamento,
+  exampleItensRehab,
   formatarMoedaBRL,
   getProgramaTratamento,
+  nomeArquivoProposta,
+  parseCapaConfig,
+  listarModelosTratamento,
   listarProgramasTratamentoPorPaciente,
   listarServicosConhecidos,
   updateProgramaTratamento,
+  type CapaFotoConfig,
   type ItemServicoProposta,
   type ProgramaTratamentoRecord,
 } from '@/services/programasTratamento'
 import { DocumentoPropostaTratamento } from '@/components/DocumentoPropostaTratamento'
-import { Trash2, Printer, Plus, Save, FileText, Search, History } from 'lucide-react'
+import { gerarPdfPropostaTratamento, prepararHostExportacao } from '@/lib/exportacaoProposta'
+import {
+  Trash2,
+  Printer,
+  Plus,
+  Save,
+  FileText,
+  Search,
+  History,
+  Image as ImageIcon,
+  Layers,
+} from 'lucide-react'
 
 type ItemFormState = ItemServicoProposta
 
@@ -83,6 +100,24 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
   const [salvando, setSalvando] = useState(false)
   const [servicosConhecidos, setServicosConhecidos] = useState<string[]>([])
   const [imprimindo, setImprimindo] = useState(false)
+
+  // Liberdade de edição (capa com foto, textos livres, modelos)
+  const [mesReferencia, setMesReferencia] = useState('')
+  const [textoApresentacao, setTextoApresentacao] = useState('')
+  const [textoIntroducao, setTextoIntroducao] = useState('')
+  const [condicoesPagamento, setCondicoesPagamento] = useState('')
+  const [observacoes, setObservacoes] = useState('')
+  const [capaConfig, setCapaConfig] = useState<CapaFotoConfig>({ ...CAPA_CONFIG_PADRAO })
+  const [capaFotoArquivo, setCapaFotoArquivo] = useState<File | null>(null)
+  const [capaFotoPreview, setCapaFotoPreview] = useState<string>('')
+  const [removerCapaFoto, setRemoverCapaFoto] = useState(false)
+  const [gerandoPdf, setGerandoPdf] = useState(false)
+  const [modelos, setModelos] = useState<ProgramaTratamentoRecord[]>([])
+  const [aplicandoModelo, setAplicandoModelo] = useState<string | null>(null)
+  const [dialogModeloAberto, setDialogModeloAberto] = useState(false)
+  const [nomeModelo, setNomeModelo] = useState('')
+  const [salvandoModelo, setSalvandoModelo] = useState(false)
+  const refInputFoto = React.useRef<HTMLInputElement>(null)
 
   // Carrega lista de pacientes e dados do programa (edição)
   useEffect(() => {

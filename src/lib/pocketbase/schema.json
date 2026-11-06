@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T23:30:45.020Z",
+  "generatedAt": "2026-11-06T23:48:59.582Z",
   "collections": [
     {
       "name": "users",
@@ -2947,12 +2947,67 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "capa_foto",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "capa_config",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mes_referencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_apresentacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_introducao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "condicoes_pagamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_modelo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo_nome",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_progtrat_paciente ON programas_tratamento (paciente_id)",
         "CREATE INDEX idx_progtrat_status ON programas_tratamento (status)",
-        "CREATE INDEX idx_progtrat_created ON programas_tratamento (created DESC)"
+        "CREATE INDEX idx_progtrat_created ON programas_tratamento (created DESC)",
+        "CREATE INDEX `idx_progtrat_modelos` ON `programas_tratamento` (is_modelo)"
       ]
     }
   ]

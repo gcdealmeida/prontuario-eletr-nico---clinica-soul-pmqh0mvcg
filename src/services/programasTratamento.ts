@@ -13,6 +13,20 @@ export interface ItemServicoProposta {
   desconto: number
 }
 
+/** Ajustes da foto da capa (posição/zoom/intensidade, como no gerador de propostas) */
+export interface CapaFotoConfig {
+  /** posição horizontal 0–100 */
+  x: number
+  /** posição vertical 0–100 */
+  y: number
+  /** zoom 1–3 */
+  z: number
+  /** intensidade/opacidade 15–100 */
+  o: number
+}
+
+export const CAPA_CONFIG_PADRAO: CapaFotoConfig = { x: 50, y: 50, z: 1, o: 100 }
+
 export interface ProgramaTratamentoPayload {
   paciente_id: string
   titulo: string
@@ -26,6 +40,16 @@ export interface ProgramaTratamentoPayload {
   condicoes: string
   status: 'rascunho' | 'finalizada'
   paciente_nome?: string
+  /** Textos livres editáveis da proposta (nada de exemplo no documento final) */
+  mes_referencia?: string
+  texto_apresentacao?: string
+  texto_introducao?: string
+  condicoes_pagamento?: string
+  observacoes?: string
+  capa_config?: CapaFotoConfig
+  /** Modelos reutilizáveis (mesma coleção, flag admin-only) */
+  is_modelo?: boolean
+  modelo_nome?: string
 }
 
 export interface ProgramaTratamentoRecord {
@@ -45,6 +69,15 @@ export interface ProgramaTratamentoRecord {
   criado_por: string
   created: string
   updated: string
+  capa_foto?: string
+  capa_config?: CapaFotoConfig | null
+  mes_referencia?: string
+  texto_apresentacao?: string
+  texto_introducao?: string
+  condicoes_pagamento?: string
+  observacoes?: string
+  is_modelo?: boolean
+  modelo_nome?: string
   expand?: {
     paciente_id?: {
       id: string
@@ -113,10 +146,23 @@ export async function listarProgramasTratamentoPorPaciente(pacienteId: string) {
   })
 }
 
+/** Modelos reutilizáveis salvos (is_modelo = true), mais recentes primeiro */
+export async function listarModelosTratamento(): Promise<ProgramaTratamentoRecord[]> {
+  return await pb.collection(COLLECTION).getFullList<ProgramaTratamentoRecord>({
+    filter: 'is_modelo = true',
+    sort: '-updated',
+  })
+}
+
 export async function getProgramaTratamento(id: string) {
   return await pb.collection(COLLECTION).getOne<ProgramaTratamentoRecord>(id, {
     expand: 'paciente_id',
   })
+}
+
+/** Lê um registro mesmo sem expandir o paciente (usado ao montar modelos) */
+export async function getProgramaTratamentoBruto(id: string) {
+  return await pb.collection(COLLECTION).getOne<ProgramaTratamentoRecord>(id)
 }
 
 /**
@@ -160,21 +206,142 @@ export async function listarServicosConhecidos(): Promise<string[]> {
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
 }
 
-export async function createProgramaTratamento(data: ProgramaTratamentoPayload) {
+/** Normaliza a config da capa vinda do banco (json pode chegar como string) */
+export function parseCapaConfig(valor: unknown): CapaFotoConfig {
+  let obj: Partial<CapaFotoConfig> | null = null
+  if (typeof valor === 'string' && valor.trim()) {
+    try {
+      obj = JSON.parse(valor)
+    } catch {
+      obj = null
+    }
+  } else if (valor && typeof valor === 'object') {
+    obj = valor as Partial<CapaFotoConfig>
+  }
+  const num = (v: unknown, fallback: number) => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : fallback
+  }
+  return {
+    x: num(obj?.x, 50),
+    y: num(obj?.y, 50),
+    z: num(obj?.z, 1),
+    o: obj?.o == null ? 100 : num(obj.o, 100),
+  }
+}
+
+/** URL da foto da capa armazenada (campo file na coleção) */
+export function getCapaFotoUrl(registro: ProgramaTratamentoRecord): string {
+  if (!registro?.id || !registro.capa_foto) return ''
+  return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${COLLECTION}/${registro.id}/${registro.capa_foto}`
+}
+
+/**
+ * Cria/atualiza o registro aceitando FormData (quando há foto nova para enviar).
+ * Com FormData, campos json/array precisam ir como string.
+ */
+export async function createProgramaTratamento(
+  data: ProgramaTratamentoPayload,
+  capaFotoArquivo?: File | null,
+) {
   const userId = pb.authStore.record?.id
-  return await pb.collection(COLLECTION).create<ProgramaTratamentoRecord>({
+  const body: Record<string, unknown> = {
     ...data,
+    capa_config: data.capa_config ? JSON.stringify(data.capa_config) : '',
     criado_por: userId,
-  })
+  }
+  if (capaFotoArquivo) {
+    const fd = new FormData()
+    Object.entries(body).forEach(([k, v]) => {
+      if (v === undefined) return
+      fd.append(k, v == null ? '' : (v as string))
+    })
+    fd.append('capa_foto', capaFotoArquivo)
+    return await pb.collection(COLLECTION).create<ProgramaTratamentoRecord>(fd)
+  }
+  return await pb.collection(COLLECTION).create<ProgramaTratamentoRecord>(body)
 }
 
 export async function updateProgramaTratamento(
   id: string,
   data: Partial<ProgramaTratamentoPayload>,
+  capaFotoArquivo?: File | null,
+  removerCapaFoto = false,
 ) {
-  return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, data)
+  const body: Record<string, unknown> = {
+    ...data,
+    ...(data.capa_config !== undefined
+      ? { capa_config: data.capa_config ? JSON.stringify(data.capa_config) : '' }
+      : {}),
+  }
+  if (removerCapaFoto) body['capa_foto-'] = ''
+  if (capaFotoArquivo || removerCapaFoto) {
+    const fd = new FormData()
+    Object.entries(body).forEach(([k, v]) => {
+      if (v === undefined) return
+      fd.append(k, v == null ? '' : (v as string))
+    })
+    if (capaFotoArquivo) fd.append('capa_foto', capaFotoArquivo)
+    return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, fd)
+  }
+  return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, body)
 }
 
 export async function deleteProgramaTratamento(id: string) {
   return await pb.collection(COLLECTION).delete(id)
+}
+
+/** Nome do arquivo de exportação: "Proposta de Tratamento SOUL - {paciente} - {mes}.pdf" */
+export function nomeArquivoProposta(
+  pacienteNome: string,
+  mesReferencia: string,
+  extensao = 'pdf',
+): string {
+  const base = (
+    'Proposta de Tratamento SOUL - ' +
+    (pacienteNome || 'Cliente').trim() +
+    ' - ' +
+    (mesReferencia || '').trim()
+  )
+    .replace(/[\\/:*?"<>|]+/g, '')
+    .replace(/\s+-\s*$/, '')
+  return `${base}.${extensao}`
+}
+
+/**
+ * Exemplo inicial (SOUL REHAB) — usado APENAS como ponto de partida ao
+ * escolher "Começar do exemplo" ou dentro de um MODELO; nunca vai para o
+ * documento final sem o admin ter preenchido/confirmado.
+ */
+export function exemploItensRehab(): ItemServicoProposta[] {
+  return [
+    {
+      nome: 'Avaliação Fisioterapêutica Completa',
+      quantidade: 1,
+      valorUnitario: 350,
+      tipoDesconto: 'nenhum',
+      desconto: 0,
+    },
+    {
+      nome: 'Sessão de Reabilitação Funcional',
+      quantidade: 12,
+      valorUnitario: 180,
+      tipoDesconto: 'nenhum',
+      desconto: 0,
+    },
+    {
+      nome: 'Liberação Miofascial',
+      quantidade: 4,
+      valorUnitario: 150,
+      tipoDesconto: 'nenhum',
+      desconto: 0,
+    },
+    {
+      nome: 'Reavaliação Clínica',
+      quantidade: 1,
+      valorUnitario: 180,
+      tipoDesconto: 'nenhum',
+      desconto: 0,
+    },
+  ]
 }
