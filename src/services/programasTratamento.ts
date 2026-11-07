@@ -230,10 +230,13 @@ export function parseCapaConfig(valor: unknown): CapaFotoConfig {
   }
 }
 
-/** URL da foto da capa armazenada (campo file na coleção) */
+/** URL da foto da capa: arquivo da coleção, URL blob/data (prévia local) ou http */
 export function getCapaFotoUrl(registro: ProgramaTratamentoRecord): string {
-  if (!registro?.id || !registro.capa_foto) return ''
-  return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${COLLECTION}/${registro.id}/${registro.capa_foto}`
+  const foto = registro?.capa_foto || ''
+  if (!foto) return ''
+  if (/^(blob:|data:|https?:)/.test(foto)) return foto
+  if (!registro.id) return ''
+  return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${COLLECTION}/${registro.id}/${foto}`
 }
 
 /**

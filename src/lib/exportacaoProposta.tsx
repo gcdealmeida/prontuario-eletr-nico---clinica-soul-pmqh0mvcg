@@ -67,7 +67,9 @@ export async function gerarPdfPropostaTratamento(
       aguardar(0)
     })
 
-    const paginas = Array.from(wrapper.querySelectorAll<HTMLElement>('.pg-proposta-soul'))
+    const paginas = Array.from(
+      wrapper.querySelectorAll<HTMLElement>('.documento-proposta-soul > div'),
+    )
     if (paginas.length === 0) throw new Error('Documento não montado para exportação.')
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })

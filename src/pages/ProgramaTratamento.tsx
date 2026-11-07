@@ -32,7 +32,7 @@ import {
   calcularTotalPrograma,
   createProgramaTratamento,
   deleteProgramaTratamento,
-  exampleItensRehab,
+  exemploItensRehab,
   formatarMoedaBRL,
   getProgramaTratamento,
   nomeArquivoProposta,
@@ -46,7 +46,9 @@ import {
   type ProgramaTratamentoRecord,
 } from '@/services/programasTratamento'
 import { DocumentoPropostaTratamento } from '@/components/DocumentoPropostaTratamento'
-import { gerarPdfPropostaTratamento, prepararHostExportacao } from '@/lib/exportacaoProposta'
+import { baixarPdfPropostaTratamento } from '@/lib/exportacaoProposta'
+import { PainelCapaProposta } from '@/components/programas/PainelCapaProposta'
+import { PainelTextosProposta } from '@/components/programas/PainelTextosProposta'
 import {
   Trash2,
   Printer,
@@ -55,8 +57,9 @@ import {
   FileText,
   Search,
   History,
-  Image as ImageIcon,
   Layers,
+  Download,
+  Bookmark,
 } from 'lucide-react'
 
 type ItemFormState = ItemServicoProposta
@@ -76,7 +79,7 @@ interface PropsFormulario {
   onCancelar: () => void
 }
 
-/** Formulário de montagem do programa (paciente, itens, desconto, condições) */
+/** Formulário de montagem do programa (paciente, itens, capa, textos, desconto) */
 const FormularioPrograma: React.FC<PropsFormulario> = ({
   pacienteId,
   programa,
@@ -145,6 +148,19 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
           setDescValor(Number(programa.desconto_geral_valor) || 0)
           setCondicoes(programa.condicoes || '')
           setStatus(programa.status || 'rascunho')
+          // Liberdade de edição: textos e capa do registro salvo
+          setMesReferencia(programa.mes_referencia || '')
+          setTextoApresentacao(programa.texto_apresentacao || '')
+          setTextoIntroducao(programa.texto_introducao || '')
+          setCondicoesPagamento(programa.condicoes_pagamento || '')
+          setObservacoes(programa.observacoes || '')
+          setCapaConfig(parseCapaConfig(programa.capa_config))
+          const urlSalva = programa.id
+            ? programa.capa_foto
+              ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/programas_tratamento/${programa.id}/${programa.capa_foto}`
+              : ''
+            : ''
+          setCapaFotoPreview(urlSalva)
         } else if (pacienteId) {
           const pac = todos.find((p) => p.id === pacienteId)
           if (pac) setPacienteSelecionado(pac)
@@ -177,6 +193,17 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
     }
   }, [])
 
+  // Modelos salvos (is_modelo = true)
+  const recarregarModelos = useCallback(() => {
+    listarModelosTratamento()
+      .then((m) => setModelos(m))
+      .catch(() => setModelos([]))
+  }, [])
+
+  useEffect(() => {
+    recarregarModelos()
+  }, [recarregarModelos])
+
   const pacientesFiltrados = useMemo(() => {
     const termo = buscaPaciente.trim().toLowerCase()
     if (!termo) return listaPacientes.slice(0, 12)
@@ -206,6 +233,128 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
   const removerItem = (idx: number) =>
     setItens((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev))
 
+  // ---- Capa: foto ----
+  const selecionarCapaFoto = (file: File | null) => {
+    if (!file) return
+    setCapaFotoArquivo(file)
+    setRemoverCapaFoto(false)
+    setCapaFotoPreview(URL.createObjectURL(file))
+  }
+
+  const removerCapaFotoAgora = () => {
+    setCapaFotoArquivo(null)
+    setCapaFotoPreview('')
+    setRemoverCapaFoto(true)
+  }
+
+  // ---- Modelos ----
+  const aplicarModelo = async (modelo: ProgramaTratamentoRecord) => {
+    setAplicandoModelo(modelo.id)
+    try {
+      const bruto = modelo
+      // Itens, textos e capa do modelo (a foto NÃO copia — admin reenvia)
+      const itensModelo: ItemFormState[] = Array.isArray(bruto.itens)
+        ? bruto.itens.map((it) => ({ ...ITEM_VAZIO, ...it }))
+        : []
+      setItens(itensModelo.length > 0 ? itensModelo : [{ ...ITEM_VAZIO }])
+      setTitulo(bruto.titulo || '')
+      setDuracaoSemanas(Number(bruto.duracao_semanas) || 0)
+      setDataInicio(bruto.data_inicio ? bruto.data_inicio.slice(0, 10) : '')
+      setDataFim(bruto.data_fim ? bruto.data_fim.slice(0, 10) : '')
+      setDescTipo((bruto.desconto_geral_tipo || 'nenhum') as 'nenhum' | 'percentual' | 'valor')
+      setDescValor(Number(bruto.desconto_geral_valor) || 0)
+      setCondicoes(bruto.condicoes || '')
+      setMesReferencia(bruto.mes_referencia || '')
+      setTextoApresentacao(bruto.texto_apresentacao || '')
+      setTextoIntroducao(bruto.texto_introducao || '')
+      setCondicoesPagamento(bruto.condicoes_pagamento || '')
+      setObservacoes(bruto.observacoes || '')
+      setCapaConfig(parseCapaConfig(bruto.capa_config))
+      setCapaFotoArquivo(null)
+      setCapaFotoPreview('')
+      setRemoverCapaFoto(false)
+      toast({
+        title: 'Modelo aplicado',
+        description: `"${bruto.modelo_nome || bruto.titulo}" carregado. Agora troque apenas o paciente da proposta.`,
+      })
+    } catch (err) {
+      console.error('Erro ao aplicar modelo:', err)
+      toast({
+        title: 'Erro ao aplicar modelo',
+        description: 'Não foi possível carregar os dados do modelo.',
+        variant: 'destructive',
+      })
+    } finally {
+      setAplicandoModelo(null)
+    }
+  }
+
+  const salvarComoModelo = async () => {
+    const nome = nomeModelo.trim() || titulo.trim()
+    if (!nome) {
+      toast({
+        title: 'Dê um nome ao modelo',
+        description: 'Ex.: SOUL REHAB Ombro — 8 semanas.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setSalvandoModelo(true)
+    try {
+      // O modelo guarda a montagem (itens/textos/capa) sem paciente próprio:
+      // reutiliza o paciente atual como vínculo exigido pela coleção.
+      const payload = montarPayload(status === 'finalizada' ? 'rascunho' : 'rascunho', true, nome)
+      const salvo = await createProgramaTratamento(payload, capaFotoArquivo)
+      toast({
+        title: 'Modelo salvo',
+        description: `"${nome}" está disponível na escolha de modelos das próximas propostas.`,
+      })
+      setDialogModeloAberto(false)
+      setNomeModelo('')
+      recarregarModelos()
+      void salvo
+    } catch (err: any) {
+      console.error('Erro ao salvar modelo:', err)
+      toast({
+        title: 'Erro ao salvar modelo',
+        description: err?.message || 'Não foi possível salvar o modelo.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoModelo(false)
+    }
+  }
+
+  const montarPayload = (
+    statusNovo: 'rascunho' | 'finalizada',
+    comoModelo = false,
+    nomeDoModelo = '',
+  ) => {
+    const itensValidos = itens.filter((it) => it.nome.trim() && it.quantidade > 0)
+    return {
+      paciente_id: pacienteSelecionado?.id || '',
+      titulo: titulo.trim(),
+      data_inicio: dataInicio || '',
+      data_fim: dataFim || '',
+      duracao_semanas: Number(duracaoSemanas) || 0,
+      itens: itensValidos,
+      desconto_geral_tipo: descTipo,
+      desconto_geral_valor: descTipo === 'nenhum' ? 0 : Number(descValor) || 0,
+      valor_total: totalGeral,
+      condicoes: condicoes.trim(),
+      status: statusNovo,
+      paciente_nome: pacienteSelecionado?.nome || '',
+      mes_referencia: mesReferencia.trim(),
+      texto_apresentacao: textoApresentacao.trim(),
+      texto_introducao: textoIntroducao.trim(),
+      condicoes_pagamento: condicoesPagamento.trim(),
+      observacoes: observacoes.trim(),
+      capa_config: capaConfig,
+      is_modelo: comoModelo,
+      modelo_nome: comoModelo ? nomeDoModelo : '',
+    }
+  }
+
   const salvar = async (statusNovo: 'rascunho' | 'finalizada') => {
     if (!pacienteSelecionado) {
       toast({
@@ -234,23 +383,11 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
     }
     setSalvando(true)
     try {
-      const payload = {
-        paciente_id: pacienteSelecionado.id,
-        titulo: titulo.trim(),
-        data_inicio: dataInicio || '',
-        data_fim: dataFim || '',
-        duracao_semanas: Number(duracaoSemanas) || 0,
-        itens: itensValidos,
-        desconto_geral_tipo: descTipo,
-        desconto_geral_valor: descTipo === 'nenhum' ? 0 : Number(descValor) || 0,
-        valor_total: totalGeral,
-        condicoes: condicoes.trim(),
-        status: statusNovo,
-        paciente_nome: pacienteSelecionado.nome || '',
-      }
+      setStatus(statusNovo)
+      const payload = montarPayload(statusNovo)
       const salvo = programa
-        ? await updateProgramaTratamento(programa.id, payload)
-        : await createProgramaTratamento(payload)
+        ? await updateProgramaTratamento(programa.id, payload, capaFotoArquivo, removerCapaFoto)
+        : await createProgramaTratamento(payload, capaFotoArquivo)
       toast({
         title: statusNovo === 'finalizada' ? 'Proposta finalizada' : 'Rascunho salvo',
         description: `Programa "${salvo.titulo}" salvo no histórico do paciente.`,
@@ -280,6 +417,37 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
     setImprimindo(true)
   }, [pacienteSelecionado, titulo, toast])
 
+  const baixarPdf = async () => {
+    if (!pacienteSelecionado || !titulo.trim()) {
+      toast({
+        title: 'Complete os dados antes de gerar o PDF',
+        description: 'Selecione o paciente e informe o título do programa.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setGerandoPdf(true)
+    try {
+      await baixarPdfPropostaTratamento(registroPrevia)
+      toast({
+        title: 'PDF gerado',
+        description: `Arquivo "${nomeArquivoProposta(
+          pacienteSelecionado.nome || 'Cliente',
+          mesReferencia,
+        )}" baixado.`,
+      })
+    } catch (err: any) {
+      console.error('Erro ao gerar PDF da proposta:', err)
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: err?.message || 'Não foi possível gerar o PDF da proposta.',
+        variant: 'destructive',
+      })
+    } finally {
+      setGerandoPdf(false)
+    }
+  }
+
   // Fecha a sobreposição de impressão depois do diálogo de impressão do navegador
   useEffect(() => {
     if (!imprimindo) return
@@ -297,7 +465,7 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imprimindo])
 
-  const registroPrevia: ProgramaTratamentoRecord = useMemo(
+  const registroPrevia = useMemo<ProgramaTratamentoRecord>(
     () => ({
       id: programa?.id || 'previa',
       paciente_id: pacienteSelecionado?.id || '',
@@ -315,6 +483,15 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
       criado_por: programa?.criado_por || '',
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
+      capa_foto: capaFotoPreview,
+      capa_config: capaConfig,
+      mes_referencia: mesReferencia,
+      texto_apresentacao: textoApresentacao,
+      texto_introducao: textoIntroducao,
+      condicoes_pagamento: condicoesPagamento,
+      observacoes: observacoes,
+      is_modelo: false,
+      modelo_nome: '',
       expand: {
         paciente_id: pacienteSelecionado || undefined,
       },
@@ -332,6 +509,13 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
       totalGeral,
       condicoes,
       status,
+      capaConfig,
+      capaFotoPreview,
+      mesReferencia,
+      textoApresentacao,
+      textoIntroducao,
+      condicoesPagamento,
+      observacoes,
     ],
   )
 
@@ -408,6 +592,39 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
                 </div>
               )}
 
+              {/* Escolher modelo salvo */}
+              {modelos.length > 0 && (
+                <div
+                  className="p-4 rounded-lg space-y-3"
+                  style={{ backgroundColor: '#FAF6F0', border: '1px dashed #C9A46A' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Bookmark className="h-4 w-4 text-[#8C6527]" />
+                    <p className="text-sm font-semibold text-[#6A402D]">Escolher modelo salvo</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {modelos.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        disabled={aplicandoModelo === m.id}
+                        onClick={() => aplicarModelo(m)}
+                        className="text-xs px-3 py-1.5 rounded-full border border-[#E9E1D2] bg-white text-[#5F544F] hover:bg-[#F7F3EB] hover:text-[#6A402D] transition-colors disabled:opacity-60"
+                        title="Aplica itens, textos e capa do modelo — troque só o paciente depois"
+                      >
+                        {aplicandoModelo === m.id
+                          ? 'Aplicando…'
+                          : m.modelo_nome || m.titulo || 'Modelo'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#8A7A6E]">
+                    Aplicar um modelo copia serviços, textos e ajustes da capa. A foto não é copiada
+                    — envie-a novamente para a proposta nova. Depois troque apenas o paciente.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label htmlFor="titulo-programa">Título do programa</Label>
                 <Input
@@ -456,14 +673,32 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-[#6A402D]">2. Serviços do Programa</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={adicionarItem}
-                className="border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Adicionar serviço
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[#8C6527] hover:bg-[#F7F3EB]"
+                  onClick={() => {
+                    setItens(exemploItensRehab().map((it) => ({ ...it })))
+                    toast({
+                      title: 'Exemplo carregado',
+                      description:
+                        'Itens do exemplo SOUL REHAB inseridos como ponto de partida — ajuste ou remova antes de salvar.',
+                    })
+                  }}
+                  title="Preencher com o exemplo SOUL REHAB (ajuste antes de salvar)"
+                >
+                  <Layers className="h-4 w-4 mr-1" /> Começar do exemplo
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={adicionarItem}
+                  className="border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar serviço
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {itens.map((item, idx) => {
@@ -621,10 +856,56 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
             </CardContent>
           </Card>
 
+          {/* Textos livres da proposta */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[#6A402D]">3. Textos da Proposta</CardTitle>
+              <p className="text-sm text-[#5F544F]">
+                Escreva livremente cada seção — só o que for preenchido aparece no documento.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <PainelTextosProposta
+                mesReferencia={mesReferencia}
+                textoApresentacao={textoApresentacao}
+                textoIntroducao={textoIntroducao}
+                condicoesPagamento={condicoesPagamento}
+                observacoes={observacoes}
+                onChange={(campo, valor) => {
+                  if (campo === 'mesReferencia') setMesReferencia(valor)
+                  else if (campo === 'textoApresentacao') setTextoApresentacao(valor)
+                  else if (campo === 'textoIntroducao') setTextoIntroducao(valor)
+                  else if (campo === 'condicoesPagamento') setCondicoesPagamento(valor)
+                  else setObservacoes(valor)
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Capa da proposta: foto + ajustes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[#6A402D]">4. Capa da Proposta (Foto)</CardTitle>
+              <p className="text-sm text-[#5F544F]">
+                Envie a foto da capa e ajuste posição, zoom e intensidade — a prévia do documento
+                abaixo acompanha em tempo real.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <PainelCapaProposta
+                capaFotoPreview={capaFotoPreview}
+                onSelecionarArquivo={selecionarCapaFoto}
+                onRemoverFoto={removerCapaFotoAgora}
+                capaConfig={capaConfig}
+                onCapaConfigChange={setCapaConfig}
+              />
+            </CardContent>
+          </Card>
+
           {/* Condições */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-[#6A402D]">3. Condições e Observações</CardTitle>
+              <CardTitle className="text-[#6A402D]">5. Condições (campo antigo)</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
@@ -633,6 +914,10 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
                 value={condicoes}
                 onChange={(e) => setCondicoes(e.target.value)}
               />
+              <p className="text-xs text-[#8A7A6E] mt-2">
+                Se "Condições de pagamento" (seção Textos da Proposta) estiver preenchido, ele é
+                usado no documento; este campo serve de compatibilidade com propostas antigas.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -658,6 +943,12 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
                   Programa
                 </p>
                 <p className="font-medium">{titulo || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
+                  Referência
+                </p>
+                <p className="font-medium">{mesReferencia || '—'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
@@ -696,10 +987,27 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
                 <Button
                   variant="outline"
                   className="w-full border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
+                  onClick={baixarPdf}
+                  disabled={gerandoPdf}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {gerandoPdf ? 'Gerando PDF…' : 'Baixar PDF'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
+                  onClick={() => setDialogModeloAberto(true)}
+                >
+                  <Bookmark className="h-4 w-4 mr-2" />
+                  Salvar como modelo
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
                   onClick={imprimir}
                 >
                   <Printer className="h-4 w-4 mr-2" />
-                  Gerar Proposta (PDF/Imprimir)
+                  Gerar Proposta (Imprimir)
                 </Button>
                 <Button variant="ghost" className="w-full" onClick={onCancelar}>
                   Voltar
@@ -709,6 +1017,66 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
           </Card>
         </div>
       </div>
+
+      {/* Prévia do documento (visível, encolhida) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-[#6A402D]">Prévia da Proposta</CardTitle>
+          <p className="text-sm text-[#5F544F]">
+            Documento A4 no padrão SOUL — capa com foto e página 2 com serviços, textos e
+            assinaturas.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-auto" style={{ maxHeight: 720 }}>
+            <div
+              style={{
+                width: 794,
+                transform: 'scale(0.85)',
+                transformOrigin: 'top left',
+                marginBottom: -160,
+              }}
+            >
+              <DocumentoPropostaTratamento programa={registroPrevia} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog: salvar como modelo */}
+      <Dialog open={dialogModeloAberto} onOpenChange={setDialogModeloAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar como modelo</DialogTitle>
+            <DialogDescription>
+              A montagem atual (serviços, textos e ajustes da capa) fica guardada como modelo
+              reutilizável. Na próxima proposta, escolha o modelo e troque apenas o paciente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor="nome-modelo">Nome do modelo</Label>
+            <Input
+              id="nome-modelo"
+              placeholder="Ex.: SOUL REHAB Ombro — 8 semanas"
+              value={nomeModelo}
+              onChange={(e) => setNomeModelo(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogModeloAberto(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-[#8C6527] hover:bg-[#6A402D] text-white"
+              onClick={salvarComoModelo}
+              disabled={salvandoModelo}
+            >
+              <Bookmark className="h-4 w-4 mr-2" />
+              {salvandoModelo ? 'Salvando…' : 'Salvar modelo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sobreposição de impressão A4 — mesma mecânica dos prontuários */}
       {imprimindo &&
@@ -825,6 +1193,9 @@ const HistoricoProgramas: React.FC<PropsHistorico> = ({ pacienteId, onEditar, on
                     >
                       {prog.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
                     </Badge>
+                    {prog.is_modelo && (
+                      <Badge className="bg-[#F3E8D8] text-[#8C6527]">Modelo</Badge>
+                    )}
                   </div>
                   <p className="text-sm text-[#5F544F] mt-0.5">
                     {prog.data_inicio
@@ -1033,8 +1404,8 @@ const SelecaoPaciente: React.FC<PropsSelecao> = ({ onSelecionado }) => {
           <CardTitle className="text-[#6A402D]">Montar Programa de Tratamento</CardTitle>
           <p className="text-sm text-[#5F544F]">
             Selecione o paciente para montar a proposta comercial do programa — serviços,
-            quantidades, valores e descontos com total calculado automaticamente e proposta A4 no
-            modelo institucional SOUL.
+            quantidades, valores e descontos com total calculado automaticamente, capa com foto
+            ajustável, textos livres e proposta A4 no modelo institucional SOUL.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

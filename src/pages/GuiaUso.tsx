@@ -1740,6 +1740,28 @@ export default function GuiaUso() {
                   reimprimir a proposta ou excluir.
                 </li>
                 <li>
+                  <strong>Capa com Foto Ajustável:</strong> envie uma foto para a capa e ajuste{' '}
+                  <em>Horizontal</em>, <em>Vertical</em>, <em>Zoom</em> e <em>Intensidade</em> nos
+                  controles deslizantes — a prévia ao vivo acompanha cada mudança. A foto ocupa a
+                  metade direita da capa; imagens verticais funcionam melhor.
+                </li>
+                <li>
+                  <strong>Textos Livres:</strong> preencha Mês/Referência, Apresentação, O Programa,
+                  Condições de pagamento e Observações — cada seção só entra no documento quando
+                  preenchida. O Mês/Referência também entra no nome do arquivo PDF.
+                </li>
+                <li>
+                  <strong>Modelos Salvos:</strong> clique em <em>Salvar como modelo</em> para
+                  guardar a montagem (serviços, textos e ajustes da capa). Em uma proposta nova,
+                  escolha o modelo na seleção de paciente — os dados são copiados e você troca
+                  apenas o paciente. A foto não é copiada: envie-a novamente.
+                </li>
+                <li>
+                  <strong>Baixar PDF:</strong> o botão gera o arquivo{' '}
+                  <em>"Proposta de Tratamento SOUL - paciente - mês.pdf"</em> com capa e página 2 no
+                  padrão SOUL, pronto para enviar ao cliente.
+                </li>
+                <li>
                   <strong>Sugestões Inteligentes:</strong> ao digitar o nome do serviço, o campo
                   sugere serviços já usados em presenças e em propostas anteriores da clínica.
                 </li>
