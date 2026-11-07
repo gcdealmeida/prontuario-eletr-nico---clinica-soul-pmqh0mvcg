@@ -16,22 +16,63 @@ interface DocumentoPropostaTratamentoProps {
   programa: ProgramaTratamentoRecord
 }
 
-/** Estilo da foto da capa a partir dos ajustes (posição/zoom/intensidade).
- *  Usa background-image em vez de img com object-fit/transform: o html2canvas
- *  (que fotografa as páginas para o PDF) não suporta object-fit nem calc()
- *  dentro de transform — com background-size/position o recorte sai fiel
- *  tanto na prévia quanto no PDF exportado. */
-export function estiloFotoCapa(cfg: CapaFotoConfig, src: string): React.CSSProperties {
-  const z = Math.max(1, cfg.z || 1)
-  return {
+/** Dimensões naturais da imagem (para calcular o recorte "cover" com precisão) */
+export function useDimensoesImagem(src: string): { w: number; h: number } | null {
+  const [dims, setDims] = React.useState<{ w: number; h: number } | null>(null)
+  React.useEffect(() => {
+    setDims(null)
+    if (!src) return
+    const img = new Image()
+    img.onload = () => setDims({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onerror = () => setDims(null)
+    img.src = src
+  }, [src])
+  return dims
+}
+
+/**
+ * Recorte da foto da capa a partir dos ajustes (posição/zoom/intensidade).
+ * Usa <img> absolutamente posicionado dentro de um contêiner overflow:hidden —
+ * o html2canvas (que fotografa as páginas para o PDF) não suporta nem
+ * object-fit nem background-position em % com precisão; posicionamento
+ * absoluto com left/top/width/height explícitos sai fiel tanto na prévia
+ * quanto no PDF exportado.
+ *
+ * O contêiner (pai) deve ser position:relative/absolute + overflow:hidden.
+ * Com zoom 1 a foto cobre o recorte (cover, sem distorção); o zoom amplia a
+ * partir daí e os sliders x/y movem qual parte da foto aparece.
+ */
+export function estiloFotoCapa(
+  cfg: CapaFotoConfig,
+  src: string,
+  larguraRecorte = 484,
+  alturaRecorte = 1123,
+  naturais?: { w: number; h: number } | null,
+): React.CSSProperties {
+  const base: React.CSSProperties = {
     position: 'absolute',
-    inset: 0,
-    backgroundImage: `url("${src}")`,
-    backgroundSize: `${z * 100}% auto`,
-    backgroundPosition: `${cfg.x ?? 50}% ${cfg.y ?? 50}%`,
-    backgroundRepeat: 'no-repeat',
-    backgroundColor: '#f7f2eb',
+    maxWidth: 'none',
+    maxHeight: 'none',
+    left: 0,
+    top: 0,
+    width: larguraRecorte,
+    height: alturaRecorte,
     opacity: Math.min(1, Math.max(0.15, (cfg.o ?? 100) / 100)),
+  }
+  if (!naturais || !naturais.w || !naturais.h) return base
+  const z = Math.max(1, cfg.z || 1)
+  const escalaCover = Math.max(larguraRecorte / naturais.w, alturaRecorte / naturais.h)
+  const escala = escalaCover * z
+  const largura = naturais.w * escala
+  const altura = naturais.h * escala
+  const x = Math.min(100, Math.max(0, cfg.x ?? 50))
+  const y = Math.min(100, Math.max(0, cfg.y ?? 50))
+  return {
+    ...base,
+    width: Math.round(largura),
+    height: Math.round(altura),
+    left: Math.round(((larguraRecorte - largura) * x) / 100),
+    top: Math.round(((alturaRecorte - altura) * y) / 100),
   }
 }
 
@@ -39,6 +80,7 @@ export function estiloFotoCapa(cfg: CapaFotoConfig, src: string): React.CSSPrope
 const CapaProposta: React.FC<{ programa: ProgramaTratamentoRecord }> = ({ programa }) => {
   const cfg = parseCapaConfig(programa.capa_config)
   const fotoUrl = getCapaFotoUrl(programa)
+  const naturais = useDimensoesImagem(fotoUrl)
   const nomePaciente = programa.paciente_nome || programa.expand?.paciente_id?.nome || 'Cliente'
 
   return (
@@ -49,7 +91,12 @@ const CapaProposta: React.FC<{ programa: ProgramaTratamentoRecord }> = ({ progra
       {/* Foto da capa (faixa direita ~484px, recortada pelos 4 ajustes) */}
       {fotoUrl && (
         <div className="absolute inset-y-0 right-0 overflow-hidden" style={{ width: 484 }}>
-          <div style={estiloFotoCapa(cfg, fotoUrl)} />
+          <img
+            src={fotoUrl}
+            alt=""
+            style={estiloFotoCapa(cfg, fotoUrl, 484, 1123, naturais)}
+            crossOrigin="anonymous"
+          />
           <div
             className="absolute inset-0"
             style={{

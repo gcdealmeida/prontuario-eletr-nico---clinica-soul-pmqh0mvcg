@@ -240,24 +240,38 @@ export function getCapaFotoUrl(registro: ProgramaTratamentoRecord): string {
 }
 
 /**
- * Cria/atualiza o registro aceitando FormData (quando há foto nova para enviar).
- * Com FormData, campos json/array precisam ir como string.
+ * Corpo serializável: arrays/objetos (itens, capa_config) vão como string JSON —
+ * obrigatório com FormData, que senão serializa o array como "[object Object]"
+ * e perde os itens; com objeto puro, o SDK do PocketBase já serializa JSON.
  */
+function prepararBody(data: Record<string, unknown>): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  Object.entries(data).forEach(([k, v]) => {
+    if (v === undefined) return
+    if (Array.isArray(v) || (v && typeof v === 'object')) {
+      body[k] = JSON.stringify(v)
+    } else {
+      body[k] = v
+    }
+  })
+  return body
+}
+
 export async function createProgramaTratamento(
   data: ProgramaTratamentoPayload,
   capaFotoArquivo?: File | null,
 ) {
   const userId = pb.authStore.record?.id
-  const body: Record<string, unknown> = {
+  const body = prepararBody({
     ...data,
     capa_config: data.capa_config ? JSON.stringify(data.capa_config) : '',
     criado_por: userId,
-  }
+  })
   if (capaFotoArquivo) {
     const fd = new FormData()
     Object.entries(body).forEach(([k, v]) => {
-      if (v === undefined) return
-      fd.append(k, v == null ? '' : (v as string))
+      if (v == null) return
+      fd.append(k, String(v))
     })
     fd.append('capa_foto', capaFotoArquivo)
     return await pb.collection(COLLECTION).create<ProgramaTratamentoRecord>(fd)
@@ -278,16 +292,17 @@ export async function updateProgramaTratamento(
       : {}),
   }
   if (removerCapaFoto) body['capa_foto-'] = ''
+  const preparado = prepararBody(body)
   if (capaFotoArquivo || removerCapaFoto) {
     const fd = new FormData()
-    Object.entries(body).forEach(([k, v]) => {
-      if (v === undefined) return
-      fd.append(k, v == null ? '' : (v as string))
+    Object.entries(preparado).forEach(([k, v]) => {
+      if (v == null) return
+      fd.append(k, String(v))
     })
     if (capaFotoArquivo) fd.append('capa_foto', capaFotoArquivo)
     return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, fd)
   }
-  return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, body)
+  return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, preparado)
 }
 
 export async function deleteProgramaTratamento(id: string) {

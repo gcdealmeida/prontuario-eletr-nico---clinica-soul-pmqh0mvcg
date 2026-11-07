@@ -37,7 +37,8 @@ function limparHost() {
 
 /**
  * Gera o blob PDF da proposta: monta o documento A4 num host oculto, fotografa
- * cada página .pg-proposta-soul em 2x e adiciona ao jsPDF em A4 portrait.
+ * cada página .documento-proposta-soul > div em alta resolução e adiciona ao
+ * jsPDF em A4 portrait.
  */
 export async function gerarPdfPropostaTratamento(
   programa: ProgramaTratamentoRecord,
@@ -75,7 +76,7 @@ export async function gerarPdfPropostaTratamento(
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
     for (let i = 0; i < paginas.length; i++) {
       const canvas = await html2canvas(paginas[i], {
-        scale: 2,
+        scale: 2.5,
         backgroundColor: null,
         logging: false,
         useCORS: true,

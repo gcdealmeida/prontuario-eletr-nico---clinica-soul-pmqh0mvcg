@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Image as ImageIcon, Trash2, Upload } from 'lucide-react'
 import { CAPA_CONFIG_PADRAO, type CapaFotoConfig } from '@/services/programasTratamento'
-import { estiloFotoCapa } from '@/components/DocumentoPropostaTratamento'
+import { estiloFotoCapa, useDimensoesImagem } from '@/components/DocumentoPropostaTratamento'
 
 interface PainelCapaPropostaProps {
   capaFotoPreview: string
@@ -137,8 +137,14 @@ export const PainelCapaProposta: React.FC<PainelCapaPropostaProps> = ({
             className="relative overflow-hidden rounded"
             style={{ width: '100%', height: 120, backgroundColor: '#f7f2eb' }}
           >
-            <div className="absolute inset-y-0 right-0 overflow-hidden" style={{ width: '50%' }}>
-              <img src={previewLocal} alt="" style={estiloFotoCapa(capaConfig)} />
+            {/* Miniatura proporcional da capa: a foto ocupa a metade direita,
+                recortada pelos mesmos 4 sliders (Horizontal/Vertical/Zoom/
+                Intensidade) que valem para a prévia e para o PDF. */}
+            <div
+              className="absolute inset-y-0 right-0 overflow-hidden"
+              style={{ width: Math.round((120 * 484) / 1123) }}
+            >
+              <FotoRecortadaMiniatura cfg={capaConfig} src={previewLocal} />
             </div>
           </div>
           {linhaSlider('Horizontal', 'x', 0, 100, 1)}
@@ -163,3 +169,25 @@ export const PainelCapaProposta: React.FC<PainelCapaPropostaProps> = ({
 }
 
 export default PainelCapaProposta
+
+/** Miniatura da foto recortada: mede a imagem e aplica o MESMO recorte do
+ *  documento — recorte proporcional 484×1123 escalado para a altura de 120px
+ *  (≈52×120), então o que se vê aqui é exatamente o que sai na capa/PDF. */
+const FotoRecortadaMiniatura: React.FC<{ cfg: CapaFotoConfig; src: string }> = ({ cfg, src }) => {
+  const naturais = useDimensoesImagem(src)
+  const escalaMini = 120 / 1123
+  return (
+    <img
+      src={src}
+      alt=""
+      style={estiloFotoCapa(
+        cfg,
+        src,
+        484 * escalaMini,
+        120,
+        naturais && { w: naturais.w, h: naturais.h },
+      )}
+      crossOrigin="anonymous"
+    />
+  )
+}

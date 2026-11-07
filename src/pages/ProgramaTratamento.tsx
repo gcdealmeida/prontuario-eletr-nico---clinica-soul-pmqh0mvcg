@@ -60,6 +60,7 @@ import {
   Layers,
   Download,
   Bookmark,
+  Eye,
 } from 'lucide-react'
 
 type ItemFormState = ItemServicoProposta
@@ -120,6 +121,7 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
   const [dialogModeloAberto, setDialogModeloAberto] = useState(false)
   const [nomeModelo, setNomeModelo] = useState('')
   const [salvandoModelo, setSalvandoModelo] = useState(false)
+  const [dialogPreviaAberto, setDialogPreviaAberto] = useState(false)
   const refInputFoto = React.useRef<HTMLInputElement>(null)
 
   // Carrega lista de pacientes e dados do programa (edição)
@@ -521,9 +523,105 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Coluna principal: dados do programa */}
-        <div className="xl:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        {/* Coluna principal: dados do programa (editor) */}
+        <div className="space-y-6 min-w-0">
+          {/* Resumo e ações (topo do editor) */}
+          <Card style={{ borderTop: '3px solid #C9A46A' } as React.CSSProperties}>
+            <CardHeader>
+              <CardTitle className="text-[#6A402D]">Resumo da Proposta</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
+                    Paciente
+                  </p>
+                  <p className="font-medium">{pacienteSelecionado?.nome || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
+                    Programa
+                  </p>
+                  <p className="font-medium">{titulo || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
+                    Referência
+                  </p>
+                  <p className="font-medium">{mesReferencia || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
+                    Serviços
+                  </p>
+                  <p className="font-medium">
+                    {itens.filter((it) => it.nome.trim()).length || '—'}
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-[#E9E1D2] flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
+                    Total geral
+                  </p>
+                  <p className="text-2xl font-bold text-[#6A402D]">
+                    R$ {formatarMoedaBRL(totalGeral)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    className="bg-[#8C6527] hover:bg-[#6A402D] text-white"
+                    onClick={() => salvar(status)}
+                    disabled={salvando}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {salvando ? 'Salvando…' : programa ? 'Salvar alterações' : 'Salvar rascunho'}
+                  </Button>
+                  <Button
+                    className="bg-[#6A402D] hover:bg-[#4A322A] text-white"
+                    onClick={() => {
+                      setStatus('finalizada')
+                      salvar('finalizada')
+                    }}
+                    disabled={salvando}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Finalizar proposta
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
+                    onClick={baixarPdf}
+                    disabled={gerandoPdf}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {gerandoPdf ? 'Gerando PDF…' : 'Baixar PDF'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
+                    onClick={() => setDialogModeloAberto(true)}
+                  >
+                    <Bookmark className="h-4 w-4 mr-2" />
+                    Salvar como modelo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
+                    onClick={imprimir}
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Gerar Proposta (Imprimir)
+                  </Button>
+                  <Button variant="ghost" onClick={onCancelar}>
+                    Voltar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Identificação */}
           <Card>
             <CardHeader>
@@ -887,8 +985,8 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
             <CardHeader>
               <CardTitle className="text-[#6A402D]">4. Capa da Proposta (Foto)</CardTitle>
               <p className="text-sm text-[#5F544F]">
-                Envie a foto da capa e ajuste posição, zoom e intensidade — a prévia do documento
-                abaixo acompanha em tempo real.
+                Envie a foto da capa e ajuste posição, zoom e intensidade — a prévia ao lado
+                acompanha em tempo real.
               </p>
             </CardHeader>
             <CardContent>
@@ -922,126 +1020,69 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
           </Card>
         </div>
 
-        {/* Coluna lateral: resumo e ações */}
-        <div className="space-y-6">
-          <Card
-            className="sticky top-6"
-            style={{ borderTop: '3px solid #C9A46A' } as React.CSSProperties}
-          >
+        {/* Coluna direita: prévia fixa do documento (reage em tempo real) */}
+        <div className="xl:sticky xl:top-6 self-start min-w-0">
+          <Card style={{ borderTop: '3px solid #C9A46A' } as React.CSSProperties}>
             <CardHeader>
-              <CardTitle className="text-[#6A402D]">Resumo da Proposta</CardTitle>
+              <CardTitle className="text-[#6A402D]">Prévia da Proposta</CardTitle>
+              <p className="text-sm text-[#5F544F]">
+                Documento A4 no padrão SOUL — reage em tempo real a serviços, foto, sliders e
+                textos.
+              </p>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
-                  Paciente
-                </p>
-                <p className="font-medium">{pacienteSelecionado?.nome || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
-                  Programa
-                </p>
-                <p className="font-medium">{titulo || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
-                  Referência
-                </p>
-                <p className="font-medium">{mesReferencia || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
-                  Serviços
-                </p>
-                <p className="font-medium">{itens.filter((it) => it.nome.trim()).length || '—'}</p>
-              </div>
-              <div className="pt-2 border-t border-[#E9E1D2]">
-                <p className="text-xs uppercase tracking-wide text-[#5F544F] font-semibold">
-                  Total geral
-                </p>
-                <p className="text-2xl font-bold text-[#6A402D]">
-                  R$ {formatarMoedaBRL(totalGeral)}
-                </p>
-              </div>
-              <div className="pt-3 space-y-2">
-                <Button
-                  className="w-full bg-[#8C6527] hover:bg-[#6A402D] text-white"
-                  onClick={() => salvar(status)}
-                  disabled={salvando}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {salvando ? 'Salvando…' : programa ? 'Salvar alterações' : 'Salvar rascunho'}
-                </Button>
-                <Button
-                  className="w-full bg-[#6A402D] hover:bg-[#4A322A] text-white"
-                  onClick={() => {
-                    setStatus('finalizada')
-                    salvar('finalizada')
+            <CardContent>
+              <div
+                className="overflow-auto rounded-md border border-[#E9E1D2] bg-[#F7F3EB]"
+                style={{ maxHeight: 'calc(100vh - 10rem)' }}
+              >
+                <div
+                  style={{
+                    width: 794,
+                    transform: 'scale(0.75)',
+                    transformOrigin: 'top left',
+                    marginBottom: -281,
                   }}
-                  disabled={salvando}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Finalizar proposta
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
-                  onClick={baixarPdf}
-                  disabled={gerandoPdf}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {gerandoPdf ? 'Gerando PDF…' : 'Baixar PDF'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
-                  onClick={() => setDialogModeloAberto(true)}
-                >
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  Salvar como modelo
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-[#C9A46A] text-[#6A402D] hover:bg-[#F7F3EB]"
-                  onClick={imprimir}
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Gerar Proposta (Imprimir)
-                </Button>
-                <Button variant="ghost" className="w-full" onClick={onCancelar}>
-                  Voltar
-                </Button>
+                  <DocumentoPropostaTratamento programa={registroPrevia} />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Prévia do documento (visível, encolhida) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-[#6A402D]">Prévia da Proposta</CardTitle>
-          <p className="text-sm text-[#5F544F]">
-            Documento A4 no padrão SOUL — capa com foto e página 2 com serviços, textos e
-            assinaturas.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-auto" style={{ maxHeight: 720 }}>
+      {/* Telas estreitas: prévia acessível por botão flutuante */}
+      <button
+        type="button"
+        onClick={() => setDialogPreviaAberto(true)}
+        className="xl:hidden fixed bottom-6 right-6 z-40 rounded-full shadow-lg bg-[#6A402D] hover:bg-[#4A322A] text-white px-4 py-3 flex items-center gap-2 text-sm font-medium"
+      >
+        <Eye className="h-4 w-4" />
+        Ver prévia
+      </button>
+
+      <Dialog open={dialogPreviaAberto} onOpenChange={setDialogPreviaAberto}>
+        <DialogContent className="max-w-[860px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#6A402D]">Prévia da Proposta</DialogTitle>
+            <DialogDescription>
+              Documento A4 no padrão SOUL — atualizado com o que está no editor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[65vh] rounded-md border border-[#E9E1D2] bg-[#F7F3EB]">
             <div
               style={{
                 width: 794,
-                transform: 'scale(0.85)',
+                transform: 'scale(0.8)',
                 transformOrigin: 'top left',
-                marginBottom: -160,
+                marginBottom: -225,
               }}
             >
               <DocumentoPropostaTratamento programa={registroPrevia} />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog: salvar como modelo */}
       <Dialog open={dialogModeloAberto} onOpenChange={setDialogModeloAberto}>
