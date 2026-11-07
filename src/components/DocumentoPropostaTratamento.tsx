@@ -16,20 +16,21 @@ interface DocumentoPropostaTratamentoProps {
   programa: ProgramaTratamentoRecord
 }
 
-/** Estilo da foto da capa a partir dos ajustes (posição/zoom/intensidade) */
-export function estiloFotoCapa(cfg: CapaFotoConfig): React.CSSProperties {
-  const largura = 100 * Math.max(1, cfg.z || 1)
-  const deslocX = ((cfg.x ?? 50) / 100 - 0.5) * (largura - 100)
-  const deslocY = ((cfg.y ?? 50) / 100 - 0.5) * (largura - 100)
+/** Estilo da foto da capa a partir dos ajustes (posição/zoom/intensidade).
+ *  Usa background-image em vez de img com object-fit/transform: o html2canvas
+ *  (que fotografa as páginas para o PDF) não suporta object-fit nem calc()
+ *  dentro de transform — com background-size/position o recorte sai fiel
+ *  tanto na prévia quanto no PDF exportado. */
+export function estiloFotoCapa(cfg: CapaFotoConfig, src: string): React.CSSProperties {
+  const z = Math.max(1, cfg.z || 1)
   return {
     position: 'absolute',
     inset: 0,
-    width: `${largura}%`,
-    height: '100%',
-    objectFit: 'cover',
-    transform: `translate(calc(-50% + ${deslocX}px), calc(-50% + ${deslocY}px))`,
-    left: '50%',
-    top: '50%',
+    backgroundImage: `url("${src}")`,
+    backgroundSize: `${z * 100}% auto`,
+    backgroundPosition: `${cfg.x ?? 50}% ${cfg.y ?? 50}%`,
+    backgroundRepeat: 'no-repeat',
+    backgroundColor: '#f7f2eb',
     opacity: Math.min(1, Math.max(0.15, (cfg.o ?? 100) / 100)),
   }
 }
@@ -45,10 +46,10 @@ const CapaProposta: React.FC<{ programa: ProgramaTratamentoRecord }> = ({ progra
       className="capa-proposta-soul relative overflow-hidden"
       style={{ width: 794, height: 1123, backgroundColor: '#f7f2eb', color: '#3e2b1f' }}
     >
-      {/* Foto da capa (metade direita, com ajustes) */}
+      {/* Foto da capa (faixa direita ~484px, recortada pelos 4 ajustes) */}
       {fotoUrl && (
         <div className="absolute inset-y-0 right-0 overflow-hidden" style={{ width: 484 }}>
-          <img src={fotoUrl} alt="" style={estiloFotoCapa(cfg)} crossOrigin="anonymous" />
+          <div style={estiloFotoCapa(cfg, fotoUrl)} />
           <div
             className="absolute inset-0"
             style={{
