@@ -1,6 +1,8 @@
 import React from 'react'
 import { Activity } from 'lucide-react'
 import type { DinamometroLeituraItem } from '@/types/database'
+import type { LinhaComSegmento } from '@/lib/dinamometriaMarkdown'
+import { extrairLeiturasComSegmentos } from '@/lib/dinamometriaMarkdown'
 
 /**
  * Tabela estilizada (paleta SOUL) + gráficos de barras em SVG puro das leituras
@@ -60,12 +62,17 @@ export function normalizarLeiturasJson(bruto: unknown): LeituraTabela[] {
 
 /**
  * Extrai leituras do texto livre forca_muscular_descricao.
- * Reconhece: "Flexão de joelho D: 28,4 kgf | E: 24,1 kgf", tabelas em markdown,
+ * Reconhece: "Flexão de joelho D: 28,4 kgf | E: 24,1 kgf", tabelas em markdown
+ * agrupadas por segmento ("**Quadril**" + | Movimento | Direito | Esquerdo |),
  * linhas "Direito (kgf): 28.4" etc.
  */
 export function extrairLeiturasDoTexto(texto: string): LeituraTabela[] {
   if (!texto || !texto.trim()) return []
   const linhas: LeituraTabela[] = []
+
+  // Formato novo: tabelas markdown agrupadas por segmento (prioritário)
+  const md = extrairLeiturasComSegmentos(texto)
+  if (md.length > 0) return md.map(({ segmento: _seg, ...rest }) => rest)
 
   // Padrão 1: "<Movimento>" ... D/Direito/Direita: <num> kgf ... E/Esquerdo/Esquerda: <num> kgf
   const reLados =
@@ -114,6 +121,28 @@ function calcularAssimetria(direita: number | null, esquerda: number | null): nu
 function formatarValor(v: number | null): string {
   if (v === null) return '—'
   return `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kgf`
+}
+
+/** Grupo de leituras de um mesmo segmento (ex.: "Quadril", "Joelho"). */
+export interface GrupoLeituras {
+  segmento: string
+  linhas: LeituraTabela[]
+}
+
+/** Agrupa linhas por segmento (extraído do parser markdown ou "Geral"). */
+export function agruparPorSegmento(linhas: LinhaComSegmento[]): GrupoLeituras[] {
+  const grupos: GrupoLeituras[] = []
+  const mapa = new Map<string, LeituraTabela[]>()
+  for (const l of linhas) {
+    const seg = (l.segmento || 'Geral').trim() || 'Geral'
+    const arr = mapa.get(seg)
+    if (arr) arr.push(l)
+    else mapa.set(seg, [l])
+  }
+  for (const [segmento, arr] of mapa) {
+    grupos.push({ segmento, linhas: arr })
+  }
+  return grupos
 }
 
 /** Gráfico de barras comparando Direito x Esquerdo por movimento (SVG puro). */
@@ -308,18 +337,40 @@ export const TabelaDinamometria: React.FC<TabelaDinamometriaProps> = ({
   className = '',
 }) => {
   const doJson = normalizarLeiturasJson(leituras)
-  const merge = new Map<string, LeituraTabela>()
-  for (const l of extrairLeiturasDoTexto(descricaoTexto)) {
-    merge.set(l.movimento.toLowerCase(), l)
+
+  // 1) Extração prioritária: tabelas markdown agrupadas por segmento
+  const doMarkdown = extrairLeiturasComSegmentos(descricaoTexto)
+  let linhasComSegmento: LinhaComSegmento[] = doMarkdown
+  if (doMarkdown.length === 0) {
+    // 2) Fallback: padrões "D: X kgf | E: Y kgf" e tabelas simples (sem segmento)
+    linhasComSegmento = extrairLeiturasDoTexto(descricaoTexto).map((l) => ({
+      ...l,
+      segmento: 'Geral',
+    }))
   }
+  // 3) JSON estruturado tem prioridade (mescla por movimento+segmento)
   for (const l of doJson) {
-    merge.set(l.movimento.toLowerCase(), l) // JSON tem prioridade
+    const seg = 'Geral'
+    const existente = linhasComSegmento.find(
+      (x) =>
+        x.movimento.toLowerCase() === l.movimento.toLowerCase() && (x.segmento || 'Geral') === seg,
+    )
+    if (existente) {
+      existente.direita = l.direita
+      existente.esquerda = l.esquerda
+      existente.observacao = l.observacao
+    } else {
+      linhasComSegmento.push({ ...l, segmento: seg })
+    }
   }
-  const linhas = Array.from(merge.values())
+
+  const linhas: LinhaComSegmento[] = linhasComSegmento
     .map((l) => ({ ...l, assimetriaPct: calcularAssimetria(l.direita, l.esquerda) }))
     .filter((l) => l.direita !== null || l.esquerda !== null)
 
   if (linhas.length === 0) return null
+
+  const grupos = agruparPorSegmento(linhas)
 
   const assimetrias = linhas.filter((l) => l.assimetriaPct !== null)
   const maiorAssimetria = assimetrias.reduce(
@@ -329,83 +380,96 @@ export const TabelaDinamometria: React.FC<TabelaDinamometriaProps> = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* ===== TABELA ESTILIZADA ===== */}
-      <div className="overflow-x-auto rounded-xl border border-[#E9E1D2]">
-        <table className="w-full text-left border-collapse" style={{ fontSize: '9.5pt' }}>
-          <thead>
-            <tr style={{ backgroundColor: SOUL.fundoClaro, color: SOUL.marrom }}>
-              <th
-                className="py-2 px-3 font-bold uppercase tracking-wide"
-                style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}` }}
-              >
-                Movimento / Grupo
-              </th>
-              <th
-                className="py-2 px-3 text-center font-bold uppercase tracking-wide"
-                style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}`, width: 110 }}
-              >
-                Direito (kgf)
-              </th>
-              <th
-                className="py-2 px-3 text-center font-bold uppercase tracking-wide"
-                style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}`, width: 110 }}
-              >
-                Esquerdo (kgf)
-              </th>
-              <th
-                className="py-2 px-3 text-center font-bold uppercase tracking-wide"
-                style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}`, width: 100 }}
-              >
-                Assimetria
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((l, idx) => {
-              const assimetriaAlta = (l.assimetriaPct ?? 0) >= 15
-              return (
-                <tr
-                  key={`${l.movimento}-${idx}`}
-                  style={{ backgroundColor: idx % 2 === 1 ? '#FAF7F1' : '#FFFFFF' }}
+      {/* ===== TABELAS ESTILIZADAS (uma por segmento) ===== */}
+      {grupos.map((g, gi) => (
+        <div key={g.segmento} className="overflow-x-auto rounded-xl border border-[#E9E1D2]">
+          <table className="w-full text-left border-collapse" style={{ fontSize: '9.5pt' }}>
+            <thead>
+              <tr style={{ backgroundColor: SOUL.fundoClaro, color: SOUL.marrom }}>
+                <th
+                  colSpan={4}
+                  className="py-2 px-3 font-bold uppercase tracking-wide"
+                  style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}` }}
                 >
-                  <td
-                    className="py-2 px-3 font-medium"
-                    style={{ color: '#1F1B18', borderBottom: `1px solid ${SOUL.borda}66` }}
+                  {g.segmento === 'Geral' ? 'Leituras do Dinamômetro' : g.segmento}
+                </th>
+              </tr>
+              <tr style={{ backgroundColor: SOUL.fundoClaro, color: SOUL.marrom }}>
+                <th
+                  className="py-2 px-3 font-bold uppercase tracking-wide"
+                  style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}` }}
+                >
+                  Movimento
+                </th>
+                <th
+                  className="py-2 px-3 text-center font-bold uppercase tracking-wide"
+                  style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}`, width: 110 }}
+                >
+                  Direito (kgf)
+                </th>
+                <th
+                  className="py-2 px-3 text-center font-bold uppercase tracking-wide"
+                  style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}`, width: 110 }}
+                >
+                  Esquerdo (kgf)
+                </th>
+                <th
+                  className="py-2 px-3 text-center font-bold uppercase tracking-wide"
+                  style={{ fontSize: '8.5pt', borderBottom: `1px solid ${SOUL.borda}`, width: 100 }}
+                >
+                  Assimetria
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {g.linhas.map((l, idx) => {
+                const assimetriaAlta = (l.assimetriaPct ?? 0) >= 15
+                return (
+                  <tr
+                    key={`${l.movimento}-${gi}-${idx}`}
+                    style={{ backgroundColor: idx % 2 === 1 ? '#FAF7F1' : '#FFFFFF' }}
                   >
-                    {l.movimento}
-                  </td>
-                  <td
-                    className="py-2 px-3 text-center font-mono font-semibold"
-                    style={{ color: SOUL.marrom, borderBottom: `1px solid ${SOUL.borda}66` }}
-                  >
-                    {formatarValor(l.direita)}
-                  </td>
-                  <td
-                    className="py-2 px-3 text-center font-mono font-semibold"
-                    style={{ color: SOUL.marrom, borderBottom: `1px solid ${SOUL.borda}66` }}
-                  >
-                    {formatarValor(l.esquerda)}
-                  </td>
-                  <td
-                    className="py-2 px-3 text-center font-semibold"
-                    style={{
-                      borderBottom: `1px solid ${SOUL.borda}66`,
-                      color:
-                        l.assimetriaPct === null
-                          ? SOUL.textoSuave
-                          : assimetriaAlta
-                            ? SOUL.perigo
-                            : SOUL.ok,
-                    }}
-                  >
-                    {l.assimetriaPct === null ? '—' : `${l.assimetriaPct.toLocaleString('pt-BR')}%`}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+                    <td
+                      className="py-2 px-3 font-medium break-words"
+                      style={{ color: '#1F1B18', borderBottom: `1px solid ${SOUL.borda}66` }}
+                    >
+                      {l.movimento}
+                    </td>
+                    <td
+                      className="py-2 px-3 text-center font-mono font-semibold whitespace-nowrap"
+                      style={{ color: SOUL.marrom, borderBottom: `1px solid ${SOUL.borda}66` }}
+                    >
+                      {formatarValor(l.direita)}
+                    </td>
+                    <td
+                      className="py-2 px-3 text-center font-mono font-semibold whitespace-nowrap"
+                      style={{ color: SOUL.marrom, borderBottom: `1px solid ${SOUL.borda}66` }}
+                    >
+                      {formatarValor(l.esquerda)}
+                    </td>
+                    <td
+                      className="py-2 px-3 text-center font-semibold"
+                      style={{
+                        borderBottom: `1px solid ${SOUL.borda}66`,
+                        color:
+                          l.assimetriaPct === null
+                            ? SOUL.textoSuave
+                            : assimetriaAlta
+                              ? SOUL.perigo
+                              : SOUL.ok,
+                      }}
+                    >
+                      {l.assimetriaPct === null
+                        ? '—'
+                        : `${l.assimetriaPct.toLocaleString('pt-BR')}%`}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ))}
 
       {/* ===== GRÁFICO ===== */}
       <div

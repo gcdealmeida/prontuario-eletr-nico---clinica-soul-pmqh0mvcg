@@ -19,6 +19,7 @@ import {
 } from '@/lib/fisioterapiaModel'
 import { getFileUrl } from '@/services/avaliacoes'
 import { TabelaDinamometria } from './TabelaDinamometria'
+import { TextoForcaFormatado } from './TextoForcaFormatado'
 import {
   FileText,
   Activity,
@@ -544,15 +545,17 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
           descricaoTexto={descricaoForca}
         />
 
-        {/* Caixa de Descrição Aberta */}
+        {/* Caixa de Descrição Aberta — texto formatado, sem markdown cru */}
         {descricaoForca ? (
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-2xs space-y-2">
             <span className="text-[11px] font-bold text-[#8C6527] uppercase tracking-wider block">
               Avaliação de Força Muscular e Leituras do Dinamômetro:
             </span>
-            <p className="text-xs sm:text-sm text-gray-900 whitespace-pre-wrap leading-relaxed font-mono sm:font-sans bg-gray-50/50 p-3.5 rounded-xl border border-gray-100">
-              {descricaoForca}
-            </p>
+            <TextoForcaFormatado
+              texto={descricaoForca}
+              ocultarTabelas
+              className="text-xs sm:text-sm [&_p]:text-[12px] sm:[&_p]:text-sm [&_div]:text-[12px] sm:[&_div]:text-sm"
+            />
           </div>
         ) : gruposForca.length > 0 ? (
           /* Fallback legível para prontuários legados preenchidos antes da alteração */
