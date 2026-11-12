@@ -18,6 +18,7 @@ import {
   isMovimentoColunaLinhaMedia,
 } from '@/lib/fisioterapiaModel'
 import { getFileUrl } from '@/services/avaliacoes'
+import { TabelaDinamometria } from './TabelaDinamometria'
 import {
   FileText,
   Activity,
@@ -536,6 +537,12 @@ export const VisualizacaoFisioterapia: React.FC<VisualizacaoFisioterapiaProps> =
         <h3 className="text-sm font-bold uppercase tracking-wider text-blue-700 bg-blue-50/70 p-2.5 rounded-xl flex items-center gap-2">
           <Zap className="h-4 w-4" /> 3. Teste de Força Muscular & Dinamometria
         </h3>
+
+        {/* Tabela estilizada + gráficos do dinamômetro (dados estruturados ou extraídos do texto) */}
+        <TabelaDinamometria
+          leituras={avaliacao.dinamometro_leituras || []}
+          descricaoTexto={descricaoForca}
+        />
 
         {/* Caixa de Descrição Aberta */}
         {descricaoForca ? (

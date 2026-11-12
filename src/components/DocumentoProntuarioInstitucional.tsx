@@ -1,5 +1,6 @@
 import React from 'react'
 import { LogoSOUL } from '@/components/LogoSOUL'
+import { TabelaDinamometria } from '@/components/fisioterapia/TabelaDinamometria'
 import { formatDataPTBR, formatTelefone } from '@/lib/constants'
 import { formatarEnderecoCompleto } from '@/services/pacientes'
 import type { EvolucaoRecord, Especialidade } from '@/types/database'
@@ -730,12 +731,20 @@ export const DocumentoProntuarioInstitucional: React.FC<DocumentoProntuarioInsti
             3.3 Força muscular e dinamometria
           </h3>
 
+          {/* Tabela estilizada + gráfico do dinamômetro (mesmo bloco da tela) */}
+          <TabelaDinamometria
+            leituras={avaliacao.dinamometro_leituras || []}
+            descricaoTexto={descricaoForca}
+          />
+
           {descricaoForca ? (
-            <div className="p-3 bg-[#FAF7F1] rounded-md border border-[#E9E1D2] text-[9pt] leading-relaxed">
+            <div className="p-3 bg-[#FAF7F1] rounded-md border border-[#E9E1D2] text-[9pt] leading-relaxed page-break-inside-avoid">
               <strong className="text-[#6A402D] block mb-0.5">
                 Avaliação de Força Muscular / Dinamometria:
               </strong>
-              <p className="text-[#1F1B18] whitespace-pre-wrap">{descricaoForca}</p>
+              <p className="text-[#1F1B18] whitespace-pre-wrap text-justify break-words">
+                {descricaoForca}
+              </p>
             </div>
           ) : gruposForca.length > 0 ? (
             <div className="overflow-hidden rounded-md border border-[#E9E1D2]">

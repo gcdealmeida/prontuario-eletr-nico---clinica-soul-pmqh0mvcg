@@ -529,6 +529,14 @@ export interface PlanoSemanalItem {
   criterios_evolucao?: string
 }
 
+export interface DinamometroLeituraItem {
+  movimento: string
+  direito_kgf?: number | string
+  esquerdo_kgf?: number | string
+  assimetria_pct?: number | string
+  observacao?: string
+}
+
 export interface ResumoAnexoIaItem {
   nome_arquivo: string
   resumo: string
@@ -575,6 +583,7 @@ export interface AvaliacaoFisioterapiaRecord {
   forca_core_tabela?: ForcaCoreTabela
   testes_especiais_segmentos?: TestesEspeciaisSegmento[]
   estrela_dor?: EstrelaDorItem[]
+  dinamometro_leituras?: DinamometroLeituraItem[]
   secoes_complementares?: SecoesComplementaresFisio
   diagnostico_disfuncional?: string
   forca_muscular_descricao?: string

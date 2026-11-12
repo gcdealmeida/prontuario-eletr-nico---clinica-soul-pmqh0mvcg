@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T09:52:38.931Z",
+  "generatedAt": "2026-11-12T21:48:42.949Z",
   "collections": [
     {
       "name": "users",
@@ -781,6 +781,12 @@
         },
         {
           "name": "estrela_dor",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dinamometro_leituras",
           "type": "json",
           "required": false,
           "system": false
