@@ -23,7 +23,31 @@ const LIMITE_POR_PAGINA = 3 * 1024 * 1024 // 3 MB de data URL por página
 const MAX_PAGINAS_PDF = 4
 /** Número de páginas por requisição na análise em lotes (1 lote = 1 POST). */
 export const TAMANHO_LOTE_PADRAO = 1
-const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/'
+
+/**
+ * Fontes do pdf.js tentadas EM SEQUÊNCIA: se a primeira CDN estiver
+ * bloqueada/instável (rede da clínica, firewall, ISP), a próxima é usada
+ * automaticamente. 'legacy/build' cobre navegadores mais antigos que não
+ * aceitam a sintaxe moderna do build padrão.
+ */
+const PDFJS_FONTES = [
+  {
+    nome: 'jsdelivr',
+    base: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/',
+  },
+  {
+    nome: 'unpkg',
+    base: 'https://unpkg.com/pdfjs-dist@4.10.38/build/',
+  },
+  {
+    nome: 'jsdelivr-legacy',
+    base: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/',
+  },
+  {
+    nome: 'unpkg-legacy',
+    base: 'https://unpkg.com/pdfjs-dist@4.10.38/legacy/build/',
+  },
+]
 
 export function formatarTamanho(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -52,38 +76,74 @@ declare global {
 }
 
 let pdfJsPromise: Promise<PdfJsLib> | null = null
+/** Nome da fonte (CDN) da qual o pdf.js foi carregado com sucesso — para diagnóstico. */
+let fonteAtiva: string | null = null
 
+/** Extrai a lib do módulo ESM (v4 exporta NAMED exports, não um objeto "pdfjsLib"). */
+function extrairLib(mod: Record<string, unknown> | null | undefined): PdfJsLib | null {
+  const candidatos = [mod?.pdfjsLib, mod, (window as unknown as Record<string, unknown>).pdfjsLib]
+  return (
+    candidatos.find(
+      (m): m is PdfJsLib => !!m && typeof (m as PdfJsLib).getDocument === 'function',
+    ) || null
+  )
+}
+
+/**
+ * Carrega o pdf.js da PRIMEIRA CDN que responder. Cada falha é logada no
+ * console com o motivo real (rede, 404, sintaxe...) — o que é essencial para
+ * diferenciar "CDN bloqueada" de "página não converteu".
+ * 'legacy/build' cobre navegadores antigos sem sintaxe ESM moderna.
+ */
 function carregarPdfJsDeCdn(): Promise<PdfJsLib> {
   if (typeof window === 'undefined') {
     return Promise.reject(new Error('cdn_indisponivel: ambiente sem navegador'))
   }
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib)
+  // Cache negativo curto: evita martelear CDNs mortas a cada anexo, mas expira
+  // rápido o suficiente para "Tentar novamente" logo depois funcionar.
   if (pdfJsPromise) return pdfJsPromise
 
-  // O build ESM da v4.x exporta NAMED exports (getDocument, GlobalWorkerOptions...),
-  // não um objeto "pdfjsLib" — por isso aceitamos também o próprio módulo.
-  pdfJsPromise = import(/* @vite-ignore */ PDFJS_BASE + 'pdf.min.mjs')
-    .then((mod: Record<string, unknown>) => {
-      const candidatos = [
-        mod?.pdfjsLib,
-        mod,
-        (window as unknown as Record<string, unknown>).pdfjsLib,
-      ]
-      const lib = candidatos.find(
-        (m): m is PdfJsLib => !!m && typeof (m as PdfJsLib).getDocument === 'function',
-      )
-      if (!lib) {
-        throw new Error('cdn_indisponivel: pdf.js não exposto pela CDN')
+  const tentar = async (): Promise<PdfJsLib> => {
+    const motivos: string[] = []
+    for (const fonte of PDFJS_FONTES) {
+      try {
+        const mod = (await import(
+          /* @vite-ignore */ fonte.base + 'pdf.min.mjs'
+        )) as unknown as Record<string, unknown>
+        const lib = extrairLib(mod)
+        if (!lib) {
+          throw new Error('módulo não expõe getDocument/GlobalWorkerOptions')
+        }
+        // Worker do MESMO domínio/base da lib: evita CORS/404 de uma base fixa
+        if (lib.GlobalWorkerOptions) {
+          lib.GlobalWorkerOptions.workerSrc = fonte.base + 'pdf.worker.min.mjs'
+        }
+        console.info(`[anexoIaPreparo] pdf.js carregado de ${fonte.nome} (${fonte.base})`)
+        if (!lib.GlobalWorkerOptions) {
+          console.warn('[anexoIaPreparo] pdf.js sem GlobalWorkerOptions — leitura em fallback')
+        }
+        window.pdfjsLib = lib
+        fonteAtiva = fonte.nome
+        return lib
+      } catch (e) {
+        const motivo = e instanceof Error ? e.message : String(e)
+        console.warn(`[anexoIaPreparo] CDN "${fonte.nome}" (${fonte.base}) falhou: ${motivo}`)
+        motivos.push(`${fonte.nome}: ${motivo}`)
       }
-      window.pdfjsLib = lib
-      return lib
-    })
-    .catch((e: unknown) => {
-      pdfJsPromise = null // permite nova tentativa em "Tentar novamente"
-      throw new Error(
-        'cdn_indisponivel: ' + (e instanceof Error ? e.message : 'falha ao carregar pdf.js da CDN'),
-      )
-    })
+    }
+    throw new Error(
+      'cdn_indisponivel: nenhuma fonte respondeu (' +
+        (fonteAtiva ? `última ativa: ${fonteAtiva}; ` : '') +
+        motivos.join(' | ') +
+        ')',
+    )
+  }
+
+  pdfJsPromise = tentar().catch((e: unknown) => {
+    pdfJsPromise = null // permite nova tentativa em "Tentar novamente"
+    throw e
+  })
 
   return pdfJsPromise
 }
@@ -154,15 +214,26 @@ export type PdfRasterizado = {
 /**
  * Rasteriza as primeiras MAX_PAGINAS_PDF páginas do PDF em data URLs JPEG.
  * Cada página é independente: a que falhar não derruba as outras.
- * Lança Error com prefixo 'cdn_indisponivel' quando o CDN de pdf.js não responde.
+ * Erros são lançados com prefixo específico:
+ *  - 'cdn_indisponivel:' → nenhuma CDN do pdf.js respondeu (biblioteca não carregou);
+ *  - 'pdf_corrompido:'   → o arquivo não pôde ser aberto (não é PDF / corrompido);
+ *  - 'rasterizacao_falhou:' → a biblioteca carregou, mas a conversão de página falhou
+ *    (o motivo técnico vem junto — aparece no console e na mensagem ao usuário).
  */
 export async function rasterizarPdfParaDataUrls(
   file: File,
   onProgress?: (msg: string) => void,
 ): Promise<PdfRasterizado> {
-  const pdfjs = await carregarPdfJsDeCdn()
+  let pdfjs: PdfJsLib
   try {
-    pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.mjs'
+    pdfjs = await carregarPdfJsDeCdn()
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('cdn_indisponivel')) throw err
+    throw new Error(
+      'cdn_indisponivel: ' + (err instanceof Error ? err.message : 'falha ao carregar leitor'),
+    )
+  }
+  try {
     const buf = await file.arrayBuffer()
     const doc = await pdfjs.getDocument({ data: buf }).promise
     const total = Math.min(doc.numPages, MAX_PAGINAS_PDF)
@@ -183,10 +254,15 @@ export async function rasterizarPdfParaDataUrls(
     }
     return { paginas, totalPaginas: doc.numPages, paginasFalhas }
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
     if (err instanceof Error && err.message.startsWith('cdn_indisponivel')) throw err
-    throw new Error(
-      'rasterizacao_falhou: ' + (err instanceof Error ? err.message : 'erro desconhecido'),
-    )
+    if (
+      /password|senha|encrypted|corrupt|inválido|invalid|structure/i.test(msg) ||
+      msg === 'PDF sem páginas legíveis'
+    ) {
+      throw new Error('pdf_corrompido: ' + msg)
+    }
+    throw new Error('rasterizacao_falhou: ' + msg)
   }
 }
 
@@ -312,9 +388,15 @@ export async function prepararAnexoParaIa(
       return { dataUrls: paginas, aviso: avisos.join(' ') || undefined, paginasFalhas }
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
+      console.error('[anexoIaPreparo] leitor de PDF falhou:', msg)
       const motivoUsuario = msg.startsWith('cdn_indisponivel')
-        ? 'Não foi possível carregar o leitor de PDFs (CDN indisponível). Tentando enviar o arquivo original; se falhar, anexe fotos nítidas das páginas (JPG/PNG).'
-        : 'Não foi possível converter as páginas deste PDF em imagens. Tentando enviar o arquivo original; se falhar, anexe fotos nítidas do documento (JPG/PNG).'
+        ? 'Não foi possível carregar o leitor de PDFs (conexão com o serviço de leitura indisponível). Tentando enviar o arquivo original; se falhar, anexe fotos nítidas das páginas (JPG/PNG).'
+        : msg.startsWith('pdf_corrompido')
+          ? 'O leitor de PDFs abriu o arquivo, mas ele não pôde ser convertido (arquivo protegido por senha, corrompido ou com formato não suportado). Tentando enviar o arquivo original; se falhar, anexe fotos nítidas das páginas (JPG/PNG).'
+          : `Não foi possível converter as páginas deste PDF em imagens (${msg.replace(
+              /^[a-z_]+:\s*/i,
+              '',
+            )}). Tentando enviar o arquivo original; se falhar, anexe fotos nítidas do documento (JPG/PNG).`
       return { dataUrls: [], arquivoCru: file, aviso: motivoUsuario }
     }
   }

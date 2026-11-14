@@ -374,7 +374,24 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
       }
     } catch (err: any) {
       console.error('Erro na análise do anexo com IA:', err)
-      const msg = err?.message || 'Falha ao processar arquivo com IA'
+      let msg = err?.message || 'Falha ao processar arquivo com IA'
+      // Mostra apenas o motivo técnico, nunca o prefixo interno (cdn_indisponivel:, pdf_corrompido:)
+      if (msg.startsWith('cdn_indisponivel:')) {
+        msg =
+          'O leitor de PDFs não carregou neste navegador (' +
+          msg.slice('cdn_indisponivel:'.length).trim() +
+          '). ' +
+          'Verifique sua conexão e clique em "Tentar novamente". Se persistir, anexe fotos nítidas das páginas (JPG/PNG).'
+      } else if (msg.startsWith('pdf_corrompido:')) {
+        msg =
+          'Não foi possível converter as páginas deste PDF (arquivo protegido por senha, corrompido ou formato não suportado). ' +
+          'Anexe fotos nítidas das páginas (JPG/PNG) ou solicite uma versão desprotegida do laudo.'
+      } else if (msg.startsWith('rasterizacao_falhou:')) {
+        msg =
+          'Não foi possível converter ' +
+          msg.slice('rasterizacao_falhou:'.length).trim() +
+          '. Clique em "Tentar novamente" ou anexe fotos nítidas das páginas (JPG/PNG).'
+      }
       setErroMap((prev) => ({ ...prev, [fileName]: msg }))
       toast({
         title: 'Não foi possível analisar o anexo',

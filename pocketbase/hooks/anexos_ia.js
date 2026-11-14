@@ -220,7 +220,7 @@ routerAdd(
         let motivo
         if (paginasBase64.length === 0 && (fileExt === 'pdf' || fileExt === '')) {
           motivo =
-            'Não recebemos as páginas deste PDF para leitura por IA (o leitor de PDF do navegador não conseguiu convertê-lo). Tente novamente; se persistir, compacte o PDF ou anexe fotos nítidas das páginas (JPG/PNG).'
+            'Este PDF veio sem camada de texto (escaneado) e o navegador também não enviou as páginas convertidas em imagem. Clique em "Tentar novamente" — se persistir, feche e reabra o app, ou anexe fotos nítidas das páginas (JPG/PNG).'
         } else if (extImagens.includes(fileExt)) {
           motivo =
             'Não foi possível ler a imagem enviada pela IA. Confira se a foto está nítida e completa e tente novamente.'
