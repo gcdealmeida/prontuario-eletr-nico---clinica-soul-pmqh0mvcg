@@ -362,6 +362,65 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
       }
 
       // ------------------------------------------------------------------
+      // 4bis. Extração estruturada dos dados do documento (revisão no prontuário)
+      //      Segunda chamada curta ao modelo: devolve JSON com os campos que a
+      //      tela "Exames Complementares e Documentos" mostra para o profissional
+      //      conferir antes de preencher automaticamente os campos do formulário.
+      //      Fallback: se falhar, o frontend continua com o resumo puro.
+      // ------------------------------------------------------------------
+      let dadosExtraidos = null
+      try {
+        const textoFonte =
+          fileBase64 && !fileContentMarkdown
+            ? '(imagem analisada por visão)'
+            : fileContentMarkdown.slice(0, 30000)
+        const replyDados = $ai.chat({
+          model: 'fast',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Você é um extrator de dados de documentos clínicos. A partir do texto da síntese e das informações do documento anexado ao prontuário, devolve EXCLUSIVAMENTE um JSON válido (sem markdown, sem cercas de código) com as chaves: "tipo_exame" (string), "data_exame" (string, formato DD/MM/AAAA ou ""), "laboratorio" (string, nome do laboratório/clínica ou ""), "achados" (string, achados relevantes em texto corrido ou tópicos com "-"), "valores_referencia" (string, valores de referência/medidas citados ou ""), "conclusao" (string, conclusão diagnóstica ou ""), "campo_sugerido" (string: um destes valores — "historico_medico" se for laudo de imagem/relatório; "" caso contrário). Use "" quando a informação não existir no documento. Nunca invente dados.',
+            },
+            {
+              role: 'user',
+              content:
+                'Documento "' +
+                fileName +
+                '" do paciente ' +
+                (pacienteNome || '') +
+                '.\n\nSíntese clínica já gerada:\n' +
+                resumoGerado +
+                '\n\nConteúdo bruto do documento (pode estar truncado):\n' +
+                textoFonte,
+            },
+          ],
+        })
+        const bruto = (replyDados.choices?.[0]?.message?.content || '').trim()
+        const jsonLimpo = bruto
+          .replace(/^```(?:json)?/i, '')
+          .replace(/```$/, '')
+          .trim()
+        const match = jsonLimpo.match(/\{[\s\S]*\}/)
+        if (match) {
+          const parsed = JSON.parse(match[0])
+          if (parsed && typeof parsed === 'object') {
+            dadosExtraidos = {
+              tipo_exame: String(parsed.tipo_exame || ''),
+              data_exame: String(parsed.data_exame || ''),
+              laboratorio: String(parsed.laboratorio || ''),
+              achados: String(parsed.achados || ''),
+              valores_referencia: String(parsed.valores_referencia || ''),
+              conclusao: String(parsed.conclusao || ''),
+              campo_sugerido: String(parsed.campo_sugerido || ''),
+            }
+          }
+        }
+      } catch (dadosErr) {
+        console.log('Extração estruturada de dados do anexo falhou (seguindo sem ela):', dadosErr)
+      }
+
+      // ------------------------------------------------------------------
       // 5. Avisos e auditoria clínica
       // ------------------------------------------------------------------
       const avisos = []
@@ -403,6 +462,7 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
         success: true,
         nome_arquivo: fileName,
         resumo: resumoGerado,
+        dados_extraidos: dadosExtraidos || undefined,
         truncated: isTruncated,
         aviso: avisos.join(' ') || undefined,
         analisado_em: new Date().toISOString(),

@@ -641,10 +641,21 @@ export interface AnalisarAnexoIaParams {
   record_id?: string
 }
 
+export interface AnexoDadosExtraidos {
+  tipo_exame?: string
+  data_exame?: string
+  laboratorio?: string
+  achados?: string
+  valores_referencia?: string
+  conclusao?: string
+  campo_sugerido?: string
+}
+
 export interface AnalisarAnexoIaResponse {
   success: boolean
   nome_arquivo: string
   resumo: string
+  dados_extraidos?: AnexoDadosExtraidos
   truncated?: boolean
   aviso?: string
   analisado_em: string

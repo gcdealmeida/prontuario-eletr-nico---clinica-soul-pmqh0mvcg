@@ -18,8 +18,10 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { getFileUrl, analisarAnexoIa } from '@/services/avaliacoes'
+import type { AnexoDadosExtraidos } from '@/services/avaliacoes'
 import { useToast } from '@/hooks/use-toast'
 import type { ResumoAnexoIaItem } from '@/types/database'
+import { RevisaoDadosExtraidos, type RevisaoDadosExtraidosHandle } from './AnexosIaRevisao'
 
 interface Etapa6AnexosProps {
   formData: Record<string, any>
@@ -42,6 +44,16 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
   const [erroMap, setErroMap] = useState<Record<string, string>>({})
   const [editandoMap, setEditandoMap] = useState<Record<string, boolean>>({})
   const [expandidoMap, setExpandidoMap] = useState<Record<string, boolean>>({})
+  const [dadosExtraidosMap, setDadosExtraidosMap] = useState<
+    Record<string, AnexoDadosExtraidos | null>
+  >({})
+  const [confirmadoMap, setConfirmadoMap] = useState<Record<string, boolean>>({})
+
+  // Refs para a revisão estruturada de cada arquivo (permite salvar as edições do profissional)
+  const revisaoRefs = useRef<Record<string, RevisaoDadosExtraidosHandle | null>>({})
+  const registrarRefRevisao = (nome: string) => (el: RevisaoDadosExtraidosHandle | null) => {
+    revisaoRefs.current[nome] = el
+  }
 
   const resumosAnexos: Record<string, ResumoAnexoIaItem> = formData.resumos_anexos || {}
 
@@ -110,12 +122,21 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
           truncated: res.truncated,
         })
 
+        // Guardar os dados estruturados para o painel de revisão
+        setDadosExtraidosMap((prev) => ({ ...prev, [fileName]: res.dados_extraidos || null }))
+        setConfirmadoMap((prev) => ({ ...prev, [fileName]: false }))
+
         // Expandir card para visualização imediata
         setExpandidoMap((prev) => ({ ...prev, [fileName]: true }))
 
+        const temDadosEstruturados = !!(
+          res.dados_extraidos && Object.values(res.dados_extraidos).some((v) => v)
+        )
         toast({
-          title: 'Análise de anexo concluída com sucesso!',
-          description: `A IA sintetizou os principais achados clínicos de "${fileName}". O texto está pronto e aberto para sua edição.`,
+          title: 'Análise de anexo concluída!',
+          description: temDadosEstruturados
+            ? `A IA extraiu os dados de "${fileName}". Confira e confirme para preencher o prontuário.`
+            : `A IA leu "${fileName}" e gerou a síntese clínica. Edite se necessário.`,
         })
       }
     } catch (err: any) {
@@ -130,6 +151,41 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
     } finally {
       setAnalisandoMap((prev) => ({ ...prev, [fileName]: false }))
     }
+  }
+
+  // Confirmar os dados extraídos pela IA: preenche o campo de destino do prontuário
+  // (Histórico Médico, na Etapa 1 — Anamnese) acrescentando ao conteúdo existente.
+  const handleConfirmarDados = (nomeArquivo: string, dados: AnexoDadosExtraidos | null) => {
+    if (!dados) return
+
+    const partes: string[] = []
+    if (dados.tipo_exame) partes.push(`Exame: ${dados.tipo_exame}`)
+    if (dados.data_exame) partes.push(`Data: ${dados.data_exame}`)
+    if (dados.laboratorio) partes.push(`Laboratório: ${dados.laboratorio}`)
+    if (dados.achados) partes.push(`Achados: ${dados.achados}`)
+    if (dados.valores_referencia) partes.push(`Valores de referência: ${dados.valores_referencia}`)
+    if (dados.conclusao) partes.push(`Conclusão: ${dados.conclusao}`)
+
+    if (partes.length === 0) {
+      toast({
+        title: 'Nada para preencher',
+        description:
+          'A IA não extraiu informações deste documento. Você pode preencher os campos manualmente como antes.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const textoNovo = `[${nomeArquivo}]\n${partes.join('\n')}`
+    const atual = String(formData.historico_medico || '').trim()
+
+    onChange('historico_medico', atual ? `${atual}\n\n${textoNovo}` : textoNovo)
+
+    setConfirmadoMap((prev) => ({ ...prev, [nomeArquivo]: true }))
+    toast({
+      title: 'Prontuário preenchido!',
+      description: `Os dados de "${nomeArquivo}" foram lançados no Histórico Médico (Etapa 1 — Anamnese).`,
+    })
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,6 +478,16 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Revisão dos dados extraídos pela IA (confirmar → preenche o prontuário) */}
+                  <RevisaoDadosExtraidos
+                    ref={registrarRefRevisao(filename)}
+                    nomeArquivo={filename}
+                    dados={dadosExtraidosMap[filename] || null}
+                    confirmado={!!confirmadoMap[filename]}
+                    valorAtualCampo={formData.historico_medico || ''}
+                    onConfirmar={handleConfirmarDados}
+                  />
                 </div>
               )
             })}
@@ -563,6 +629,16 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
                       )}
                     </div>
                   )}
+
+                  {/* Revisão dos dados extraídos pela IA (confirmar → preenche o prontuário) */}
+                  <RevisaoDadosExtraidos
+                    ref={registrarRefRevisao(file.name)}
+                    nomeArquivo={file.name}
+                    dados={dadosExtraidosMap[file.name] || null}
+                    confirmado={!!confirmadoMap[file.name]}
+                    valorAtualCampo={formData.historico_medico || ''}
+                    onConfirmar={handleConfirmarDados}
+                  />
                 </div>
               )
             })}
