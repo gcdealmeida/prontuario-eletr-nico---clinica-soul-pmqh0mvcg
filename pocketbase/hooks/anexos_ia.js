@@ -7,8 +7,10 @@
  * Suporta:
  * 1. Arquivos enviados via multipart/form-data (campo 'arquivo') ou já salvos no registro
  * 2. Documentos com texto: PDFs, DOCX, XLSX, PPTX, TXT via $documents.toMarkdown
- * 3. PDFs escaneados (sem camada de texto): fallback de VISÃO — cada página do PDF é
- *    renderizada como imagem e lida por IA multimodal ($documents.pages → $ai.chat)
+ * 3. PDFs escaneados (sem camada de texto): o FRONTEND rasteriza as páginas do PDF
+ *    (pdf.js) e as envia no mesmo multipart no campo 'paginas'; o hook lê essas
+ *    imagens com IA multimodal ($ai.chat) fazendo o OCR de visão.
+ *    ($documents.pages NÃO existe nesta plataforma — nunca chamar.)
  * 4. Imagens (JPG, PNG, WEBP) via visão ($ai.chat com multimodal base64)
  * 5. Síntese gerada pelo agente nativo 'leitor-documentos-clinica-soul' (migration 0054),
  *    com fallback para $ai.chat direto caso o agente não responda
@@ -141,100 +143,63 @@ routerAdd(
       }
 
       // ------------------------------------------------------------------
-      // 2. Fallback de VISÃO para documentos sem camada de texto (PDF escaneado
-      //    ou DOCX apenas com imagens): renderizar cada página como imagem e
-      //    ler com IA multimodal. NUNCA rejeitar com erro falso de "nitidez".
+      // 2. Páginas rasterizadas enviadas pelo FRONTEND (campo 'paginas', múltiplo):
+      //    pdf.js no navegador transforma cada página do PDF em PNG (data URL).
+      //    Isso cobre PDFs escaneados (sem camada de texto), que o $documents
+      //    rejeita com "OCR is required". NUNCA rejeitar com erro falso de
+      //    "nitidez": página legível → OCR de visão.
       // ------------------------------------------------------------------
-      if (!fileContentMarkdown && !fileBase64) {
-        let sourceFile = null
-        if (files && files.length > 0) {
-          sourceFile = files[0]
-        } else if (existingRecordId && existingCollection && existingFilename) {
-          try {
-            const rec = $app.findRecordById(existingCollection, existingRecordId)
-            const fieldCandidates = ['anexos_exames', 'anexos_dinamometro', 'anexos_postura']
-            for (let f = 0; f < fieldCandidates.length; f++) {
-              if (rec.collection().fields.getByName(fieldCandidates[f])) {
-                const bytes = rec.getStoredFileBytes(fieldCandidates[f], existingFilename)
-                if (bytes && bytes.length > 0) {
-                  sourceFile = { bytes: bytes, mime: MIME_POR_EXT[fileExt] || 'application/pdf' }
-                  break
-                }
-              }
-            }
-          } catch (recErr2) {
-            console.log('Erro ao localizar arquivo persistido para fallback de visão:', recErr2)
+      const paginasEnviadas = e.findUploadedFiles('paginas')
+      if (!fileContentMarkdown && !fileBase64 && paginasEnviadas && paginasEnviadas.length > 0) {
+        try {
+          const maxPaginas = 8
+          const totalPaginas = paginasEnviadas.length
+          const contentParts = []
+          for (let p = 0; p < Math.min(totalPaginas, maxPaginas); p++) {
+            const reader = paginasEnviadas[p].open()
+            const bytes = $io.readAll(reader)
+            reader.close()
+            contentParts.push({
+              type: 'text',
+              text:
+                'Página ' + (p + 1) + ' de ' + totalPaginas + ' do documento "' + fileName + '".',
+            })
+            contentParts.push({
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,' + $security.base64Encode(bytes),
+              },
+            })
           }
-        }
 
-        if (sourceFile) {
-          try {
-            let pagesInfo = null
-            let bytes = null
-            let mime = 'application/pdf'
-            if (sourceFile.bytes) {
-              // Arquivo persistido: converter bytes em Blob para o extrator de páginas
-              bytes = sourceFile.bytes
-              mime = sourceFile.mime || 'application/pdf'
-              pagesInfo = $documents.pages({ bytes: new Blob([bytes], { type: mime }) })
-            } else {
-              pagesInfo = $documents.pages({ file: sourceFile })
-            }
-
-            if (pagesInfo && pagesInfo.length > 0) {
-              const contentParts = []
-              const maxPaginas = 8
-              const totalPaginas = pagesInfo.length
-              for (let p = 0; p < Math.min(totalPaginas, maxPaginas); p++) {
-                contentParts.push({
-                  type: 'text',
-                  text:
-                    'Página ' +
-                    (p + 1) +
-                    ' de ' +
-                    totalPaginas +
-                    ' do documento "' +
-                    fileName +
-                    '".',
-                })
-                contentParts.push({
-                  type: 'image_url',
-                  image_url: {
-                    url: 'data:image/png;base64,' + $security.base64Encode(pagesInfo[p].image),
-                  },
-                })
-              }
-
-              if (totalPaginas > maxPaginas) {
-                isTruncated = true
-              }
-
-              const replyVisao = $ai.chat({
-                model: 'fast',
-                messages: [
-                  {
-                    role: 'system',
-                    content:
-                      'Você é um leitor universal de documentos clínicos. Analise cuidadosamente as páginas (imagens) deste documento anexado ao prontuário e EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta (OCR de visão). Preserve a ordem de leitura, títulos, valores, medidas e a conclusão. Não comente sobre a qualidade da imagem nem avalie nitidez. Idioma: Português (Brasil).',
-                  },
-                  { role: 'user', content: contentParts },
-                ],
-              })
-
-              fileContentMarkdown = (replyVisao.choices?.[0]?.message?.content || '').trim()
-              if (fileContentMarkdown) {
-                console.log(
-                  'Fallback de visão usado para documento sem camada de texto: ' +
-                    fileName +
-                    ' (' +
-                    Math.min(totalPaginas, maxPaginas) +
-                    ' páginas)',
-                )
-              }
-            }
-          } catch (visaoErr) {
-            console.log('Fallback de visão para documento falhou:', visaoErr)
+          if (totalPaginas > maxPaginas) {
+            isTruncated = true
           }
+
+          const replyVisao = $ai.chat({
+            model: 'fast',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'Você é um leitor universal de documentos clínicos. Analise cuidadosamente as páginas (imagens) deste documento anexado ao prontuário e EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta (OCR de visão). Preserve a ordem de leitura, títulos, valores, medidas e a conclusão. Não comente sobre a qualidade da imagem nem avalie nitidez. Idioma: Português (Brasil).',
+              },
+              { role: 'user', content: contentParts },
+            ],
+          })
+
+          fileContentMarkdown = (replyVisao.choices?.[0]?.message?.content || '').trim()
+          if (fileContentMarkdown) {
+            console.log(
+              'OCR de visão usado (páginas rasterizadas pelo cliente): ' +
+                fileName +
+                ' (' +
+                Math.min(totalPaginas, maxPaginas) +
+                ' páginas)',
+            )
+          }
+        } catch (visaoErr) {
+          console.log('Fallback de visão (páginas do cliente) falhou:', visaoErr)
         }
       }
 

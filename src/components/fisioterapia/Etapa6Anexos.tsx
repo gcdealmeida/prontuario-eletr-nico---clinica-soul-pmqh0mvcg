@@ -18,6 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { getFileUrl, analisarAnexoIa } from '@/services/avaliacoes'
+import { rasterizarPaginasPdf } from '@/lib/rasterizadorPdf'
 import type { AnexoDadosExtraidos } from '@/services/avaliacoes'
 import { useToast } from '@/hooks/use-toast'
 import type { ResumoAnexoIaItem } from '@/types/database'
@@ -97,9 +98,21 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
         return copy
       })
 
+      let paginasRasterizadas: File[] | null = null
+      if (isFileObject) {
+        try {
+          // PDF (inclusive escaneado): rasteriza as páginas no navegador para o
+          // hook fazer OCR de visão — evita o falso erro de "nitidez".
+          paginasRasterizadas = await rasterizarPaginasPdf(fileOrName)
+        } catch (rasterErr) {
+          console.warn('Rasterização falhou; servidor tentará extrair texto:', rasterErr)
+        }
+      }
+
       const params = isFileObject
         ? {
             arquivo: fileOrName,
+            paginas: paginasRasterizadas || undefined,
             paciente_id: pacienteId || formData.paciente_id,
             avaliacao_id: existingRecordId,
             especialidade: 'Fisioterapia',

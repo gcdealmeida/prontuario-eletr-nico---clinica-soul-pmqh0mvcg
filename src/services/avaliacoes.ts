@@ -632,6 +632,7 @@ export async function extrairDinamometroArquivo(file: File, textoContexto?: stri
 
 export interface AnalisarAnexoIaParams {
   arquivo?: File
+  paginas?: File[]
   paciente_id?: string
   avaliacao_id?: string
   evolucao_id?: string
@@ -671,6 +672,13 @@ export async function analisarAnexoIa(
   const formData = new FormData()
   if (params.arquivo) {
     formData.append('arquivo', params.arquivo)
+  }
+  // Páginas rasterizadas do PDF no navegador (pdf.js) — permitem OCR de visão
+  // de PDFs escaneados, que o conversor do servidor rejeita por falta de texto.
+  if (params.paginas && params.paginas.length > 0) {
+    for (const pagina of params.paginas) {
+      formData.append('paginas', pagina)
+    }
   }
   if (params.paciente_id) formData.append('paciente_id', params.paciente_id)
   if (params.avaliacao_id) formData.append('avaliacao_id', params.avaliacao_id)
