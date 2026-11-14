@@ -18,7 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { getFileUrl, analisarAnexoIa } from '@/services/avaliacoes'
-import { arquivoParaDataUrl } from '@/lib/arquivoParaDataUrl'
+import { prepararAnexoParaIa } from '@/lib/anexoIaPreparo'
 import type { AnexoDadosExtraidos } from '@/services/avaliacoes'
 import { useToast } from '@/hooks/use-toast'
 import type { ResumoAnexoIaItem } from '@/types/database'
@@ -43,6 +43,7 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
   // Estados de processamento de IA por arquivo
   const [analisandoMap, setAnalisandoMap] = useState<Record<string, boolean>>({})
   const [erroMap, setErroMap] = useState<Record<string, string>>({})
+  const [progressoMap, setProgressoMap] = useState<Record<string, string>>({})
   const [editandoMap, setEditandoMap] = useState<Record<string, boolean>>({})
   const [expandidoMap, setExpandidoMap] = useState<Record<string, boolean>>({})
   const [dadosExtraidosMap, setDadosExtraidosMap] = useState<
@@ -98,47 +99,50 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
         return copy
       })
 
-      // Data URL do arquivo (FileReader nativo, sem dependências) para a visão
-      // multimodal do hook: cobre imagens e PDFs escaneados (sem camada de texto)
-      // sem o falso erro de "nitidez". Para arquivos > 6 MB, é null e o hook
-      // tenta só o texto; para "Analisar com IA" de anexo já salvo, o data URL
-      // é buscado pela URL pública do arquivo.
-      let arquivoBase64: string | null = null
+      // Preparo do anexo no navegador:
+      // - PDFs escaneados são rasterizados via pdf.js (uma imagem por página);
+      //   o payload não depende mais do tamanho do PDF (não há limite de 6 MB).
+      // - Imagens são comprimidas via canvas; DOCX/XLSX/PPTX/TXT seguem crus.
+      // Para "Reanalisar com IA" de anexo já salvo, o arquivo é baixado da URL
+      // pública e passa pelo mesmo preparo.
+      let arquivoParaPreparo: File | undefined = undefined
       if (isFileObject) {
-        try {
-          arquivoBase64 = await arquivoParaDataUrl(fileOrName)
-        } catch (b64Err) {
-          console.warn('Conversão para data URL falhou; servidor tentará extrair texto:', b64Err)
-        }
+        arquivoParaPreparo = fileOrName
       } else if (existingRecordId) {
-        // Anexo já salvo no backend ("Reanalisar com IA"): busca o arquivo pela
-        // URL pública e converte para data URL — cobre PDFs escaneados salvos.
         try {
           const urlArquivo = getFileUrl('avaliacoes_fisioterapia', existingRecordId, fileName)
           const resp = await fetch(urlArquivo)
           if (resp.ok) {
             const blob = await resp.blob()
-            arquivoBase64 = await arquivoParaDataUrl(
-              new File([blob], fileName, { type: blob.type || 'application/pdf' }),
-            )
+            arquivoParaPreparo = new File([blob], fileName, {
+              type: blob.type || 'application/pdf',
+            })
           }
         } catch (fetchErr) {
           console.warn(
-            'Re-download do anexo salvo falhou; servidor tentará extrair texto:',
+            'Re-download do anexo salvo falhou; seguindo com análise server-side:',
             fetchErr,
           )
         }
       }
 
+      const preparo = arquivoParaPreparo
+        ? await prepararAnexoParaIa(arquivoParaPreparo, (msg) =>
+            setProgressoMap((prev) => ({ ...prev, [fileName]: msg })),
+          )
+        : { paginas: [], arquivo: undefined }
+
       const params = isFileObject
         ? {
             arquivo: fileOrName,
-            arquivo_base64: arquivoBase64 || undefined,
+            arquivo_base64s: preparo.paginas.length > 0 ? preparo.paginas : undefined,
             paciente_id: pacienteId || formData.paciente_id,
             avaliacao_id: existingRecordId,
             especialidade: 'Fisioterapia',
           }
         : {
+            arquivo: preparo.arquivo,
+            arquivo_base64s: preparo.paginas.length > 0 ? preparo.paginas : undefined,
             nome_arquivo: fileName,
             collection_name: 'avaliacoes_fisioterapia',
             record_id: existingRecordId,
@@ -396,7 +400,7 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
                         {isAnalisando ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            Analisando laudo...
+                            {progressoMap[filename] || 'Lendo com IA...'}
                           </>
                         ) : resumoItem?.resumo ? (
                           <>
@@ -579,7 +583,7 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
                         {isAnalisando ? (
                           <>
                             <Loader2 className="h-3 w-3 animate-spin" />
-                            Lendo com IA...
+                            {progressoMap[file.name] || 'Lendo com IA...'}
                           </>
                         ) : resumoItem?.resumo ? (
                           <>

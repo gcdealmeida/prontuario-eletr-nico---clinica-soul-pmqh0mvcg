@@ -6,11 +6,13 @@
  *
  * Cadeia de leitura (nesta ordem):
  * 1. Texto direto: PDFs, DOCX, XLSX, PPTX, TXT via $documents.toMarkdown
- * 2. Visão multimodal ($ai.chat) com data URL enviado pelo navegador
- *    ('arquivo_base64') — cobre imagens (JPG/PNG/WEBP) e PDFs escaneados
- *    (sem camada de texto), que o $documents rejeita. $documents.pages NÃO
- *    existe nesta plataforma — nunca chamar; $security.base64Encode também
- *    NÃO existe nesta JSVM — o base64 vem pronto do cliente.
+ * 2. Visão multimodal ($ai.chat) com data URL(s) enviados pelo navegador
+ *    ('arquivo_base64' com um data URL, ou 'arquivo_base64s' com JSON array de
+ *    data URLs — um por página do PDF, rasterizado via pdf.js no cliente).
+ *    Cobre imagens (JPG/PNG/WEBP) e PDFs escaneados (sem camada de texto),
+ *    que o $documents rejeita. $documents.pages NÃO existe nesta plataforma —
+ *    nunca chamar; $security.base64Encode também NÃO existe nesta JSVM — o
+ *    base64 vem pronto do cliente.
  * 3. Síntese via agente nativo 'leitor-documentos-clinica-soul' (migration 0054),
  *    com fallback para $ai.chat direto (texto ou visão) caso o agente não responda
  * 4. Extração estruturada (JSON) para o painel de revisão da Etapa 6
@@ -40,7 +42,26 @@ routerAdd(
       const existingFilename = (body.nome_arquivo || '').trim()
       const existingCollection = (body.collection_name || '').trim()
       const existingRecordId = (body.record_id || avaliacaoId || evolucaoId || '').trim()
-      const arquivoBase64Cliente = (body.arquivo_base64 || '').trim()
+
+      // Data URL único (campo antigo) OU array de data URLs por página (novo)
+      const rawBase64 = (body.arquivo_base64 || '').trim()
+      let paginasBase64 = []
+      try {
+        const parsed = JSON.parse(body.arquivo_base64s || '[]')
+        if (Array.isArray(parsed)) {
+          paginasBase64 = parsed.filter((s) => typeof s === 'string' && s.startsWith('data:'))
+        }
+      } catch (_) {}
+      if (paginasBase64.length === 0 && rawBase64.startsWith('data:')) {
+        paginasBase64 = [rawBase64]
+      }
+      // Log de diagnóstico (sem conteúdo): tamanho e quantidade de páginas recebidas
+      console.log(
+        '[anexos-ia] payload recebido: paginas=' +
+          paginasBase64.length +
+          ' tamanho_base64_total=' +
+          paginasBase64.reduce((acc, s) => acc + (s ? s.length : 0), 0),
+      )
 
       const extImagens = ['jpg', 'jpeg', 'png', 'webp']
       const extDocumentos = ['pdf', 'docx', 'xlsx', 'pptx', 'txt']
@@ -49,10 +70,9 @@ routerAdd(
       let fileExt = ''
       let fileContentMarkdown = ''
       let isTruncated = false
-      let dataUrlImagem = ''
 
       // ------------------------------------------------------------------
-      // 1. Obter o conteúdo do documento: texto via $documents ou visão
+      // 1. Obter o conteúdo do documento: texto via $documents
       // ------------------------------------------------------------------
       if (files && files.length > 0) {
         const uploadedFile = files[0]
@@ -71,9 +91,20 @@ routerAdd(
             const docRes = $documents.toMarkdown({ file: uploadedFile })
             fileContentMarkdown = docRes.markdown || ''
             isTruncated = !!docRes.truncated
+            console.log(
+              '[anexos-ia] toMarkdown ok (' +
+                fileName +
+                '): ' +
+                fileContentMarkdown.length +
+                ' chars',
+            )
           } catch (docErr) {
-            console.log('Texto não extraível via toMarkdown (' + fileName + '):', docErr)
-            // PDF escaneado: o fallback de visão acontece mais abaixo com o data URL do cliente
+            console.log(
+              '[anexos-ia] Texto não extraível via toMarkdown (' + fileName + '):',
+              docErr,
+            )
+            // PDF escaneado: o fallback de visão acontece mais abaixo com as
+            // páginas rasterizadas enviadas pelo cliente
           }
         }
       } else if (existingRecordId && existingCollection && existingFilename) {
@@ -104,21 +135,30 @@ routerAdd(
       }
 
       // ------------------------------------------------------------------
-      // 2. Visão multimodal com o data URL enviado pelo navegador
-      //    (campo 'arquivo_base64', "data:image/jpeg;base64,..." vindo do
-      //    FileReader). Usado quando: é imagem, OU documento sem texto
-      //    extraível (PDF escaneado), OU o texto extraído veio vazio.
+      // 2. Visão multimodal com as páginas data URL enviadas pelo navegador
+      //    ('arquivo_base64' ou 'arquivo_base64s' JSON array — rasterizadas
+      //    via pdf.js no cliente). Usado quando: é imagem, OU documento sem
+      //    texto extraível (PDF escaneado), OU o texto extraído veio vazio.
       // ------------------------------------------------------------------
-      if (!fileContentMarkdown && arquivoBase64Cliente.startsWith('data:')) {
-        const virgula = arquivoBase64Cliente.indexOf(',')
-        dataUrlImagem = arquivoBase64Cliente
-        if (virgula === -1) {
-          return e.json(400, {
-            error:
-              'Formato do anexo inválido para leitura por IA. Tente novamente; se persistir, preencha o prontuário manualmente.',
-          })
-        }
+      if (!fileContentMarkdown && paginasBase64.length > 0) {
         try {
+          const conteudo = [
+            {
+              type: 'text',
+              text:
+                'Leia o documento "' +
+                fileName +
+                '" anexado ao prontuário. ' +
+                (paginasBase64.length > 1
+                  ? 'São ' + paginasBase64.length + ' páginas do mesmo documento, em ordem. '
+                  : '') +
+                'EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta (leitura de documento escaneado ou fotografado). Preserve a ordem de leitura, títulos, valores, medidas e a conclusão. NUNCA comente sobre a qualidade ou nitidez da imagem. Se estiver ilegível, diga apenas "DOCUMENTO ILEGIVEL". Idioma: Português (Brasil).',
+            },
+          ]
+          for (let p = 0; p < paginasBase64.length; p++) {
+            conteudo.push({ type: 'image_url', image_url: { url: paginasBase64[p] } })
+          }
+
           const replyVisao = $ai.chat({
             model: 'fast',
             maxTokens: 3000,
@@ -126,32 +166,39 @@ routerAdd(
               {
                 role: 'system',
                 content:
-                  'Você é um leitor universal de documentos clínicos da Clínica SOUL. Analise cuidadosamente a imagem/anexo e EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta (leitura de documento escaneado ou fotografado). Preserve a ordem de leitura, títulos, valores, medidas e a conclusão. NUNCA comente sobre a qualidade ou nitidez da imagem. Se estiver ilegível, diga apenas "DOCUMENTO ILEGIVEL". Idioma: Português (Brasil).',
+                  'Você é um leitor universal de documentos clínicos da Clínica SOUL. Analise cuidadosamente as imagens/anexos e EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta.',
               },
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text:
-                      'Leia o documento "' +
-                      fileName +
-                      '" anexado ao prontuário e extraia todo o seu conteúdo em texto.',
-                  },
-                  { type: 'image_url', image_url: { url: arquivoBase64Cliente } },
-                ],
-              },
+              { role: 'user', content: conteudo },
             ],
           })
           const brutoVisao = (replyVisao.choices?.[0]?.message?.content || '').trim()
           if (brutoVisao && !brutoVisao.toUpperCase().includes('DOCUMENTO ILEGIVEL')) {
             fileContentMarkdown = brutoVisao
-            console.log('Leitura por visão usada (' + (fileExt || 'arquivo') + '): ' + fileName)
-          } else if (!brutoVisao) {
-            console.log('Visão multimodal não retornou conteúdo para ' + fileName)
+            console.log(
+              '[anexos-ia] Leitura por visão usada (' +
+                (fileExt || 'arquivo') +
+                ', ' +
+                paginasBase64.length +
+                ' pág.): ' +
+                fileName +
+                ' — ' +
+                brutoVisao.length +
+                ' chars',
+            )
+          } else {
+            console.log(
+              '[anexos-ia] Visão multimodal sem conteúdo útil para ' +
+                fileName +
+                ' (resposta: ' +
+                (brutoVisao ? brutoVisao.slice(0, 120) : '(vazio)') +
+                ')',
+            )
           }
         } catch (visaoErr) {
-          console.log('Fallback de visão multimodal falhou (' + fileName + '):', visaoErr)
+          console.log(
+            '[anexos-ia] Fallback de visão multimodal falhou (' + fileName + '):',
+            visaoErr,
+          )
         }
       }
 
@@ -160,12 +207,15 @@ routerAdd(
         // Falha de leitura: mensagem específica pelo motivo real
         // ------------------------------------------------------------------
         let motivo
-        if (fileExt === 'pdf') {
+        if (paginasBase64.length === 0 && (fileExt === 'pdf' || fileExt === '')) {
           motivo =
-            'Este PDF é escaneado (imagem) e não pôde ser lido pela IA neste momento. Anexe uma foto/página nítida do documento (JPG ou PNG) ou preencha os dados manualmente.'
+            'Não recebemos as páginas deste PDF para leitura por IA (arquivo muito grande para converter no navegador). Compacte o PDF ou anexe fotos nítidas das páginas (JPG/PNG) e tente novamente.'
         } else if (extImagens.includes(fileExt)) {
           motivo =
             'Não foi possível ler a imagem enviada pela IA. Confira se a foto está nítida e completa e tente novamente.'
+        } else if (fileExt === 'pdf') {
+          motivo =
+            'A IA não conseguiu ler as páginas deste documento. Verifique se o PDF contém texto ou imagem legível e tente novamente (ou preencha manualmente).'
         } else {
           motivo =
             'Não foi possível extrair o conteúdo deste arquivo (' +
