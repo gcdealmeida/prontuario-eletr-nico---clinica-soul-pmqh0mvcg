@@ -1,103 +1,197 @@
 /**
- * Preparo do anexo para análise por IA no cliente:
- * - PDFs: rasteriza cada página via pdf.js (canvas → JPEG). PDFs escaneados
- *   (sem camada de texto) precisam disso — a IA lê a IMAGEM da página, não o texto.
- * - Imagens: redimensiona/comprime via canvas para caber com folga no payload.
- * - DOCX/XLSX/PPTX/TXT: envia o arquivo cru (o servidor extrai o texto).
+ * Preparação de anexos para a leitura por IA na Etapa 6.
+ *
+ * pdfjs-dist NÃO instala neste ambiente (tentativa anterior falhou) — o pdf.js
+ * é carregado em RUNTIME de CDN via import dinâmico do módulo ESM. Se o CDN
+ * falhar, degrada graciosamente (arquivo cru + aviso), sem quebrar o build.
  */
 
-const MAX_DIMENSAO = 1600
-const JPEG_QUALIDADE = 0.82
+const MAX_PAGINAS_PDF = 4
+const LARGURA_ALVO = 1400
+const JPEG_QUALIDADE = 0.7
+const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/'
 
-// Worker do pdf.js via ?url — padrão Vite (new URL com bare specifier falha no build)
-=======
-
-/** Rasteriza um PDF em data URLs JPEG (uma por página). */
-export async function rasterizarPdfParaDataUrls(
-  file: File,
-  onProgresso?: (msg: string) => void,
-): Promise<string[]> {
-  onProgresso?.('Preparando documento para leitura...')
-  const pdfjs = await import('pdfjs-dist')
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
-
-  const buffer = await file.arrayBuffer()
-  const pdf = await pdfjs.getDocument({ data: buffer }).promise
-  const total = Math.min(pdf.numPages, 4) // 1ªs páginas: onde está o laudo
-  const paginas: string[] = []
-
-  for (let i = 1; i <= total; i++) {
-    onProgresso?.(`Lendo página ${i} de ${total}...`)
-    const page = await pdf.getPage(i)
-    const base = page.getViewport({ scale: 1 })
-    const scale = Math.min(2, Math.max(1, MAX_DIMENSAO / Math.max(base.width, base.height)))
-    const viewport = page.getViewport({ scale })
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(viewport.width)
-    canvas.height = Math.round(viewport.height)
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas indisponível neste navegador')
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    await page.render({ canvas, canvasContext: ctx, viewport }).promise
-    paginas.push(canvas.toDataURL('image/jpeg', JPEG_QUALIDADE))
-    page.cleanup()
+type PdfJsPage = {
+  getViewport: (p: { scale: number }) => { width: number; height: number }
+  render: (p: { canvasContext: CanvasRenderingContext2D; viewport: unknown }) => {
+    promise: Promise<void>
   }
-  await pdf.destroy()
-  return paginas
 }
 
-/** Redimensiona/comprime uma imagem para data URL JPEG leve. */
-export async function comprimirImagemParaDataUrl(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, MAX_DIMENSAO / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Canvas indisponível neste navegador')
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close?.()
+type PdfJsLib = {
+  getDocument: (src: { data: ArrayBuffer }) => {
+    promise: Promise<{ numPages: number; getPage: (n: number) => Promise<PdfJsPage> }>
+  }
+  GlobalWorkerOptions: { workerSrc: string }
+}
+
+declare global {
+  interface Window {
+    pdfjsLib?: PdfJsLib
+  }
+}
+
+let pdfJsPromise: Promise<PdfJsLib> | null = null
+
+function carregarPdfJsDeCdn(): Promise<PdfJsLib> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('cdn_indisponivel: ambiente sem navegador'))
+  }
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib)
+  if (pdfJsPromise) return pdfJsPromise
+
+  pdfJsPromise = import(/* @vite-ignore */ PDFJS_BASE + 'pdf.min.mjs')
+    .then((mod: { pdfjsLib?: PdfJsLib }) => {
+      const lib = mod?.pdfjsLib ?? (window.pdfjsLib as PdfJsLib | undefined)
+      if (!lib || typeof lib.getDocument !== 'function') {
+        throw new Error('cdn_indisponivel: pdf.js não exposto pela CDN')
+      }
+      window.pdfjsLib = lib
+      return lib
+    })
+    .catch((e: unknown) => {
+      pdfJsPromise = null // permite nova tentativa em "Tentar novamente"
+      throw new Error(
+        'cdn_indisponivel: ' + (e instanceof Error ? e.message : 'falha ao carregar pdf.js da CDN'),
+      )
+    })
+
+  return pdfJsPromise
+}
+
+function canvasParaDataUrl(canvas: HTMLCanvasElement): string {
   return canvas.toDataURL('image/jpeg', JPEG_QUALIDADE)
 }
 
-export interface AnexoPreparado {
-  /** Data URLs por página (PDF/images) — visão multimodal. */
+export type PdfRasterizado = {
+  /** Data URLs JPEG — uma por página rasterizada. */
   paginas: string[]
-  /** Arquivo cru para o servidor (DOCX/XLSX/PPTX/TXT e sempre, p/ persistência). */
-  arquivo?: File
-  avisoPreparo?: string
+  /** Total de páginas do PDF (pode exceder paginas.length). */
+  totalPaginas: number
 }
 
 /**
- * Prepara qualquer anexo para POST /backend/v1/anexos/analisar-ia.
- * Nunca lança por arquivo grande demais: PDFs são rasterizados (o limite do
- * payload não depende mais do tamanho do PDF), imagens comprimidas e o resto
- * segue cru — se ainda assim estourar, o erro específico aparece na UI.
+ * Rasteriza as primeiras MAX_PAGINAS_PDF páginas do PDF em data URLs JPEG.
+ * Lança Error com prefixo 'cdn_indisponivel' quando o CDN de pdf.js não responde.
+ */
+export async function rasterizarPdfParaDataUrls(file: File): Promise<PdfRasterizado> {
+  const pdfjs = await carregarPdfJsDeCdn()
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.mjs'
+    const buf = await file.arrayBuffer()
+    const doc = await pdfjs.getDocument({ data: buf }).promise
+    const total = Math.min(doc.numPages, MAX_PAGINAS_PDF)
+    const paginas: string[] = []
+    for (let i = 1; i <= total; i++) {
+      const page = await doc.getPage(i)
+      const base = page.getViewport({ scale: 1 })
+      const escala = Math.min(LARGURA_ALVO / base.width, 2.5)
+      const viewport = page.getViewport({ scale: escala })
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.floor(viewport.width))
+      canvas.height = Math.max(1, Math.floor(viewport.height))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('canvas indisponível no navegador')
+      await page.render({ canvasContext: ctx, viewport }).promise
+      paginas.push(canvasParaDataUrl(canvas))
+    }
+    if (paginas.length === 0) throw new Error('PDF sem páginas legíveis')
+    return { paginas, totalPaginas: doc.numPages }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('cdn_indisponivel')) throw err
+    throw new Error(
+      'rasterizacao_falhou: ' + (err instanceof Error ? err.message : 'erro desconhecido'),
+    )
+  }
+}
+
+/**
+ * Comprime uma imagem via canvas para manter cada página bem abaixo do
+ * limite aceito pela visão multimodal (largura alvo 1400px, JPEG 70%).
+ */
+export async function comprimirImagemParaDataUrl(file: File | Blob): Promise<string> {
+  const bitmapUrl = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('imagem_invalida'))
+      el.src = bitmapUrl
+    })
+    const escala = Math.min(1, LARGURA_ALVO / Math.max(img.width, img.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(img.width * escala))
+    canvas.height = Math.max(1, Math.round(img.height * escala))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return await arquivoParaDataUrlDireto(file)
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    return canvasParaDataUrl(canvas)
+  } catch {
+    return await arquivoParaDataUrlDireto(file)
+  } finally {
+    URL.revokeObjectURL(bitmapUrl)
+  }
+}
+
+async function arquivoParaDataUrlDireto(file: File | Blob): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('falha_leitura_arquivo'))
+    reader.readAsDataURL(file)
+  })
+}
+
+export type AnexoPreparado = {
+  /** Data URLs (JPEG) — uma por página rasterizada (imagens e PDFs). */
+  dataUrls: string[]
+  /** Arquivo cru a enviar ao servidor (só quando NÃO há páginas rasterizadas). */
+  arquivoCru?: File
+  /** Aviso de degradação mostrado ao usuário (ex.: CDN do pdf.js indisponível). */
+  aviso?: string
+}
+
+/**
+ * Prepara o anexo para o hook:
+ * - Imagens: comprimidas via canvas e enviadas como data URL (visão multimodal).
+ * - PDFs: rasterizados (primeiras 4 páginas) e enviados como data URLs — cobre
+ *   PDFs escaneados SEM camada de texto. Se o CDN do pdf.js falhar, degrada
+ *   graciosamente: envia o arquivo cru (o servidor tenta extrair texto; em
+ *   PDFs escaneados responde com motivo específico) e sinaliza um aviso.
+ * - DOCX/XLSX/PPTX/TXT: vão crus ao hook, que usa $documents.toMarkdown.
  */
 export async function prepararAnexoParaIa(
   file: File,
-  onProgresso?: (msg: string) => void,
+  onProgress?: (msg: string) => void,
 ): Promise<AnexoPreparado> {
-  const ext = (file.name.split('.').pop() || '').toLowerCase()
-  if (ext === 'pdf') {
-    const paginas = await rasterizarPdfParaDataUrls(file, onProgresso)
-    return { paginas, arquivo: file }
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+  const isImagem = file.type.startsWith('image/')
+
+  if (isImagem) {
+    onProgress?.('Preparando imagem...')
+    return { dataUrls: [await comprimirImagemParaDataUrl(file)] }
   }
-  if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-    const paginas = [await comprimirImagemParaDataUrl(file)]
-    return { paginas, arquivo: file }
+
+  if (isPdf) {
+    onProgress?.('Convertendo páginas do PDF em imagens...')
+    try {
+      const { paginas, totalPaginas } = await rasterizarPdfParaDataUrls(file)
+      if (totalPaginas > MAX_PAGINAS_PDF) {
+        return {
+          dataUrls: paginas,
+          aviso: `PDF tem ${totalPaginas} páginas — apenas as primeiras ${MAX_PAGINAS_PDF} foram lidas pela IA.`,
+        }
+      }
+      return { dataUrls: paginas }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      const motivoUsuario = msg.startsWith('cdn_indisponivel')
+        ? 'Não foi possível carregar o leitor de PDFs (CDN indisponível). Tentando enviar o arquivo original; se falhar, anexe fotos nítidas das páginas (JPG/PNG).'
+        : 'Não foi possível converter as páginas deste PDF em imagens. Tentando enviar o arquivo original; se falhar, anexe fotos nítidas do documento (JPG/PNG).'
+      return { dataUrls: [], arquivoCru: file, aviso: motivoUsuario }
+    }
   }
-  if (['docx', 'xlsx', 'pptx', 'txt'].includes(ext)) {
-    return { paginas: [], arquivo: file }
-  }
-  // Formato desconhecido: tenta como imagem (foto sem extensão, HEIC renomeado)
-  try {
-    const paginas = [await comprimirImagemParaDataUrl(file)]
-    return { paginas, arquivo: file, avisoPreparo: 'Formato não reconhecido — lendo como imagem.' }
-  } catch {
-    return { paginas: [], arquivo: file }
-  }
+
+  // Outros formatos (docx/xlsx/txt...): envia o arquivo cru ao hook, que usa $documents
+  return { dataUrls: [], arquivoCru: file }
 }

@@ -100,8 +100,8 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
       })
 
       // Preparo do anexo no navegador:
-      // - PDFs escaneados são rasterizados via pdf.js (uma imagem por página);
-      //   o payload não depende mais do tamanho do PDF (não há limite de 6 MB).
+      // - PDFs escaneados são rasterizados via pdf.js de CDN (uma imagem por
+      //   página); o payload não depende mais do tamanho do PDF.
       // - Imagens são comprimidas via canvas; DOCX/XLSX/PPTX/TXT seguem crus.
       // Para "Reanalisar com IA" de anexo já salvo, o arquivo é baixado da URL
       // pública e passa pelo mesmo preparo.
@@ -130,19 +130,31 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
         ? await prepararAnexoParaIa(arquivoParaPreparo, (msg) =>
             setProgressoMap((prev) => ({ ...prev, [fileName]: msg })),
           )
-        : { paginas: [], arquivo: undefined }
+        : { dataUrls: [], arquivoCru: undefined }
+
+      if (preparo.aviso) {
+        toast({
+          title: 'Anexo preparado com ressalva',
+          description: preparo.aviso,
+        })
+      }
+
+      // O PDF cru só vai ao servidor quando não há imagens de página (caso raro:
+      // rasterização indisponível) — evita enviar payload redundante de ~10 MB.
+      const enviarArquivoCru = preparo.dataUrls.length === 0
 
       const params = isFileObject
         ? {
-            arquivo: fileOrName,
-            arquivo_base64s: preparo.paginas.length > 0 ? preparo.paginas : undefined,
+            arquivo: enviarArquivoCru ? preparo.arquivoCru : undefined,
+            arquivo_base64s: preparo.dataUrls.length > 0 ? preparo.dataUrls : undefined,
+            nome_arquivo: fileName,
             paciente_id: pacienteId || formData.paciente_id,
             avaliacao_id: existingRecordId,
             especialidade: 'Fisioterapia',
           }
         : {
-            arquivo: preparo.arquivo,
-            arquivo_base64s: preparo.paginas.length > 0 ? preparo.paginas : undefined,
+            arquivo: enviarArquivoCru ? preparo.arquivoCru : undefined,
+            arquivo_base64s: preparo.dataUrls.length > 0 ? preparo.dataUrls : undefined,
             nome_arquivo: fileName,
             collection_name: 'avaliacoes_fisioterapia',
             record_id: existingRecordId,
@@ -630,27 +642,29 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
                   {resumoItem && isExpandido && (
                     <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-200 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-emerald-950 font-bold text-[11px]">
-                          <Sparkles className="h-3 w-3 text-emerald-600" />
-                          <span>Síntese Clínica do Anexo:</span>
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <div className="flex items-center gap-1 text-emerald-950 font-bold text-[11px]">
+                            <Sparkles className="h-3 w-3 text-emerald-600" />
+                            <span>Síntese Clínica do Anexo:</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditandoMap((prev) => ({ ...prev, [file.name]: !isEditando }))
+                            }
+                            className="text-[11px] text-emerald-800 hover:underline font-semibold flex items-center gap-1"
+                          >
+                            {isEditando ? (
+                              <>
+                                <Check className="h-3 w-3" /> Concluir edição
+                              </>
+                            ) : (
+                              <>
+                                <Edit3 className="h-3 w-3" /> Editar síntese
+                              </>
+                            )}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEditandoMap((prev) => ({ ...prev, [file.name]: !isEditando }))
-                          }
-                          className="text-[11px] text-emerald-800 hover:underline font-semibold flex items-center gap-1"
-                        >
-                          {isEditando ? (
-                            <>
-                              <Check className="h-3 w-3" /> Concluir edição
-                            </>
-                          ) : (
-                            <>
-                              <Edit3 className="h-3 w-3" /> Editar síntese
-                            </>
-                          )}
-                        </button>
                       </div>
 
                       {isEditando ? (
