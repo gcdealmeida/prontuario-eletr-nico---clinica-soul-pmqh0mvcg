@@ -56,12 +56,23 @@ routerAdd(
         paginasBase64 = [rawBase64]
       }
       // Log de diagnóstico (sem conteúdo): tamanho e quantidade de páginas recebidas
+      const paginasContagem =
+        paginasBase64.length ||
+        (body.arquivo_base64s ? String(body.arquivo_base64s).length : 0) ||
+        (body.arquivo_base64 ? 1 : 0)
       console.log(
         '[anexos-ia] payload recebido: paginas=' +
           paginasBase64.length +
           ' tamanho_base64_total=' +
-          paginasBase64.reduce((acc, s) => acc + (s ? s.length : 0), 0),
+          paginasBase64.reduce((acc, s) => acc + (s ? s.length : 0), 0) +
+          ' bruto_arquivo_base64s_len=' +
+          (body.arquivo_base64s ? String(body.arquivo_base64s).length : 0),
       )
+      if (paginasContagem === 0 && (body.arquivo_base64s || body.arquivo_base64)) {
+        console.log(
+          '[anexos-ia] AVISO: campos de base64 presentes mas nenhuma página data: válida foi reconhecida',
+        )
+      }
 
       const extImagens = ['jpg', 'jpeg', 'png', 'webp']
       const extDocumentos = ['pdf', 'docx', 'xlsx', 'pptx', 'txt']
@@ -209,7 +220,7 @@ routerAdd(
         let motivo
         if (paginasBase64.length === 0 && (fileExt === 'pdf' || fileExt === '')) {
           motivo =
-            'Não recebemos as páginas deste PDF para leitura por IA (arquivo muito grande para converter no navegador). Compacte o PDF ou anexe fotos nítidas das páginas (JPG/PNG) e tente novamente.'
+            'Não recebemos as páginas deste PDF para leitura por IA (o leitor de PDF do navegador não conseguiu convertê-lo). Tente novamente; se persistir, compacte o PDF ou anexe fotos nítidas das páginas (JPG/PNG).'
         } else if (extImagens.includes(fileExt)) {
           motivo =
             'Não foi possível ler a imagem enviada pela IA. Confira se a foto está nítida e completa e tente novamente.'

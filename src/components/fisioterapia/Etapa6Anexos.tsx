@@ -14,12 +14,10 @@ import {
   AlertTriangle,
   Edit3,
   Check,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react'
 import { getFileUrl, analisarAnexoIa } from '@/services/avaliacoes'
-import { prepararAnexoParaIa } from '@/lib/anexoIaPreparo'
-import type { AnexoDadosExtraidos } from '@/services/avaliacoes'
+import type { AnalisarAnexoIaParams, AnexoDadosExtraidos } from '@/services/avaliacoes'
+import { prepararAnexoParaIa, TAMANHO_LOTE_PADRAO } from '@/lib/anexoIaPreparo'
 import { useToast } from '@/hooks/use-toast'
 import type { ResumoAnexoIaItem } from '@/types/database'
 import { RevisaoDadosExtraidos, type RevisaoDadosExtraidosHandle } from './AnexosIaRevisao'
@@ -31,6 +29,17 @@ interface Etapa6AnexosProps {
   pacienteId?: string
 }
 
+const LIMITES_LOTE: Array<number | null> = [TAMANHO_LOTE_PADRAO, 2, 1]
+
+/**
+ * Etapa 6 — Exames Complementares e Documentos.
+ *
+ * A análise de IA é feita em LOTES de páginas (1 requisição por grupo de páginas
+ * rasterizadas do PDF), para nunca estourar o limite de tamanho de requisição do
+ * backend. Enquanto os lotes rodam, a UI mostra "Analisando página X de Y...".
+ * Páginas que falharem não bloqueiam as demais; se ao menos 1 página for lida,
+ * o fluxo segue (com aviso do que ficou de fora).
+ */
 export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
   formData,
   onChange,
@@ -86,6 +95,174 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
     onChange('resumos_anexos', atualizado)
   }
 
+  // Baixar anexo já salvo no prontuário (para "Reanalisar com IA")
+  const baixarAnexoSalvo = async (fileName: string): Promise<File | undefined> => {
+    if (!existingRecordId) return undefined
+    try {
+      const urlArquivo = getFileUrl('avaliacoes_fisioterapia', existingRecordId, fileName)
+      const resp = await fetch(urlArquivo)
+      if (!resp.ok) return undefined
+      const blob = await resp.blob()
+      return new File([blob], fileName, { type: blob.type || 'application/pdf' })
+    } catch (fetchErr) {
+      console.warn('Re-download do anexo salvo falhou; seguindo com análise server-side:', fetchErr)
+      return undefined
+    }
+  }
+
+  // Montar os parâmetros de UMA requisição ao hook (um lote de páginas)
+  const montarParams = (
+    fileOrName: File | string,
+    dataUrls: string[],
+    nomeArquivo: string,
+    arquivoCru?: File,
+  ): AnalisarAnexoIaParams => {
+    const base = {
+      arquivo: dataUrls.length === 0 ? arquivoCru : undefined,
+      arquivo_base64s: dataUrls.length > 0 ? dataUrls : undefined,
+      nome_arquivo: nomeArquivo,
+      paciente_id: pacienteId || formData.paciente_id,
+      avaliacao_id: existingRecordId,
+      especialidade: 'Fisioterapia',
+    }
+    if (fileOrName instanceof File) return base
+    return {
+      ...base,
+      collection_name: 'avaliacoes_fisioterapia',
+      record_id: existingRecordId,
+    }
+  }
+
+  /**
+   * Executa a análise em lotes de páginas e junta os resultados.
+   * - Lote inicial: TAMANHO_LOTE_PADRAO páginas por requisição.
+   * - Se a requisição falhar por tamanho, re-renderiza as páginas menores e refaz
+   *   o lote em partes menores (2, depois 1 página).
+   * - Páginas com falha isolada não derrubam o lote seguinte.
+   */
+  const analisarEmLotes = async (
+    fileOrName: File | string,
+    nomeArquivo: string,
+    paginas: string[],
+    arquivoCru?: File,
+  ): Promise<{ resumo: string; dados: AnexoDadosExtraidos | null; aviso?: string }> => {
+    let resultados: string[] = []
+    let dadosJunta: Partial<AnexoDadosExtraidos> = {}
+    let temDado = false
+    const falhas: string[] = []
+
+    for (let indiceLote = 0; indiceLote < paginas.length; indiceLote += TAMANHO_LOTE_PADRAO) {
+      const lote = paginas.slice(indiceLote, indiceLote + TAMANHO_LOTE_PADRAO)
+
+      const resultadoLote = await analisarLoteComReducao(
+        fileOrName,
+        nomeArquivo,
+        lote,
+        arquivoCru,
+        (msg) =>
+          setProgressoMap((prev) => ({
+            ...prev,
+            [nomeArquivo]: msg,
+          })),
+      )
+      if (resultadoLote.erro) {
+        falhas.push(resultadoLote.erro)
+      } else {
+        resultados.push(resultadoLote.resumo || '')
+        if (resultadoLote.dados) {
+          temDado = true
+          dadosJunta = { ...dadosJunta, ...resultadoLote.dados }
+        }
+      }
+    }
+
+    const resumoFinal = resultados.filter(Boolean).join('\n\n')
+    if (!resumoFinal && falhas.length > 0) {
+      throw new Error(falhas[0])
+    }
+
+    const avisoFinal =
+      falhas.length > 0
+        ? `Atenção: ${falhas.length} de ${paginas.length} páginas não puderam ser lidas. As demais foram analisadas normalmente.`
+        : undefined
+
+    return {
+      resumo: resumoFinal,
+      dados: temDado ? (dadosJunta as AnexoDadosExtraidos) : null,
+      aviso: avisoFinal,
+    }
+  }
+
+  // Analisar um lote com retries em tamanhos menores quando o payload é recusado
+  const analisarLoteComReducao = async (
+    fileOrName: File | string,
+    nomeArquivo: string,
+    loteOriginal: string[],
+    arquivoCru: File | undefined,
+    onProgresso: (msg: string) => void,
+  ): Promise<{ resumo?: string; dados?: AnexoDadosExtraidos; erro?: string }> => {
+    // Tenta o lote completo; se falhar por tamanho (422/413/431), divide e reenvia
+    for (let tentativa = 0; tentativa < LIMITES_LOTE.length; tentativa++) {
+      const tamanhoLote = LIMITES_LOTE[Math.min(tentativa, LIMITES_LOTE.length - 1)]
+      const sublotes: string[][] = []
+      for (let i = 0; i < loteOriginal.length; i += tamanhoLote) {
+        sublotes.push(loteOriginal.slice(i, i + tamanhoLote))
+      }
+
+      const conteudos: string[] = []
+      let dados: Partial<AnexoDadosExtraidos> = {}
+      let temDado = false
+      let erroUltimo = ''
+      let ok = true
+
+      for (let s = 0; s < sublotes.length; s++) {
+        const sub = sublotes[s]
+        const rotulo =
+          sub.length === 1
+            ? `Analisando página ${s + 1} de ${sublotes.length}...`
+            : `Analisando ${sub.length} páginas (bloco ${s + 1} de ${sublotes.length})...`
+        onProgresso(rotulo)
+        try {
+          const params = montarParams(fileOrName, sub, nomeArquivo, arquivoCru)
+          const res = await analisarAnexoIa(params)
+          if (res?.resumo) conteudos.push(res.resumo)
+          if (res?.dados_extraidos) {
+            temDado = true
+            dados = { ...dados, ...res.dados_extraidos }
+          }
+          if (res?.aviso) {
+            // aviso do servidor (ex.: documento truncado) é apenas informativo
+            conteudos.push(`(aviso do servidor: ${res.aviso})`)
+          }
+        } catch (err: any) {
+          const msg = String(err?.message || '')
+          erroUltimo = msg
+          ok = false
+          // 413/422/431 → payload recusado por tamanho; divide e tenta de novo
+          if (/413|422|431|too large|entidade|entity|payload/i.test(msg)) {
+            break
+          }
+          // Outros erros (IA indisponível etc.): não adianta dividir
+          return { erro: msg }
+        }
+      }
+
+      if (ok) {
+        const resumo = conteudos.filter(Boolean).join('\n\n')
+        return {
+          resumo,
+          dados: temDado ? (dados as AnexoDadosExtraidos) : undefined,
+        }
+      }
+      // Se já estamos no menor lote (1 página) e ainda assim falhou, desiste
+      if (tamanhoLote === 1) {
+        return { erro: erroUltimo }
+      }
+      // Senão, loop continua com o próximo tamanho de sublote
+    }
+    return { erro: 'Falha ao analisar o lote de páginas' }
+  }
+
   // Chamar análise de IA para um arquivo
   const handleAnalisarArquivo = async (fileOrName: File | string) => {
     const isFileObject = fileOrName instanceof File
@@ -99,38 +276,19 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
         return copy
       })
 
-      // Preparo do anexo no navegador:
-      // - PDFs escaneados são rasterizados via pdf.js de CDN (uma imagem por
-      //   página); o payload não depende mais do tamanho do PDF.
-      // - Imagens são comprimidas via canvas; DOCX/XLSX/PPTX/TXT seguem crus.
-      // Para "Reanalisar com IA" de anexo já salvo, o arquivo é baixado da URL
-      // pública e passa pelo mesmo preparo.
-      let arquivoParaPreparo: File | undefined = undefined
-      if (isFileObject) {
-        arquivoParaPreparo = fileOrName
-      } else if (existingRecordId) {
-        try {
-          const urlArquivo = getFileUrl('avaliacoes_fisioterapia', existingRecordId, fileName)
-          const resp = await fetch(urlArquivo)
-          if (resp.ok) {
-            const blob = await resp.blob()
-            arquivoParaPreparo = new File([blob], fileName, {
-              type: blob.type || 'application/pdf',
-            })
-          }
-        } catch (fetchErr) {
-          console.warn(
-            'Re-download do anexo salvo falhou; seguindo com análise server-side:',
-            fetchErr,
-          )
-        }
+      let arquivoParaPreparo: File | undefined = isFileObject ? fileOrName : undefined
+      if (!arquivoParaPreparo) {
+        arquivoParaPreparo = await baixarAnexoSalvo(fileName)
       }
 
+      setProgressoMap((prev) => ({
+        ...prev,
+        [fileName]: arquivoParaPreparo ? 'Preparando documento para leitura...' : 'Lendo com IA...',
+      }))
+
       const preparo = arquivoParaPreparo
-        ? await prepararAnexoParaIa(arquivoParaPreparo, (msg) =>
-            setProgressoMap((prev) => ({ ...prev, [fileName]: msg })),
-          )
-        : { dataUrls: [], arquivoCru: undefined }
+        ? await prepararAnexoParaIa(arquivoParaPreparo)
+        : { dataUrls: [] as string[], aviso: undefined }
 
       if (preparo.aviso) {
         toast({
@@ -139,52 +297,77 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
         })
       }
 
-      // O PDF cru só vai ao servidor quando não há imagens de página (caso raro:
-      // rasterização indisponível) — evita enviar payload redundante de ~10 MB.
-      const enviarArquivoCru = preparo.dataUrls.length === 0
-
-      const params = isFileObject
-        ? {
-            arquivo: enviarArquivoCru ? preparo.arquivoCru : undefined,
-            arquivo_base64s: preparo.dataUrls.length > 0 ? preparo.dataUrls : undefined,
-            nome_arquivo: fileName,
-            paciente_id: pacienteId || formData.paciente_id,
-            avaliacao_id: existingRecordId,
-            especialidade: 'Fisioterapia',
-          }
-        : {
-            arquivo: enviarArquivoCru ? preparo.arquivoCru : undefined,
-            arquivo_base64s: preparo.dataUrls.length > 0 ? preparo.dataUrls : undefined,
-            nome_arquivo: fileName,
-            collection_name: 'avaliacoes_fisioterapia',
-            record_id: existingRecordId,
-            paciente_id: pacienteId || formData.paciente_id,
-            avaliacao_id: existingRecordId,
-            especialidade: 'Fisioterapia',
-          }
-
-      const res = await analisarAnexoIa(params)
-
-      if (res && res.resumo) {
+      // Sem páginas rasterizadas: envia o arquivo cru (hook tenta $documents)
+      if (preparo.dataUrls.length === 0) {
+        if (!arquivoParaPreparo) {
+          throw new Error(
+            'Não foi possível obter o arquivo do anexo para leitura por IA. Tente novamente.',
+          )
+        }
+        setProgressoMap((prev) => ({ ...prev, [fileName]: 'Lendo com IA...' }))
+        const res = await analisarAnexoIa(
+          montarParams(fileOrName, [], fileName, preparo.arquivoCru),
+        )
+        if (!res?.resumo) {
+          throw new Error(
+            res?.aviso ||
+              'A IA não conseguiu ler o conteúdo do anexo. Verifique a nitidez e tente novamente.',
+          )
+        }
         atualizarResumo(fileName, res.resumo, false, {
-          analisado_em: res.analisado_em,
-          analisado_por: res.analisado_por,
-          truncated: res.truncated,
+          analisado_em: new Date().toISOString(),
+          analisado_por: 'IA SOUL (leitor de documentos)',
+          truncated: !!res.truncated,
         })
-
-        // Guardar os dados estruturados para o painel de revisão
         setDadosExtraidosMap((prev) => ({ ...prev, [fileName]: res.dados_extraidos || null }))
         setConfirmadoMap((prev) => ({ ...prev, [fileName]: false }))
-
-        // Expandir card para visualização imediata
         setExpandidoMap((prev) => ({ ...prev, [fileName]: true }))
+        if (res.aviso) {
+          toast({ title: 'Análise concluída com ressalvas', description: res.aviso })
+        } else {
+          toast({
+            title: 'Análise de anexo concluída!',
+            description: res.dados_extraidos
+              ? `A IA extraiu os dados de "${fileName}". Confira e confirme para preencher o prontuário.`
+              : `A IA leu "${fileName}" e gerou a síntese clínica. Edite se necessário.`,
+          })
+        }
+        return
+      }
 
-        const temDadosEstruturados = !!(
-          res.dados_extraidos && Object.values(res.dados_extraidos).some((v) => v)
+      // Com páginas: análise em lotes
+      const resultado = await analisarEmLotes(fileOrName, fileName, preparo.dataUrls)
+
+      if (preparo.aviso) {
+        // já exibido em toast; nada adicional
+      }
+
+      const resumo = resultado.resumo
+      if (!resumo) {
+        throw new Error(
+          resultado.aviso ||
+            'A IA não conseguiu ler o conteúdo do anexo. Verifique a nitidez e tente novamente.',
         )
+      }
+
+      atualizarResumo(fileName, resumo, false, {
+        analisado_em: new Date().toISOString(),
+        analisado_por: 'IA SOUL (leitor de documentos)',
+        truncated: false,
+      })
+      setDadosExtraidosMap((prev) => ({ ...prev, [fileName]: resultado.dados || null }))
+      setConfirmadoMap((prev) => ({ ...prev, [fileName]: false }))
+      setExpandidoMap((prev) => ({ ...prev, [fileName]: true }))
+
+      if (resultado.aviso) {
+        toast({
+          title: 'Análise concluída com ressalvas',
+          description: resultado.aviso,
+        })
+      } else {
         toast({
           title: 'Análise de anexo concluída!',
-          description: temDadosEstruturados
+          description: resultado.dados
             ? `A IA extraiu os dados de "${fileName}". Confira e confirme para preencher o prontuário.`
             : `A IA leu "${fileName}" e gerou a síntese clínica. Edite se necessário.`,
         })
@@ -256,9 +439,10 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
     }
   }
 
-  const removePendingFile = (index: number) => {
+  const removePendingFile = (index: [number] | number) => {
     const existing: File[] = formData._pending_exames_files || []
-    const fileToRemove = existing[index]
+    const idx = Array.isArray(index) ? index[0] : index
+    const fileToRemove = existing[idx]
     if (fileToRemove) {
       const copyResumos = { ...resumosAnexos }
       delete copyResumos[fileToRemove.name]
@@ -266,7 +450,179 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
     }
     onChange(
       '_pending_exames_files',
-      existing.filter((_, i) => i !== index),
+      existing.filter((_, i) => i !== idx),
+    )
+  }
+
+  const renderCardArquivo = (
+    nome: string,
+    opts: {
+      isImg?: boolean
+      fileUrl?: string
+      file?: File
+      idx?: number
+      pendente: boolean
+    },
+  ) => {
+    const resumoItem = resumosAnexos[nome]
+    const isAnalisando = !!analisandoMap[nome]
+    const erroMsg = erroMap[nome]
+    const isEditando = !!editandoMap[nome]
+    const isExpandido = expandidoMap[nome] ?? (!!resumoItem?.resumo || isAnalisando)
+
+    return (
+      <div
+        key={nome}
+        className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs text-xs space-y-2.5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 truncate">
+            {opts.isImg && opts.fileUrl ? (
+              <img
+                src={opts.fileUrl}
+                alt="Preview exame"
+                className="h-8 w-8 object-cover rounded-lg border border-gray-200 shrink-0"
+              />
+            ) : (
+              <FileText className="h-4 w-4 text-emerald-600 shrink-0" />
+            )}
+            <span className="truncate font-medium text-gray-900">{nome}</span>
+            {opts.file && (
+              <span className="text-[10px] text-gray-400 font-mono shrink-0">
+                ({(opts.file.size / 1024 / 1024).toFixed(2)} MB)
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              disabled={isAnalisando}
+              onClick={() => handleAnalisarArquivo(opts.file ?? nome)}
+              className={`rounded-xl h-7 px-3 text-[11px] font-semibold flex items-center gap-1.5 ${
+                resumoItem?.resumo
+                  ? 'bg-[#FAF5EE] text-[#8C6527] hover:bg-[#F3EAD9] border border-[#E9E1D2]'
+                  : 'bg-emerald-700 text-white hover:bg-emerald-800'
+              }`}
+            >
+              {isAnalisando ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {progressoMap[nome] || 'Lendo com IA...'}
+                </>
+              ) : resumoItem?.resumo ? (
+                <>
+                  <RefreshCw className="h-3 w-3 text-[#8C6527]" />
+                  Reanalisar
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3 w-3" />
+                  Analisar com IA
+                </>
+              )}
+            </Button>
+
+            {opts.pendente && (
+              <button
+                type="button"
+                onClick={() => removePendingFile(opts.idx ?? 0)}
+                className="text-red-500 hover:text-red-700 p-1 rounded-lg"
+                title="Remover anexo pendente"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Alerta de Erro */}
+        {erroMsg && (
+          <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+              {erroMsg}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleAnalisarArquivo(opts.file ?? nome)}
+              className="font-bold underline text-amber-900 hover:text-amber-950 shrink-0"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {/* Resumo Gerado (visível e editável) */}
+        {resumoItem && isExpandido && (
+          <div className="p-3 rounded-lg bg-[#FAF9F6] border border-[#E9E1D2] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-[#8C6527]" />
+                <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wider">
+                  Síntese Clínica dos Resultados (IA)
+                </span>
+                {resumoItem.editado_manualmente && (
+                  <span className="text-[10px] text-gray-500 font-medium">
+                    (editado pelo profissional)
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditandoMap((prev) => ({ ...prev, [nome]: !isEditando }))}
+                className="text-[11px] text-[#8C6527] hover:underline font-semibold flex items-center gap-1"
+              >
+                {isEditando ? (
+                  <>
+                    <Check className="h-3 w-3" /> Concluir edição
+                  </>
+                ) : (
+                  <>
+                    <Edit3 className="h-3 w-3" /> Editar síntese
+                  </>
+                )}
+              </button>
+            </div>
+
+            {isEditando ? (
+              <Textarea
+                rows={4}
+                value={resumoItem.resumo}
+                onChange={(e) => atualizarResumo(nome, e.target.value, true)}
+                className="text-xs bg-white rounded-xl border-gray-300 leading-relaxed font-sans"
+                placeholder="Edite ou complemente o resumo clínico do laudo..."
+              />
+            ) : (
+              <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap font-sans bg-white/70 p-2.5 rounded-xl border border-gray-100">
+                {resumoItem.resumo}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1">
+              <span>
+                {resumoItem.analisado_em
+                  ? `Sintetizado em ${new Date(resumoItem.analisado_em).toLocaleDateString('pt-BR')} ${new Date(resumoItem.analisado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Analisado com IA SOUL'}
+              </span>
+              <span className="text-[#8C6527] font-medium">
+                Alimenta a Hipótese Diagnóstica e o Raciocínio Clínico final
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Revisão dos dados extraídos pela IA (confirmar → preenche o prontuário) */}
+        <RevisaoDadosExtraidos
+          ref={registrarRefRevisao(nome)}
+          nomeArquivo={nome}
+          dados={dadosExtraidosMap[nome] || null}
+          confirmado={!!confirmadoMap[nome]}
+          valorAtualCampo={formData.historico_medico || ''}
+          onConfirmar={handleConfirmarDados}
+        />
+      </div>
     )
   }
 
@@ -336,216 +692,19 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
               Clique em &quot;Analisar com IA&quot; para sintetizar o conteúdo do laudo
             </span>
           </div>
-
           <div className="space-y-3">
             {formData.anexos_exames.map((filename: string, idx: number) => {
               const fileUrl = existingRecordId
                 ? getFileUrl('avaliacoes_fisioterapia', existingRecordId, filename)
                 : '#'
               const isImg = !!filename.match(/\.(jpg|jpeg|png|webp)$/i)
-              const resumoItem = resumosAnexos[filename]
-              const isAnalisando = !!analisandoMap[filename]
-              const erroMsg = erroMap[filename]
-              const isEditando = !!editandoMap[filename]
-              const isExpandido = expandidoMap[filename] ?? (!!resumoItem?.resumo || isAnalisando)
-
-              return (
-                <div
-                  key={idx}
-                  className="p-4 bg-white rounded-2xl border border-gray-200 shadow-2xs space-y-3 hover:border-gray-300 transition-colors"
-                >
-                  {/* Linha Principal do Arquivo */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      {isImg ? (
-                        <img
-                          src={fileUrl}
-                          alt="Preview exame"
-                          className="h-10 w-10 object-cover rounded-xl border border-gray-200 shrink-0"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs">
-                          PDF
-                        </div>
-                      )}
-                      <div className="truncate">
-                        <span
-                          className="text-xs font-semibold text-gray-900 block truncate"
-                          title={filename}
-                        >
-                          {filename}
-                        </span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] text-blue-600 hover:underline font-medium"
-                          >
-                            Visualizar original
-                          </a>
-                          {resumoItem?.resumo && (
-                            <>
-                              <span className="text-gray-300">•</span>
-                              <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                <Sparkles className="h-3 w-3" /> Resumido por IA
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ações */}
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={isAnalisando}
-                        onClick={() => handleAnalisarArquivo(filename)}
-                        className={`rounded-xl h-8 text-xs font-semibold flex items-center gap-1.5 shadow-xs ${
-                          resumoItem?.resumo
-                            ? 'bg-[#FAF5EE] text-[#8C6527] hover:bg-[#F3EAD9] border border-[#E9E1D2]'
-                            : 'bg-gradient-to-r from-[#1E2530] to-[#2A3444] text-white hover:brightness-110'
-                        }`}
-                      >
-                        {isAnalisando ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            {progressoMap[filename] || 'Lendo com IA...'}
-                          </>
-                        ) : resumoItem?.resumo ? (
-                          <>
-                            <RefreshCw className="h-3.5 w-3.5 text-[#8C6527]" />
-                            Reanalisar com IA
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-3.5 w-3.5 text-[#DFBF8E]" />
-                            Analisar com IA
-                          </>
-                        )}
-                      </Button>
-
-                      {resumoItem?.resumo && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            setExpandidoMap((prev) => ({ ...prev, [filename]: !isExpandido }))
-                          }
-                          className="h-8 w-8 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                          title={isExpandido ? 'Recolher resumo' : 'Expandir resumo'}
-                        >
-                          {isExpandido ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Estado de Erro na Análise */}
-                  {erroMsg && (
-                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>{erroMsg}</span>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleAnalisarArquivo(filename)}
-                        className="h-7 text-xs font-bold text-amber-900 hover:bg-amber-100 rounded-lg shrink-0"
-                      >
-                        Tentar novamente
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Card do Resumo por Escrito da IA (Visível e Editável) */}
-                  {resumoItem && isExpandido && (
-                    <div className="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E9E1D2] space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <Sparkles className="h-3.5 w-3.5 text-[#8C6527]" />
-                          <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wider">
-                            Síntese Clínica dos Resultados (IA)
-                          </span>
-                          {resumoItem.editado_manualmente && (
-                            <span className="text-[10px] text-gray-500 font-medium">
-                              (editado pelo profissional)
-                            </span>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEditandoMap((prev) => ({ ...prev, [filename]: !isEditando }))
-                          }
-                          className="text-xs text-[#8C6527] hover:underline font-semibold flex items-center gap-1"
-                        >
-                          {isEditando ? (
-                            <>
-                              <Check className="h-3 w-3" /> Concluir edição
-                            </>
-                          ) : (
-                            <>
-                              <Edit3 className="h-3 w-3" /> Editar síntese
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      {isEditando ? (
-                        <Textarea
-                          rows={4}
-                          value={resumoItem.resumo}
-                          onChange={(e) => atualizarResumo(filename, e.target.value, true)}
-                          className="text-xs bg-white rounded-xl border-gray-300 leading-relaxed font-sans"
-                          placeholder="Edite ou complemente o resumo clínico do laudo..."
-                        />
-                      ) : (
-                        <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap font-sans bg-white/70 p-2.5 rounded-xl border border-gray-100">
-                          {resumoItem.resumo}
-                        </p>
-                      )}
-
-                      <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1">
-                        <span>
-                          {resumoItem.analisado_em
-                            ? `Sintetizado em ${new Date(resumoItem.analisado_em).toLocaleDateString('pt-BR')} ${new Date(resumoItem.analisado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-                            : 'Analisado com IA SOUL'}
-                        </span>
-                        <span className="text-[#8C6527] font-medium">
-                          Alimenta a Hipótese Diagnóstica e o Raciocínio Clínico final
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Revisão dos dados extraídos pela IA (confirmar → preenche o prontuário) */}
-                  <RevisaoDadosExtraidos
-                    ref={registrarRefRevisao(filename)}
-                    nomeArquivo={filename}
-                    dados={dadosExtraidosMap[filename] || null}
-                    confirmado={!!confirmadoMap[filename]}
-                    valorAtualCampo={formData.historico_medico || ''}
-                    onConfirmar={handleConfirmarDados}
-                  />
-                </div>
-              )
+              return renderCardArquivo(filename, { isImg, fileUrl, pendente: false, idx })
             })}
           </div>
         </div>
       )}
 
-      {/* Arquivos Selecionados nesta Sessão (Aguardando Salvar com Suporte a IA) */}
+      {/* Arquivos Selecionados nesta Sessão */}
       {formData._pending_exames_files && formData._pending_exames_files.length > 0 && (
         <div className="space-y-3 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200">
           <div className="flex items-center justify-between">
@@ -557,145 +716,13 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
               Arquivos lidos com IA entram no raciocínio da avaliação
             </span>
           </div>
-
           <div className="space-y-3">
             {formData._pending_exames_files.map((file: File, idx: number) => {
-              const resumoItem = resumosAnexos[file.name]
-              const isAnalisando = !!analisandoMap[file.name]
-              const erroMsg = erroMap[file.name]
-              const isEditando = !!editandoMap[file.name]
-              const isExpandido = expandidoMap[file.name] ?? (!!resumoItem?.resumo || isAnalisando)
-
-              return (
-                <div
-                  key={idx}
-                  className="p-3 bg-white rounded-xl border border-emerald-200 text-xs space-y-2.5 shadow-2xs"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 truncate">
-                      <FileText className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span className="truncate font-medium text-gray-900">{file.name}</span>
-                      <span className="text-[10px] text-gray-400 font-mono shrink-0">
-                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={isAnalisando}
-                        onClick={() => handleAnalisarArquivo(file)}
-                        className={`rounded-xl h-7 px-3 text-[11px] font-semibold flex items-center gap-1.5 ${
-                          resumoItem?.resumo
-                            ? 'bg-[#FAF5EE] text-[#8C6527] hover:bg-[#F3EAD9] border border-[#E9E1D2]'
-                            : 'bg-emerald-700 text-white hover:bg-emerald-800'
-                        }`}
-                      >
-                        {isAnalisando ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            {progressoMap[file.name] || 'Lendo com IA...'}
-                          </>
-                        ) : resumoItem?.resumo ? (
-                          <>
-                            <RefreshCw className="h-3 w-3 text-[#8C6527]" />
-                            Reanalisar
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-3 w-3" />
-                            Analisar com IA
-                          </>
-                        )}
-                      </Button>
-
-                      <button
-                        type="button"
-                        onClick={() => removePendingFile(idx)}
-                        className="text-red-500 hover:text-red-700 p-1 rounded-lg"
-                        title="Remover anexo pendente"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Alerta de Erro */}
-                  {erroMsg && (
-                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        {erroMsg}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleAnalisarArquivo(file)}
-                        className="font-bold underline text-amber-900 hover:text-amber-950 shrink-0"
-                      >
-                        Tentar novamente
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Resumo Gerado para o Arquivo Novo */}
-                  {resumoItem && isExpandido && (
-                    <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-200 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center justify-between gap-2 w-full">
-                          <div className="flex items-center gap-1 text-emerald-950 font-bold text-[11px]">
-                            <Sparkles className="h-3 w-3 text-emerald-600" />
-                            <span>Síntese Clínica do Anexo:</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditandoMap((prev) => ({ ...prev, [file.name]: !isEditando }))
-                            }
-                            className="text-[11px] text-emerald-800 hover:underline font-semibold flex items-center gap-1"
-                          >
-                            {isEditando ? (
-                              <>
-                                <Check className="h-3 w-3" /> Concluir edição
-                              </>
-                            ) : (
-                              <>
-                                <Edit3 className="h-3 w-3" /> Editar síntese
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {isEditando ? (
-                        <Textarea
-                          rows={3}
-                          value={resumoItem.resumo}
-                          onChange={(e) => atualizarResumo(file.name, e.target.value, true)}
-                          className="text-xs bg-white rounded-lg border-emerald-300 leading-relaxed font-sans"
-                        />
-                      ) : (
-                        <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap bg-white p-2 rounded-lg border border-emerald-100 font-sans">
-                          {resumoItem.resumo}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Revisão dos dados extraídos pela IA (confirmar → preenche o prontuário) */}
-                  <RevisaoDadosExtraidos
-                    ref={registrarRefRevisao(file.name)}
-                    nomeArquivo={file.name}
-                    dados={dadosExtraidosMap[file.name] || null}
-                    confirmado={!!confirmadoMap[file.name]}
-                    valorAtualCampo={formData.historico_medico || ''}
-                    onConfirmar={handleConfirmarDados}
-                  />
-                </div>
-              )
+              const isImg = file.type.startsWith('image/')
+              const fileUrl = isImg ? URL.createObjectURL(file) : undefined
+              return renderCardArquivo(file.name, { isImg, fileUrl, file, idx, pendente: true })
             })}
           </div>
-
           <p className="text-[11px] text-emerald-700">
             Estes arquivos e suas sínteses clínicas serão gravados automaticamente na nuvem ao
             salvar rascunho ou concluir a avaliação.
