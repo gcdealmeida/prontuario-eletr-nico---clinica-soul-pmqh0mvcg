@@ -4,17 +4,17 @@
  * Hook para leitura, extração clínica e resumo de anexos por IA
  * Rota: POST /backend/v1/anexos/analisar-ia
  *
- * Suporta:
- * 1. Arquivos enviados via multipart/form-data (campo 'arquivo') ou já salvos no registro
- * 2. Documentos com texto: PDFs, DOCX, XLSX, PPTX, TXT via $documents.toMarkdown
- * 3. PDFs escaneados (sem camada de texto): o FRONTEND rasteriza as páginas do PDF
- *    (pdf.js) e as envia no mesmo multipart no campo 'paginas'; o hook lê essas
- *    imagens com IA multimodal ($ai.chat) fazendo o OCR de visão.
- *    ($documents.pages NÃO existe nesta plataforma — nunca chamar.)
- * 4. Imagens (JPG, PNG, WEBP) via visão ($ai.chat com multimodal base64)
- * 5. Síntese gerada pelo agente nativo 'leitor-documentos-clinica-soul' (migration 0054),
- *    com fallback para $ai.chat direto caso o agente não responda
- * 6. Registro automático na trilha de auditoria clínica (clinical_update_logs)
+ * Cadeia de leitura (nesta ordem):
+ * 1. Texto direto: PDFs, DOCX, XLSX, PPTX, TXT via $documents.toMarkdown
+ * 2. Visão multimodal ($ai.chat) com data URL enviado pelo navegador
+ *    ('arquivo_base64') — cobre imagens (JPG/PNG/WEBP) e PDFs escaneados
+ *    (sem camada de texto), que o $documents rejeita. $documents.pages NÃO
+ *    existe nesta plataforma — nunca chamar; $security.base64Encode também
+ *    NÃO existe nesta JSVM — o base64 vem pronto do cliente.
+ * 3. Síntese via agente nativo 'leitor-documentos-clinica-soul' (migration 0054),
+ *    com fallback para $ai.chat direto (texto ou visão) caso o agente não responda
+ * 4. Extração estruturada (JSON) para o painel de revisão da Etapa 6
+ * 5. Registro na trilha de auditoria clínica (clinical_update_logs)
  */
 routerAdd(
   'POST',
@@ -40,15 +40,8 @@ routerAdd(
       const existingFilename = (body.nome_arquivo || '').trim()
       const existingCollection = (body.collection_name || '').trim()
       const existingRecordId = (body.record_id || avaliacaoId || evolucaoId || '').trim()
+      const arquivoBase64Cliente = (body.arquivo_base64 || '').trim()
 
-      const MIME_POR_EXT = {
-        pdf: 'application/pdf',
-        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        png: 'image/png',
-        webp: 'image/webp',
-        jpg: 'image/jpeg',
-        jpeg: 'image/jpeg',
-      }
       const extImagens = ['jpg', 'jpeg', 'png', 'webp']
       const extDocumentos = ['pdf', 'docx', 'xlsx', 'pptx', 'txt']
 
@@ -56,21 +49,20 @@ routerAdd(
       let fileExt = ''
       let fileContentMarkdown = ''
       let isTruncated = false
-      let fileBase64 = ''
-      let fileMime = ''
+      let dataUrlImagem = ''
 
       // ------------------------------------------------------------------
-      // 1. Obter o conteúdo do documento: texto direto ou páginas renderizadas
+      // 1. Obter o conteúdo do documento: texto via $documents ou visão
       // ------------------------------------------------------------------
       if (files && files.length > 0) {
         const uploadedFile = files[0]
         fileName = uploadedFile.originalName || 'anexo'
         fileExt = (fileName.split('.').pop() || '').toLowerCase()
 
-        // Verificação de tamanho (limite 10MB)
         if (uploadedFile.size > 10 * 1024 * 1024) {
           return e.json(413, {
-            error: 'O arquivo excede o limite máximo permitido de 10 MB.',
+            error:
+              'O arquivo excede o limite máximo permitido de 10 MB. Compacte o documento ou anexe uma foto mais leve.',
           })
         }
 
@@ -80,18 +72,8 @@ routerAdd(
             fileContentMarkdown = docRes.markdown || ''
             isTruncated = !!docRes.truncated
           } catch (docErr) {
-            console.log('Texto não extraível via toMarkdown:', docErr)
-            // Fallback para visão acontece mais abaixo, com o arquivo original
-          }
-        } else if (extImagens.includes(fileExt)) {
-          try {
-            const reader = uploadedFile.open()
-            const bytes = $io.readAll(reader)
-            reader.close()
-            fileBase64 = $security.base64Encode(bytes)
-            fileMime = MIME_POR_EXT[fileExt] || 'image/jpeg'
-          } catch (imgErr) {
-            console.log('Erro ao ler bytes da imagem enviada:', imgErr)
+            console.log('Texto não extraível via toMarkdown (' + fileName + '):', docErr)
+            // PDF escaneado: o fallback de visão acontece mais abaixo com o data URL do cliente
           }
         }
       } else if (existingRecordId && existingCollection && existingFilename) {
@@ -100,41 +82,20 @@ routerAdd(
         fileExt = (fileName.split('.').pop() || '').toLowerCase()
         try {
           const rec = $app.findRecordById(existingCollection, existingRecordId)
-          if (extDocumentos.includes(fileExt)) {
-            const fieldCandidates = ['anexos_exames', 'anexos_dinamometro', 'anexos_postura']
-            for (let f = 0; f < fieldCandidates.length; f++) {
-              if (rec.collection().fields.getByName(fieldCandidates[f])) {
-                try {
-                  const docRes = $documents.toMarkdown({
-                    record: rec,
-                    field: fieldCandidates[f],
-                  })
-                  fileContentMarkdown = docRes.markdown || ''
-                  isTruncated = !!docRes.truncated
-                  break
-                } catch (fieldErr) {
-                  console.log(
-                    'Falha ao extrair texto do campo ' + fieldCandidates[f] + ':',
-                    fieldErr,
-                  )
-                }
+          const fieldCandidates = ['anexos_exames', 'anexos_dinamometro', 'anexos_postura']
+          for (let f = 0; f < fieldCandidates.length; f++) {
+            if (rec.collection().fields.getByName(fieldCandidates[f])) {
+              try {
+                const docRes = $documents.toMarkdown({
+                  record: rec,
+                  field: fieldCandidates[f],
+                })
+                fileContentMarkdown = docRes.markdown || ''
+                isTruncated = !!docRes.truncated
+                break
+              } catch (fieldErr) {
+                console.log('Falha ao extrair texto do campo ' + fieldCandidates[f] + ':', fieldErr)
               }
-            }
-          } else if (extImagens.includes(fileExt)) {
-            try {
-              const fieldCandidates = ['anexos_exames', 'anexos_dinamometro', 'anexos_postura']
-              for (let f = 0; f < fieldCandidates.length; f++) {
-                if (rec.collection().fields.getByName(fieldCandidates[f])) {
-                  const fileBytes = rec.getStoredFileBytes(fieldCandidates[f], existingFilename)
-                  if (fileBytes && fileBytes.length > 0) {
-                    fileBase64 = $security.base64Encode(fileBytes)
-                    fileMime = MIME_POR_EXT[fileExt] || 'image/jpeg'
-                    break
-                  }
-                }
-              }
-            } catch (imgErr) {
-              console.log('Erro ao ler imagem de registro existente:', imgErr)
             }
           }
         } catch (recErr) {
@@ -143,70 +104,78 @@ routerAdd(
       }
 
       // ------------------------------------------------------------------
-      // 2. Páginas rasterizadas enviadas pelo FRONTEND (campo 'paginas', múltiplo):
-      //    pdf.js no navegador transforma cada página do PDF em PNG (data URL).
-      //    Isso cobre PDFs escaneados (sem camada de texto), que o $documents
-      //    rejeita com "OCR is required". NUNCA rejeitar com erro falso de
-      //    "nitidez": página legível → OCR de visão.
+      // 2. Visão multimodal com o data URL enviado pelo navegador
+      //    (campo 'arquivo_base64', "data:image/jpeg;base64,..." vindo do
+      //    FileReader). Usado quando: é imagem, OU documento sem texto
+      //    extraível (PDF escaneado), OU o texto extraído veio vazio.
       // ------------------------------------------------------------------
-      const paginasEnviadas = e.findUploadedFiles('paginas')
-      if (!fileContentMarkdown && !fileBase64 && paginasEnviadas && paginasEnviadas.length > 0) {
+      if (!fileContentMarkdown && arquivoBase64Cliente.startsWith('data:')) {
+        const virgula = arquivoBase64Cliente.indexOf(',')
+        dataUrlImagem = arquivoBase64Cliente
+        if (virgula === -1) {
+          return e.json(400, {
+            error:
+              'Formato do anexo inválido para leitura por IA. Tente novamente; se persistir, preencha o prontuário manualmente.',
+          })
+        }
         try {
-          const maxPaginas = 8
-          const totalPaginas = paginasEnviadas.length
-          const contentParts = []
-          for (let p = 0; p < Math.min(totalPaginas, maxPaginas); p++) {
-            const reader = paginasEnviadas[p].open()
-            const bytes = $io.readAll(reader)
-            reader.close()
-            contentParts.push({
-              type: 'text',
-              text:
-                'Página ' + (p + 1) + ' de ' + totalPaginas + ' do documento "' + fileName + '".',
-            })
-            contentParts.push({
-              type: 'image_url',
-              image_url: {
-                url: 'data:image/png;base64,' + $security.base64Encode(bytes),
-              },
-            })
-          }
-
-          if (totalPaginas > maxPaginas) {
-            isTruncated = true
-          }
-
           const replyVisao = $ai.chat({
             model: 'fast',
+            maxTokens: 3000,
             messages: [
               {
                 role: 'system',
                 content:
-                  'Você é um leitor universal de documentos clínicos. Analise cuidadosamente as páginas (imagens) deste documento anexado ao prontuário e EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta (OCR de visão). Preserve a ordem de leitura, títulos, valores, medidas e a conclusão. Não comente sobre a qualidade da imagem nem avalie nitidez. Idioma: Português (Brasil).',
+                  'Você é um leitor universal de documentos clínicos da Clínica SOUL. Analise cuidadosamente a imagem/anexo e EXTRAIA TODO O TEXTO VISÍVEL com fidelidade absoluta (leitura de documento escaneado ou fotografado). Preserve a ordem de leitura, títulos, valores, medidas e a conclusão. NUNCA comente sobre a qualidade ou nitidez da imagem. Se estiver ilegível, diga apenas "DOCUMENTO ILEGIVEL". Idioma: Português (Brasil).',
               },
-              { role: 'user', content: contentParts },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      'Leia o documento "' +
+                      fileName +
+                      '" anexado ao prontuário e extraia todo o seu conteúdo em texto.',
+                  },
+                  { type: 'image_url', image_url: { url: arquivoBase64Cliente } },
+                ],
+              },
             ],
           })
-
-          fileContentMarkdown = (replyVisao.choices?.[0]?.message?.content || '').trim()
-          if (fileContentMarkdown) {
-            console.log(
-              'OCR de visão usado (páginas rasterizadas pelo cliente): ' +
-                fileName +
-                ' (' +
-                Math.min(totalPaginas, maxPaginas) +
-                ' páginas)',
-            )
+          const brutoVisao = (replyVisao.choices?.[0]?.message?.content || '').trim()
+          if (brutoVisao && !brutoVisao.toUpperCase().includes('DOCUMENTO ILEGIVEL')) {
+            fileContentMarkdown = brutoVisao
+            console.log('Leitura por visão usada (' + (fileExt || 'arquivo') + '): ' + fileName)
+          } else if (!brutoVisao) {
+            console.log('Visão multimodal não retornou conteúdo para ' + fileName)
           }
         } catch (visaoErr) {
-          console.log('Fallback de visão (páginas do cliente) falhou:', visaoErr)
+          console.log('Fallback de visão multimodal falhou (' + fileName + '):', visaoErr)
         }
       }
 
-      if (!fileContentMarkdown && !fileBase64) {
-        return e.badRequestError(
-          'Nenhum arquivo válido enviado ou legível para análise. Envie um arquivo PDF, JPG, PNG ou WEBP.',
-        )
+      if (!fileContentMarkdown) {
+        // ------------------------------------------------------------------
+        // Falha de leitura: mensagem específica pelo motivo real
+        // ------------------------------------------------------------------
+        let motivo
+        if (fileExt === 'pdf') {
+          motivo =
+            'Este PDF é escaneado (imagem) e não pôde ser lido pela IA neste momento. Anexe uma foto/página nítida do documento (JPG ou PNG) ou preencha os dados manualmente.'
+        } else if (extImagens.includes(fileExt)) {
+          motivo =
+            'Não foi possível ler a imagem enviada pela IA. Confira se a foto está nítida e completa e tente novamente.'
+        } else {
+          motivo =
+            'Não foi possível extrair o conteúdo deste arquivo (' +
+            (fileExt || 'desconhecido') +
+            '). Formatos aceitos: PDF, JPG, PNG, WEBP, DOCX, XLSX, PPTX, TXT.'
+        }
+        return e.json(422, {
+          error: motivo,
+          motivo: 'documento_ilegivel',
+        })
       }
 
       // ------------------------------------------------------------------
@@ -222,7 +191,6 @@ routerAdd(
 
       // ------------------------------------------------------------------
       // 4. Síntese clínica via AGENTE NATIVO 'leitor-documentos-clinica-soul'
-      //    (definido na migration 0054), com fallback para $ai.chat direto.
       // ------------------------------------------------------------------
       const systemPromptFallback = `Você é o Leitor Universal de Documentos Clínicos da Clínica SOUL.
 Sua tarefa é analisar o documento anexado ao prontuário (laudo de Ressonância Magnética, Raio-X, Ultrassom, Tomografia, exame laboratorial, receituário, relatório funcional ou foto) e produzir uma SÍNTESE CLÍNICA CONCISA e organizada dos principais resultados.
@@ -239,64 +207,25 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
    Idioma: Português (Brasil). Se o documento não for legível ou não for de saúde, indique sucintamente.`
 
       const mensagemUsuario =
-        'Documento anexado ao prontuário do paciente (' +
-        (pacienteNome ? pacienteNome : 'paciente SOUL') +
-        '), arquivo "' +
+        'Documento anexado ao prontuário do paciente ' +
+        pacienteNome +
+        ', arquivo "' +
         fileName +
-        '". ' +
-        (fileBase64 && !fileContentMarkdown
-          ? 'Analise a imagem anexada.'
-          : 'Analise o conteúdo extraído abaixo e gere a síntese clínica.') +
-        '\n\n' +
-        (fileContentMarkdown || '')
+        '". Analise o conteúdo extraído abaixo e gere a síntese clínica.\n\n' +
+        fileContentMarkdown
 
       let resumoGerado = ''
       try {
         const agentResult = $ai.agent('leitor-documentos-clinica-soul').chat({
           user_id: userId,
           message: mensagemUsuario,
-          files: fileBase64
-            ? [{ base64: fileBase64, mime: fileMime || 'image/jpeg', name: fileName }]
-            : undefined,
         })
         resumoGerado = (agentResult?.content || '').trim()
       } catch (agentErr) {
         console.log('Agente leitor-documentos indisponível, usando fallback $ai.chat:', agentErr)
       }
 
-      if (!resumoGerado && fileBase64 && !fileContentMarkdown) {
-        // Imagem: chamada de visão multimodal direta
-        try {
-          const reply = $ai.chat({
-            model: 'fast',
-            messages: [
-              { role: 'system', content: systemPromptFallback },
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text:
-                      'Analise cuidadosamente esta imagem anexada ao prontuário ("' +
-                      fileName +
-                      '") — foto de exame, laudo impresso, foto postural ou captura de relatório. Extraia os dados visíveis e gere a síntese clínica concisa.',
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: 'data:' + (fileMime || 'image/jpeg') + ';base64,' + fileBase64,
-                    },
-                  },
-                ],
-              },
-            ],
-          })
-          resumoGerado = (reply.choices?.[0]?.message?.content || '').trim()
-        } catch (visaoErr2) {
-          console.log('Erro na visão multimodal da imagem:', visaoErr2)
-        }
-      } else if (!resumoGerado && fileContentMarkdown) {
-        // Documento com texto: $ai.chat direto sobre o texto extraído
+      if (!resumoGerado) {
         try {
           const safeMarkdown = fileContentMarkdown.slice(0, 35000)
           const reply = $ai.chat({
@@ -322,23 +251,17 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
       if (!resumoGerado) {
         return e.json(502, {
           error:
-            'A inteligência artificial não retornou o resumo do anexo. Seus dados continuam intactos. Tente novamente.',
+            'A inteligência artificial não retornou a síntese do anexo. Seus dados continuam intactos. Use "Tentar novamente".',
+          motivo: 'ia_sem_resposta',
         })
       }
 
       // ------------------------------------------------------------------
-      // 4bis. Extração estruturada dos dados do documento (revisão no prontuário)
-      //      Segunda chamada curta ao modelo: devolve JSON com os campos que a
-      //      tela "Exames Complementares e Documentos" mostra para o profissional
-      //      conferir antes de preencher automaticamente os campos do formulário.
-      //      Fallback: se falhar, o frontend continua com o resumo puro.
+      // 5. Extração estruturada dos dados do documento (painel de revisão)
       // ------------------------------------------------------------------
       let dadosExtraidos = null
       try {
-        const textoFonte =
-          fileBase64 && !fileContentMarkdown
-            ? '(imagem analisada por visão)'
-            : fileContentMarkdown.slice(0, 30000)
+        const textoFonte = fileContentMarkdown.slice(0, 30000)
         const replyDados = $ai.chat({
           model: 'fast',
           messages: [
@@ -353,7 +276,7 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
                 'Documento "' +
                 fileName +
                 '" do paciente ' +
-                (pacienteNome || '') +
+                pacienteNome +
                 '.\n\nSíntese clínica já gerada:\n' +
                 resumoGerado +
                 '\n\nConteúdo bruto do documento (pode estar truncado):\n' +
@@ -386,16 +309,13 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
       }
 
       // ------------------------------------------------------------------
-      // 5. Avisos e auditoria clínica
+      // 6. Avisos e auditoria clínica
       // ------------------------------------------------------------------
       const avisos = []
       if (isTruncated) {
         avisos.push(
           'Aviso: O documento é extenso e teve suas páginas/textos iniciais analisados prioritariamente.',
         )
-      }
-      if (fileContentMarkdown && !fileBase64 && fileBase64 !== '') {
-        // sem-op: mantido para clareza do fluxo texto vs imagem
       }
 
       try {
@@ -438,12 +358,14 @@ DIRETRIZES DE REDAÇÃO (PADRÃO CLÍNICA SOUL):
       if (typeof SkipAiConfigError !== 'undefined' && err instanceof SkipAiConfigError) {
         return e.json(503, {
           error: 'Serviço de IA indisponível temporariamente. Seus dados continuam intactos.',
+          motivo: 'ia_indisponivel',
         })
       }
       return e.json(500, {
         error:
-          'Não foi possível analisar o anexo com IA no momento. ' +
-          (err?.message || 'Erro inesperado.'),
+          'Não foi possível analisar o anexo com IA no momento. Use "Tentar novamente". ' +
+          (err?.message || ''),
+        motivo: 'erro_interno',
       })
     }
   },

@@ -18,7 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { getFileUrl, analisarAnexoIa } from '@/services/avaliacoes'
-import { rasterizarPaginasPdf } from '@/lib/rasterizadorPdf'
+import { arquivoParaDataUrl } from '@/lib/arquivoParaDataUrl'
 import type { AnexoDadosExtraidos } from '@/services/avaliacoes'
 import { useToast } from '@/hooks/use-toast'
 import type { ResumoAnexoIaItem } from '@/types/database'
@@ -98,21 +98,42 @@ export const Etapa6Anexos: React.FC<Etapa6AnexosProps> = ({
         return copy
       })
 
-      let paginasRasterizadas: File[] | null = null
+      // Data URL do arquivo (FileReader nativo, sem dependências) para a visão
+      // multimodal do hook: cobre imagens e PDFs escaneados (sem camada de texto)
+      // sem o falso erro de "nitidez". Para arquivos > 6 MB, é null e o hook
+      // tenta só o texto; para "Analisar com IA" de anexo já salvo, o data URL
+      // é buscado pela URL pública do arquivo.
+      let arquivoBase64: string | null = null
       if (isFileObject) {
         try {
-          // PDF (inclusive escaneado): rasteriza as páginas no navegador para o
-          // hook fazer OCR de visão — evita o falso erro de "nitidez".
-          paginasRasterizadas = await rasterizarPaginasPdf(fileOrName)
-        } catch (rasterErr) {
-          console.warn('Rasterização falhou; servidor tentará extrair texto:', rasterErr)
+          arquivoBase64 = await arquivoParaDataUrl(fileOrName)
+        } catch (b64Err) {
+          console.warn('Conversão para data URL falhou; servidor tentará extrair texto:', b64Err)
+        }
+      } else if (existingRecordId) {
+        // Anexo já salvo no backend ("Reanalisar com IA"): busca o arquivo pela
+        // URL pública e converte para data URL — cobre PDFs escaneados salvos.
+        try {
+          const urlArquivo = getFileUrl('avaliacoes_fisioterapia', existingRecordId, fileName)
+          const resp = await fetch(urlArquivo)
+          if (resp.ok) {
+            const blob = await resp.blob()
+            arquivoBase64 = await arquivoParaDataUrl(
+              new File([blob], fileName, { type: blob.type || 'application/pdf' }),
+            )
+          }
+        } catch (fetchErr) {
+          console.warn(
+            'Re-download do anexo salvo falhou; servidor tentará extrair texto:',
+            fetchErr,
+          )
         }
       }
 
       const params = isFileObject
         ? {
             arquivo: fileOrName,
-            paginas: paginasRasterizadas || undefined,
+            arquivo_base64: arquivoBase64 || undefined,
             paciente_id: pacienteId || formData.paciente_id,
             avaliacao_id: existingRecordId,
             especialidade: 'Fisioterapia',

@@ -632,7 +632,9 @@ export async function extrairDinamometroArquivo(file: File, textoContexto?: stri
 
 export interface AnalisarAnexoIaParams {
   arquivo?: File
-  paginas?: File[]
+  /** Data URL do arquivo (FileReader, base64) usado pela visão multimodal do
+   * hook quando o documento não tem texto extraível (PDF escaneado) ou é imagem. */
+  arquivo_base64?: string
   paciente_id?: string
   avaliacao_id?: string
   evolucao_id?: string
@@ -673,12 +675,10 @@ export async function analisarAnexoIa(
   if (params.arquivo) {
     formData.append('arquivo', params.arquivo)
   }
-  // Páginas rasterizadas do PDF no navegador (pdf.js) — permitem OCR de visão
-  // de PDFs escaneados, que o conversor do servidor rejeita por falta de texto.
-  if (params.paginas && params.paginas.length > 0) {
-    for (const pagina of params.paginas) {
-      formData.append('paginas', pagina)
-    }
+  // Data URL do arquivo (FileReader nativo) — a visão multimodal do hook usa
+  // para ler PDFs escaneados (sem camada de texto) e imagens (JPG/PNG/WEBP).
+  if (params.arquivo_base64) {
+    formData.append('arquivo_base64', params.arquivo_base64)
   }
   if (params.paciente_id) formData.append('paciente_id', params.paciente_id)
   if (params.avaliacao_id) formData.append('avaliacao_id', params.avaliacao_id)
