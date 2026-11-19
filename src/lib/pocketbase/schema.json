@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-14T10:37:19.279Z",
+  "generatedAt": "2026-11-19T14:16:02.844Z",
   "collections": [
     {
       "name": "users",
@@ -3014,6 +3014,125 @@
         "CREATE INDEX idx_progtrat_status ON programas_tratamento (status)",
         "CREATE INDEX idx_progtrat_created ON programas_tratamento (created DESC)",
         "CREATE INDEX `idx_progtrat_modelos` ON `programas_tratamento` (is_modelo)"
+      ]
+    },
+    {
+      "name": "registros_atendimento",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.body.profissional_id = @request.auth.id",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_especialidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_atendimento",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "horario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "area_servico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Finalizada", "Ausência", "Desmarcada"]
+        },
+        {
+          "name": "motivo_desmarque",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Completo", "Rápido"]
+        },
+        {
+          "name": "evaluacoes_dor",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avaliacao_report",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conduta_realizada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evolucao_descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_regat_paciente ON registros_atendimento (paciente_id, data_atendimento DESC)",
+        "CREATE INDEX idx_regat_profissional ON registros_atendimento (profissional_id, data_atendimento DESC)",
+        "CREATE INDEX idx_regat_data ON registros_atendimento (data_atendimento DESC)"
       ]
     }
   ]
