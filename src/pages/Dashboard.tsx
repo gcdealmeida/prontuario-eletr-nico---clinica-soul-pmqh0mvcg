@@ -12,7 +12,6 @@ import {
   FileText,
   Plus,
   Stethoscope,
-  Activity,
   UserCheck,
   ChevronRight,
   CalendarCheck2,
@@ -28,7 +27,7 @@ import {
   Phone,
   Mail,
 } from 'lucide-react'
-import { ModalAcessoRapidoEvolucao } from '@/components/ModalAcessoRapidoEvolucao'
+
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { TopbarBuscaPaciente } from '@/components/TopbarBuscaPaciente'
@@ -67,7 +66,6 @@ export default function Dashboard() {
   const [minhasAvaliacoesCount, setMinhasAvaliacoesCount] = useState(0)
   const [meusPacientesRecentes, setMeusPacientesRecentes] = useState<PacienteRecord[]>([])
   const [novaConsultaOpen, setNovaConsultaOpen] = useState(false)
-  const [modalEvolucaoOpen, setModalEvolucaoOpen] = useState(false)
   const [modalLinkPreCadastroOpen, setModalLinkPreCadastroOpen] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [preCadastrosPendentes, setPreCadastrosPendentes] = useState<PacienteRecord[]>([])
@@ -377,23 +375,12 @@ export default function Dashboard() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant="outline"
-            onClick={() => navigate('/presencas?lancar=1')}
-            className="border-[#E3C89A] hover:bg-[#FAF4EA] text-[#8C6527] font-semibold rounded-xl h-10 px-3.5 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-2xs"
-            title="Lançar presença e confirmação"
+            onClick={() => navigate('/atendimento')}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm"
+            title="Registrar atendimento: presença + evolução em um único lugar"
           >
-            <CalendarCheck2 className="h-4 w-4 text-[#8C6527]" />
-            <span>Presença</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => setModalEvolucaoOpen(true)}
-            className="border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl h-10 px-3.5 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-2xs"
-            title="Registrar evolução SOAP de paciente"
-          >
-            <Activity className="h-4 w-4 text-emerald-600" />
-            <span>Evolução</span>
+            <CalendarCheck2 className="h-4 w-4 text-emerald-100" />
+            <span>Registrar Atendimento</span>
           </Button>
 
           <Button
@@ -412,25 +399,26 @@ export default function Dashboard() {
       {/* NOVA AVALIAÇÃO E BUSCA DE PACIENTE                                         */}
       {/* ========================================================================= */}
       <div className="space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Botão A: Presença e Confirmação */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Botão A: Registrar Atendimento (Presença + Evolução unificados) */}
           <div
-            onClick={() => navigate('/presencas?lancar=1')}
-            className="relative overflow-hidden group p-5 rounded-3xl bg-gradient-to-br from-[#FAF4EA] via-white to-[#F5EAD6] border-2 border-[#E3C89A] hover:border-[#C9A46A] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-3"
+            onClick={() => navigate('/atendimento')}
+            className="relative overflow-hidden group p-5 rounded-3xl bg-gradient-to-br from-[#FAF4EA] via-white to-emerald-50/60 border-2 border-[#E3C89A] hover:border-[#C9A46A] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#8C6527] to-[#B88E52] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-700 to-[#8C6527] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
                 <CalendarCheck2 className="h-6 w-6 text-white" />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6527] bg-[#E3C89A]/50 px-2 py-0.5 rounded-md inline-block">
-                  Acesso Diário
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block">
+                  Presença + Evolução
                 </span>
                 <h2 className="text-base sm:text-lg font-serif font-bold text-[#4A322A] group-hover:text-[#8C6527] transition-colors mt-0.5">
-                  Presença e Confirmação
+                  Registrar Atendimento
                 </h2>
                 <p className="text-xs text-[#73574A] line-clamp-1 mt-0.5">
-                  Lançar presença de hoje ou conferir atendimentos.
+                  Painel único: presença, EVA, evolução e controle do mês — entra direto no
+                  prontuário.
                 </p>
               </div>
             </div>
@@ -440,48 +428,11 @@ export default function Dashboard() {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation()
-                  navigate('/presencas?lancar=1')
+                  navigate('/atendimento')
                 }}
                 className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs rounded-xl h-9 px-3 shadow-sm border border-[#DFBF8E]/60 flex items-center gap-1"
               >
                 <span>Acessar</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Botão B: Evolução SOAP Rápida */}
-          <div
-            onClick={() => setModalEvolucaoOpen(true)}
-            className="relative overflow-hidden group p-5 rounded-3xl bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/40 border-2 border-emerald-200 hover:border-emerald-400 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-700 to-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
-                <Activity className="h-6 w-6 text-white" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block">
-                  Fluxo SOAP & EVA
-                </span>
-                <h2 className="text-base sm:text-lg font-serif font-bold text-[#4A322A] group-hover:text-emerald-800 transition-colors mt-0.5">
-                  Evolução Clínica
-                </h2>
-                <p className="text-xs text-[#73574A] line-clamp-1 mt-0.5">
-                  Buscar paciente e registrar sessão com régua EVA.
-                </p>
-              </div>
-            </div>
-
-            <div className="shrink-0">
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setModalEvolucaoOpen(true)
-                }}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl h-9 px-3 shadow-sm border border-emerald-600 flex items-center gap-1"
-              >
-                <span>Evoluir</span>
                 <ArrowRight className="h-3 w-3" />
               </Button>
             </div>
@@ -1032,19 +983,11 @@ export default function Dashboard() {
 
                 <div className="space-y-2.5">
                   <Button
-                    onClick={() => navigate('/presencas?lancar=1')}
-                    className="w-full justify-start h-11 rounded-xl bg-gradient-to-r from-[#FAF4EA] to-[#F5EAD6] border border-[#E3C89A] hover:bg-[#F3E5CF] text-[#4A322A] font-bold text-xs shadow-2xs"
-                  >
-                    <CalendarCheck2 className="h-4 w-4 mr-2 text-[#8C6527]" />
-                    Presença e Confirmação
-                  </Button>
-
-                  <Button
-                    onClick={() => setModalEvolucaoOpen(true)}
+                    onClick={() => navigate('/atendimento')}
                     className="w-full justify-start h-11 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold text-xs shadow-2xs"
                   >
-                    <Activity className="h-4 w-4 mr-2 text-emerald-700" />
-                    Evolução Clínica (Sessão SOAP)
+                    <CalendarCheck2 className="h-4 w-4 mr-2 text-emerald-700" />
+                    Registrar Atendimento (Presença + Evolução)
                   </Button>
 
                   <Button
@@ -1488,9 +1431,6 @@ export default function Dashboard() {
         onOpenChange={setNovaConsultaOpen}
         onSuccess={loadDashboardData}
       />
-
-      {/* Modal de Acesso Rápido a Evolução */}
-      <ModalAcessoRapidoEvolucao open={modalEvolucaoOpen} onOpenChange={setModalEvolucaoOpen} />
 
       {/* Modal de Compartilhamento do Link de Pré-Avaliação */}
       <ModalLinkPreCadastro

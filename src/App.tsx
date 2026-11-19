@@ -26,6 +26,7 @@ import AguardandoAprovacao from '@/pages/AguardandoAprovacao'
 
 // Protected Clinic Pages
 import Dashboard from '@/pages/Dashboard'
+import PainelAtendimento from '@/pages/atendimento/PainelAtendimento'
 import Pacientes from '@/pages/Pacientes'
 import PacienteDetalhe from '@/pages/PacienteDetalhe'
 import Agenda from '@/pages/Agenda'
@@ -122,6 +123,7 @@ const router = createBrowserRouter(
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/painel" element={<Dashboard />} />
+          <Route path="/atendimento" element={<PainelAtendimento />} />
           <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/:id" element={<PacienteDetalhe />} />
           <Route
