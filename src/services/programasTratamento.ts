@@ -27,6 +27,128 @@ export interface CapaFotoConfig {
 
 export const CAPA_CONFIG_PADRAO: CapaFotoConfig = { x: 50, y: 50, z: 1, o: 100 }
 
+/** Config de recorte da foto de um plano (página 2) — mesma semântica da capa */
+export type PlanoFotoConfig = CapaFotoConfig
+
+/** Item da lista de um plano (página 2), com ícone da arte original */
+export interface ItemPlano {
+  icon: string
+  texto: string
+}
+
+/** Opção de parcelamento: número de vezes (1 = à vista) */
+export interface ParcelaPlano {
+  n: number
+}
+
+/** Um plano da página 2 (Basic / Otimizado / Personalizado) */
+export interface PlanoProposta {
+  nome: string
+  tagline: string
+  foto: string
+  foto_config: PlanoFotoConfig
+  itens: ItemPlano[]
+  duracao_semanas: number
+  atendimentos: number
+  /** Valor total em R$ — uso interno, não imprime na proposta */
+  total: number
+  parcelas: ParcelaPlano[]
+}
+
+export const PLANO_FOTO_CONFIG_PADRAO: PlanoFotoConfig = { x: 50, y: 50, z: 1, o: 100 }
+
+const NOMES_PLANOS_PADRAO = ['Basic', 'Otimizado', 'Personalizado'] as const
+
+/** Três planos vazios (Basic / Otimizado / Personalizado), prontos para edição */
+export function planosPadrao(): PlanoProposta[] {
+  return NOMES_PLANOS_PADRAO.map((nome) => ({
+    nome,
+    tagline: '',
+    foto: '',
+    foto_config: { ...PLANO_FOTO_CONFIG_PADRAO },
+    itens: [{ icon: 'check', texto: '' }],
+    duracao_semanas: 4,
+    atendimentos: 8,
+    total: 0,
+    parcelas: [{ n: 1 }, { n: 3 }],
+  }))
+}
+
+/** Normaliza o JSON `planos` vindo do banco (pode chegar como string) */
+export function parsePlanos(valor: unknown): PlanoProposta[] {
+  let bruto: unknown = valor
+  if (typeof valor === 'string' && valor.trim()) {
+    try {
+      bruto = JSON.parse(valor)
+    } catch {
+      bruto = null
+    }
+  }
+  if (!Array.isArray(bruto)) return planosPadrao()
+  const base = planosPadrao()
+  const cfg = (v: unknown): PlanoFotoConfig => {
+    const o = (v && typeof v === 'object' ? v : {}) as Partial<PlanoFotoConfig>
+    const num = (x: unknown, fb: number) => (Number.isFinite(Number(x)) ? Number(x) : fb)
+    return {
+      x: num(o.x, 50),
+      y: num(o.y, 50),
+      z: num(o.z, 1),
+      o: o.o == null ? 100 : num(o.o, 100),
+    }
+  }
+  return NOMES_PLANOS_PADRAO.map((nome, i) => {
+    const raw = (bruto as unknown[]).find(
+      (p) => p && typeof p === 'object' && (p as PlanoProposta).nome === nome,
+    ) as Partial<PlanoProposta> | undefined
+    const fallback = (bruto as unknown[])[i] as Partial<PlanoProposta> | undefined
+    const p = raw || fallback || {}
+    return {
+      nome: String(p.nome || nome),
+      tagline: String(p.tagline || ''),
+      foto: String(p.foto || ''),
+      foto_config: cfg(p.foto_config),
+      itens:
+        Array.isArray(p.itens) && p.itens.length
+          ? p.itens
+              .map((it) => ({
+                icon: String((it as ItemPlano)?.icon || 'check'),
+                texto: String((it as ItemPlano)?.texto || ''),
+              }))
+              .filter((it) => it.texto.trim())
+          : [],
+      duracao_semanas: Number(p.duracao_semanas) || 0,
+      atendimentos: Number(p.atendimentos) || 0,
+      total: Number(p.total) || 0,
+      parcelas:
+        Array.isArray(p.parcelas) && p.parcelas.length
+          ? p.parcelas
+              .map((x) => ({ n: Math.max(1, Math.round(Number((x as ParcelaPlano)?.n) || 1)) }))
+              .slice(0, 3)
+          : [{ n: 1 }, { n: 3 }],
+    }
+  })
+}
+
+/** URL da foto de um plano: data/blob/http (prévia local) ou arquivo da coleção */
+export function getPlanoFotoUrl(
+  registro: Pick<ProgramaTratamentoRecord, 'id'> | null,
+  foto: string,
+): string {
+  if (!foto) return ''
+  if (/^(blob:|data:|https?:)/.test(foto)) return foto
+  if (!registro?.id) return ''
+  return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${COLLECTION}/${registro.id}/${foto}`
+}
+
+/** URL da logo custom: data/blob/http ou arquivo da coleção */
+export function getLogoCustomUrl(registro: Pick<ProgramaTratamentoRecord, 'id'> | null): string {
+  const logo = (registro as ProgramaTratamentoRecord | null)?.logo_custom || ''
+  if (!logo) return ''
+  if (/^(blob:|data:|https?:)/.test(logo)) return logo
+  if (!registro?.id) return ''
+  return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${COLLECTION}/${registro.id}/${logo}`
+}
+
 export interface ProgramaTratamentoPayload {
   paciente_id: string
   titulo: string
@@ -47,6 +169,13 @@ export interface ProgramaTratamentoPayload {
   condicoes_pagamento?: string
   observacoes?: string
   capa_config?: CapaFotoConfig
+  /** Arte original do gerador SOUL: planos da pág. 2 e frase da capa */
+  frase_paciente?: string
+  planos?: PlanoProposta[]
+  logo_custom?: string
+  props_cab?: string
+  props_pagina?: string
+  props_rodape?: string
   /** Modelos reutilizáveis (mesma coleção, flag admin-only) */
   is_modelo?: boolean
   modelo_nome?: string
@@ -71,6 +200,12 @@ export interface ProgramaTratamentoRecord {
   updated: string
   capa_foto?: string
   capa_config?: CapaFotoConfig | null
+  frase_paciente?: string
+  planos?: PlanoProposta[] | string | null
+  logo_custom?: string
+  props_cab?: string
+  props_pagina?: string
+  props_rodape?: string
   mes_referencia?: string
   texto_apresentacao?: string
   texto_introducao?: string
@@ -260,6 +395,7 @@ function prepararBody(data: Record<string, unknown>): Record<string, unknown> {
 export async function createProgramaTratamento(
   data: ProgramaTratamentoPayload,
   capaFotoArquivo?: File | null,
+  logoArquivo?: File | null,
 ) {
   const userId = pb.authStore.record?.id
   const body = prepararBody({
@@ -267,13 +403,16 @@ export async function createProgramaTratamento(
     capa_config: data.capa_config ? JSON.stringify(data.capa_config) : '',
     criado_por: userId,
   })
-  if (capaFotoArquivo) {
+  const arquivos: { campo: string; file: File }[] = []
+  if (capaFotoArquivo) arquivos.push({ campo: 'capa_foto', file: capaFotoArquivo })
+  if (logoArquivo) arquivos.push({ campo: 'logo_custom', file: logoArquivo })
+  if (arquivos.length) {
     const fd = new FormData()
     Object.entries(body).forEach(([k, v]) => {
       if (v == null) return
       fd.append(k, String(v))
     })
-    fd.append('capa_foto', capaFotoArquivo)
+    arquivos.forEach(({ campo, file }) => fd.append(campo, file))
     return await pb.collection(COLLECTION).create<ProgramaTratamentoRecord>(fd)
   }
   return await pb.collection(COLLECTION).create<ProgramaTratamentoRecord>(body)
@@ -284,6 +423,8 @@ export async function updateProgramaTratamento(
   data: Partial<ProgramaTratamentoPayload>,
   capaFotoArquivo?: File | null,
   removerCapaFoto = false,
+  logoArquivo?: File | null,
+  removerLogo = false,
 ) {
   const body: Record<string, unknown> = {
     ...data,
@@ -292,14 +433,16 @@ export async function updateProgramaTratamento(
       : {}),
   }
   if (removerCapaFoto) body['capa_foto-'] = ''
+  if (removerLogo) body['logo_custom-'] = ''
   const preparado = prepararBody(body)
-  if (capaFotoArquivo || removerCapaFoto) {
+  if (capaFotoArquivo || removerCapaFoto || logoArquivo || removerLogo) {
     const fd = new FormData()
     Object.entries(preparado).forEach(([k, v]) => {
       if (v == null) return
       fd.append(k, String(v))
     })
     if (capaFotoArquivo) fd.append('capa_foto', capaFotoArquivo)
+    if (logoArquivo) fd.append('logo_custom', logoArquivo)
     return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, fd)
   }
   return await pb.collection(COLLECTION).update<ProgramaTratamentoRecord>(id, preparado)

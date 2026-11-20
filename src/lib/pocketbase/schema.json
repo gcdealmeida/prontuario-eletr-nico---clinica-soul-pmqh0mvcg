@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T14:16:02.844Z",
+  "generatedAt": "2026-11-20T10:59:05.524Z",
   "collections": [
     {
       "name": "users",
@@ -3004,6 +3004,42 @@
         },
         {
           "name": "modelo_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frase_paciente",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "planos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logo_custom",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "props_cab",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "props_pagina",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "props_rodape",
           "type": "text",
           "required": false,
           "system": false

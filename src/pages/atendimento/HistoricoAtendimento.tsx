@@ -1,7 +1,15 @@
 import { ClipboardList, CalendarCheck2, FileText, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ItemHistorico } from './PainelAtendimentoPartes'
-import type { ItemHistoricoUnificado } from './PainelAtendimento'
+interface ItemHistoricoUnificado {
+  id: string
+  origem: 'registro' | 'presenca' | 'evolucao'
+  titulo: string
+  subtitulo: string
+  badges: string[]
+  conteudo: string
+  data: string
+}
 
 export function HistoricoAtendimento({
   itens,
