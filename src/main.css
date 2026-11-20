@@ -458,31 +458,3 @@
     page-break-inside: avoid;
   }
 }
-
-/* ===== Proposta de Tratamento — documento A4 fixo (paleta do impresso SOUL) ===== */
-.pg-proposta-soul {
-  width: 794px;
-  height: 1123px;
-  position: relative;
-  overflow: hidden;
-  font-family: 'Montserrat', system-ui, sans-serif;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-.pg-proposta-soul * {
-  box-sizing: border-box;
-}
-
-/* Prévia ao vivo dentro do formulário: mesma proporção, encolhida */
-.preview-proposta-escala {
-  transform-origin: top left;
-}
-
-/* Exportação: host oculto fora da tela usado pelo html2canvas */
-.host-exportacao-proposta {
-  position: fixed;
-  left: -20000px;
-  top: 0;
-  z-index: -1;
-  pointer-events: none;
-}

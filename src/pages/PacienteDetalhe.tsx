@@ -60,8 +60,6 @@ import { FileSpreadsheet, GitMerge, UserCheck, ShieldCheck } from 'lucide-react'
 import { EvaBadge } from '@/components/ReguaEva'
 import { TrajetoriaEvaGrafico } from '@/components/TrajetoriaEvaGrafico'
 import { SecaoEvolucoes } from '@/components/SecaoEvolucoes'
-import { HistoricoProgramasPaciente } from '@/components/programas/HistoricoProgramasPaciente'
-import type { ProgramaTratamentoRecord } from '@/services/programasTratamento'
 
 export default function PacienteDetalhe() {
   const { id } = useParams<{ id: string }>()
@@ -92,9 +90,6 @@ export default function PacienteDetalhe() {
 
   // Programas de Treino do paciente
   const [programasPaciente, setProgramasPaciente] = useState<any[]>([])
-
-  // Programas de Tratamento (propostas comerciais) do paciente
-  const [propostasTratamento, setPropostasTratamento] = useState<ProgramaTratamentoRecord[]>([])
 
   // Modal Consulta
   const [consultaModalOpen, setConsultaModalOpen] = useState(false)
@@ -187,17 +182,6 @@ export default function PacienteDetalhe() {
         setProgramasPaciente(progs)
       } catch (errProgs) {
         console.warn('Erro ao carregar programas do paciente:', errProgs)
-      }
-
-      // Propostas de Programa de Tratamento (ferramenta admin)
-      try {
-        const { listarProgramasTratamentoPorPaciente } =
-          await import('@/services/programasTratamento')
-        const propostas = await listarProgramasTratamentoPorPaciente(id)
-        setPropostasTratamento(propostas)
-      } catch (errPropostas) {
-        console.warn('Erro ao carregar programas de tratamento do paciente:', errPropostas)
-        setPropostasTratamento([])
       }
 
       // Evoluções

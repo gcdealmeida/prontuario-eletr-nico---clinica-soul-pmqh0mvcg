@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   Dumbbell,
   CalendarCheck2,
-  ClipboardList,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -125,11 +124,6 @@ export default function Layout() {
       ? [
           { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
           {
-            name: 'Programa de Tratamento',
-            path: '/programas-tratamento',
-            icon: ClipboardList,
-          },
-          {
             name: 'Acessos',
             path: '/acessos',
             icon: ShieldCheck,
@@ -156,7 +150,6 @@ export default function Layout() {
     if (path.startsWith('/programas')) return 'Programas de Treino & Periodização'
     if (path.startsWith('/prontuarios')) return 'Prontuários & Avaliações'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
-    if (path.startsWith('/programas-tratamento')) return 'Programa de Tratamento'
     if (path.startsWith('/acessos')) return 'Acessos & Governança'
     if (path.startsWith('/guia')) return 'Guia de Uso & Ajuda'
     return 'Soul Clínica'

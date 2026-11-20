@@ -37,7 +37,6 @@ import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
 import Relatorios from '@/pages/Relatorios'
 import GuiaUso from '@/pages/GuiaUso'
 import Acessos from '@/pages/Acessos'
-import ProgramaTratamento from '@/pages/ProgramaTratamento'
 import { Programas } from '@/pages/Programas'
 import { ProgramaDetalhe } from '@/pages/ProgramaDetalhe'
 import { ProgramaVersaoCliente } from '@/components/programas/ProgramaVersaoCliente'
@@ -157,8 +156,6 @@ const router = createBrowserRouter(
           <Route element={<AdminOnlyRoute />}>
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/acessos" element={<Acessos />} />
-            <Route path="/programas-tratamento" element={<ProgramaTratamento />} />
-            <Route path="/programas-tratamento/:id" element={<ProgramaTratamento />} />
           </Route>
           <Route path="/guia" element={<GuiaUso />} />
         </Route>
