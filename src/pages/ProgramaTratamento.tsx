@@ -37,17 +37,21 @@ import {
   getProgramaTratamento,
   nomeArquivoProposta,
   parseCapaConfig,
+  parsePlanos,
+  planosPadrao,
   listarModelosTratamento,
   listarProgramasTratamentoPorPaciente,
   listarServicosConhecidos,
   updateProgramaTratamento,
   type CapaFotoConfig,
   type ItemServicoProposta,
+  type PlanoProposta,
   type ProgramaTratamentoRecord,
 } from '@/services/programasTratamento'
 import { DocumentoPropostaTratamento } from '@/components/DocumentoPropostaTratamento'
 import { baixarPdfPropostaTratamento } from '@/lib/exportacaoProposta'
 import { PainelCapaProposta } from '@/components/programas/PainelCapaProposta'
+import { PainelPlanosProposta } from '@/components/programas/PainelPlanosProposta'
 import { PainelTextosProposta } from '@/components/programas/PainelTextosProposta'
 import {
   Trash2,
@@ -72,6 +76,11 @@ const ITEM_VAZIO: ItemFormState = {
   tipoDesconto: 'nenhum',
   desconto: 0,
 }
+
+/** Prévia: 2 páginas A4 (794×1123 px) + gap de 24 px entre elas */
+const ALTURA_LAYOUT_PREVIA = 2 * 1123 + 24
+const ESCALA_PREVIA = 0.62
+const ESCALA_PREVIA_DIALOGO = 0.72
 
 interface PropsFormulario {
   pacienteId: string
@@ -116,6 +125,13 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
   const [capaFotoPreview, setCapaFotoPreview] = useState<string>('')
   const [removerCapaFoto, setRemoverCapaFoto] = useState(false)
   const [gerandoPdf, setGerandoPdf] = useState(false)
+
+  // Página 2 da proposta: frase da capa, três planos e identidade/rodapé
+  const [frasePaciente, setFrasePaciente] = useState('')
+  const [planos, setPlanos] = useState<PlanoProposta[]>(() => planosPadrao())
+  const [propsCab, setPropsCab] = useState('')
+  const [propsPagina, setPropsPagina] = useState('')
+  const [propsRodape, setPropsRodape] = useState('')
   const [modelos, setModelos] = useState<ProgramaTratamentoRecord[]>([])
   const [aplicandoModelo, setAplicandoModelo] = useState<string | null>(null)
   const [dialogModeloAberto, setDialogModeloAberto] = useState(false)
@@ -157,6 +173,11 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
           setCondicoesPagamento(programa.condicoes_pagamento || '')
           setObservacoes(programa.observacoes || '')
           setCapaConfig(parseCapaConfig(programa.capa_config))
+          setFrasePaciente(programa.frase_paciente || '')
+          setPlanos(parsePlanos(programa.planos))
+          setPropsCab(programa.props_cab || '')
+          setPropsPagina(programa.props_pagina || '')
+          setPropsRodape(programa.props_rodape || '')
           const urlSalva = programa.id
             ? programa.capa_foto
               ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/programas_tratamento/${programa.id}/${programa.capa_foto}`
@@ -249,6 +270,20 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
     setRemoverCapaFoto(true)
   }
 
+  // ---- Página 2: planos e fotos por plano (data URL dentro do JSON 'planos') ----
+  const aoMudarPlano = useCallback((indice: number, plano: PlanoProposta) => {
+    setPlanos((prev) => prev.map((p, i) => (i === indice ? plano : p)))
+  }, [])
+
+  const aoFotoPlanoArquivo = useCallback((indice: number, file: File | null) => {
+    if (file) return // a foto nova entra como data URL via aoFotosNovas
+    setPlanos((prev) => prev.map((p, i) => (i === indice ? { ...p, foto: '' } : p)))
+  }, [])
+
+  const aoFotosNovas = useCallback((fotos: Record<number, string>) => {
+    setPlanos((prev) => prev.map((p, i) => (i in fotos && fotos[i] ? { ...p, foto: fotos[i] } : p)))
+  }, [])
+
   // ---- Modelos ----
   const aplicarModelo = async (modelo: ProgramaTratamentoRecord) => {
     setAplicandoModelo(modelo.id)
@@ -272,6 +307,11 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
       setCondicoesPagamento(bruto.condicoes_pagamento || '')
       setObservacoes(bruto.observacoes || '')
       setCapaConfig(parseCapaConfig(bruto.capa_config))
+      setFrasePaciente(bruto.frase_paciente || '')
+      setPlanos(parsePlanos(bruto.planos))
+      setPropsCab(bruto.props_cab || '')
+      setPropsPagina(bruto.props_pagina || '')
+      setPropsRodape(bruto.props_rodape || '')
       setCapaFotoArquivo(null)
       setCapaFotoPreview('')
       setRemoverCapaFoto(false)
@@ -352,6 +392,11 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
       condicoes_pagamento: condicoesPagamento.trim(),
       observacoes: observacoes.trim(),
       capa_config: capaConfig,
+      frase_paciente: frasePaciente.trim(),
+      planos,
+      props_cab: propsCab.trim(),
+      props_pagina: propsPagina.trim(),
+      props_rodape: propsRodape.trim(),
       is_modelo: comoModelo,
       modelo_nome: comoModelo ? nomeDoModelo : '',
     }
@@ -487,6 +532,11 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
       updated: new Date().toISOString(),
       capa_foto: capaFotoPreview,
       capa_config: capaConfig,
+      frase_paciente: frasePaciente,
+      planos,
+      props_cab: propsCab,
+      props_pagina: propsPagina,
+      props_rodape: propsRodape,
       mes_referencia: mesReferencia,
       texto_apresentacao: textoApresentacao,
       texto_introducao: textoIntroducao,
@@ -518,6 +568,11 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
       textoIntroducao,
       condicoesPagamento,
       observacoes,
+      frasePaciente,
+      planos,
+      propsCab,
+      propsPagina,
+      propsRodape,
     ],
   )
 
@@ -1000,10 +1055,40 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
             </CardContent>
           </Card>
 
+          {/* Página 2 da proposta: planos Basic / Otimizado / Personalizado */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[#6A402D]">5. Planos da Página 2</CardTitle>
+              <p className="text-sm text-[#5F544F]">
+                Frase do paciente na capa e os três planos com itens, ícones, parcelas e foto por
+                plano — a prévia ao lado acompanha em tempo real.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <PainelPlanosProposta
+                frasePaciente={frasePaciente}
+                onFraseChange={setFrasePaciente}
+                planos={planos}
+                onPlanoChange={aoMudarPlano}
+                onFotoPlanoArquivo={aoFotoPlanoArquivo}
+                propsCab={propsCab}
+                propsPagina={propsPagina}
+                propsRodape={propsRodape}
+                onPropsChange={(campo, valor) => {
+                  if (campo === 'props_cab') setPropsCab(valor)
+                  else if (campo === 'props_pagina') setPropsPagina(valor)
+                  else setPropsRodape(valor)
+                }}
+                programaId={programa?.id || null}
+                onFotosNovasChange={aoFotosNovas}
+              />
+            </CardContent>
+          </Card>
+
           {/* Condições */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-[#6A402D]">5. Condições (campo antigo)</CardTitle>
+              <CardTitle className="text-[#6A402D]">6. Condições (campo antigo)</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
@@ -1038,9 +1123,9 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
                 <div
                   style={{
                     width: 794,
-                    transform: 'scale(0.75)',
+                    transform: `scale(${ESCALA_PREVIA})`,
                     transformOrigin: 'top left',
-                    marginBottom: -281,
+                    marginBottom: -(ALTURA_LAYOUT_PREVIA * (1 - ESCALA_PREVIA)),
                   }}
                 >
                   <DocumentoPropostaTratamento programa={registroPrevia} />
@@ -1073,9 +1158,9 @@ const FormularioPrograma: React.FC<PropsFormulario> = ({
             <div
               style={{
                 width: 794,
-                transform: 'scale(0.8)',
+                transform: `scale(${ESCALA_PREVIA_DIALOGO})`,
                 transformOrigin: 'top left',
-                marginBottom: -225,
+                marginBottom: -(ALTURA_LAYOUT_PREVIA * (1 - ESCALA_PREVIA_DIALOGO)),
               }}
             >
               <DocumentoPropostaTratamento programa={registroPrevia} />
