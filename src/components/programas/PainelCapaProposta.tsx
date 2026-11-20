@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Image as ImageIcon, Trash2, Upload } from 'lucide-react'
 import { CAPA_CONFIG_PADRAO, type CapaFotoConfig } from '@/services/programasTratamento'
-import { estiloFotoCapa, useDimensoesImagem } from '@/components/DocumentoPropostaTratamento'
+import { estiloFotoCorte } from '@/components/DocumentoPropostaTratamento'
 
 interface PainelCapaPropostaProps {
   capaFotoPreview: string
@@ -174,20 +174,26 @@ export default PainelCapaProposta
  *  documento — recorte proporcional 484×1123 escalado para a altura de 120px
  *  (≈52×120), então o que se vê aqui é exatamente o que sai na capa/PDF. */
 const FotoRecortadaMiniatura: React.FC<{ cfg: CapaFotoConfig; src: string }> = ({ cfg, src }) => {
-  const naturais = useDimensoesImagem(src)
+  const [naturais, setNaturais] = React.useState<{ w: number; h: number } | null>(null)
   const escalaMini = 120 / 1123
   return (
-    <img
-      src={src}
-      alt=""
-      style={estiloFotoCapa(
-        cfg,
-        src,
-        484 * escalaMini,
-        120,
-        naturais && { w: naturais.w, h: naturais.h },
-      )}
-      crossOrigin="anonymous"
-    />
+    <div
+      style={{
+        position: 'relative',
+        width: 484 * escalaMini,
+        height: 120,
+        overflow: 'hidden',
+      }}
+    >
+      <img
+        src={src}
+        alt=""
+        onLoad={(e) =>
+          setNaturais({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })
+        }
+        style={estiloFotoCorte(cfg, 484 * escalaMini, 120, naturais?.w, naturais?.h)}
+        crossOrigin="anonymous"
+      />
+    </div>
   )
 }
