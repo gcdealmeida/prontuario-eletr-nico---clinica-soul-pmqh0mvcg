@@ -1,3 +1,7 @@
+// Número de WhatsApp da clínica (só dígitos, com DDI+DDD) usado para enviar o link
+// de pré-cadastro ao paciente. Editável via variável de ambiente VITE_CLINICA_WHATSAPP.
+export const CLINICA_WHATSAPP = (import.meta.env.VITE_CLINICA_WHATSAPP || '').replace(/\D/g, '')
+
 export const SOUL_PALETTE = {
   gold: '#C9A46A',
   goldLight: '#E3C89A',

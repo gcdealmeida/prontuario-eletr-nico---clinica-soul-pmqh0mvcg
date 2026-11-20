@@ -48,6 +48,9 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  // No Painel (/painel) o topbar fica clean: sem busca global nem botão de nova consulta
+  const isPainel = location.pathname === '/painel'
+
   const [collapsed, setCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [novaConsultaOpen, setNovaConsultaOpen] = useState(false)
@@ -390,8 +393,8 @@ export default function Layout() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Busca Global de Paciente com Dropdown Instantâneo & Atalhos Rápidos */}
-              <TopbarBuscaPaciente />
+              {/* Busca Global de Paciente com Dropdown Instantâneo & Atalhos Rápidos — oculta no Painel */}
+              {!isPainel && <TopbarBuscaPaciente />}
 
               {/* Botão de Atalho Fixo Rápido de Evolução no Topbar */}
               <Button
@@ -554,15 +557,17 @@ export default function Layout() {
                 </PopoverContent>
               </Popover>
 
-              {/* Nova Consulta Primary Button em dourado SOUL */}
-              <Button
-                onClick={() => setNovaConsultaOpen(true)}
-                className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold shadow-sm rounded-xl h-9 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-1.5 transition-transform active:scale-98 border border-[#DFBF8E]/40"
-              >
-                <Plus className="h-4 w-4 text-[#33221C]" />
-                <span className="hidden sm:inline">Nova Consulta</span>
-                <span className="sm:hidden">Consulta</span>
-              </Button>
+              {/* Nova Consulta Primary Button em dourado SOUL — oculto no Painel */}
+              {!isPainel && (
+                <Button
+                  onClick={() => setNovaConsultaOpen(true)}
+                  className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-semibold shadow-sm rounded-xl h-9 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-1.5 transition-transform active:scale-98 border border-[#DFBF8E]/40"
+                >
+                  <Plus className="h-4 w-4 text-[#33221C]" />
+                  <span className="hidden sm:inline">Nova Consulta</span>
+                  <span className="sm:hidden">Consulta</span>
+                </Button>
+              )}
             </div>
           </header>
 

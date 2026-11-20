@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 
 import { ModalLinkPreCadastro } from '@/components/ModalLinkPreCadastro'
-import { NovaConsultaModal } from '@/components/NovaConsultaModal'
+
 import { TopbarBuscaPaciente } from '@/components/TopbarBuscaPaciente'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
@@ -41,7 +41,13 @@ import { getConsultasHoje, getConsultas } from '@/services/consultas'
 import { getPacientes, ativarCadastroPaciente } from '@/services/pacientes'
 import { getRascunhoAbertoPorPaciente } from '@/services/avaliacoes'
 import type { ConsultaRecord, PacienteRecord, EvolucaoRecord } from '@/types/database'
-import { ESPECIALIDADE_COLORS, formatHoraPTBR, formatDataPTBR, getInitials } from '@/lib/constants'
+import {
+  ESPECIALIDADE_COLORS,
+  formatHoraPTBR,
+  formatDataPTBR,
+  getInitials,
+  CLINICA_WHATSAPP,
+} from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 
@@ -65,7 +71,7 @@ export default function Dashboard() {
   const [minhasEvolucoesMesCount, setMinhasEvolucoesMesCount] = useState(0)
   const [minhasAvaliacoesCount, setMinhasAvaliacoesCount] = useState(0)
   const [meusPacientesRecentes, setMeusPacientesRecentes] = useState<PacienteRecord[]>([])
-  const [novaConsultaOpen, setNovaConsultaOpen] = useState(false)
+
   const [modalLinkPreCadastroOpen, setModalLinkPreCadastroOpen] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [preCadastrosPendentes, setPreCadastrosPendentes] = useState<PacienteRecord[]>([])
@@ -95,9 +101,16 @@ export default function Dashboard() {
   }
 
   const handleSharePreCadastroWhatsApp = () => {
-    const mensagem = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\n*Pré-Avaliação - Clínica Soul*\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha sua pré-avaliação no link abaixo:\n${publicPreCadastroLink}\n\nLeva apenas 2 minutos e seus dados chegam diretamente à nossa equipe clínica!`
+    const mensagem = `Olá! Seja bem-vindo(a) à Clínica SOUL. ✨\n\n*Pré-Cadastro - Clínica Soul*\nPara agilizar seu atendimento e preparar o seu prontuário clínico personalizado, por favor preencha seu pré-cadastro no link abaixo:\n${publicPreCadastroLink}\n\nLeva apenas 2 minutos e seus dados chegam diretamente à nossa equipe clínica!`
     const encoded = encodeURIComponent(mensagem)
-    window.open(`https://wa.me/?text=${encoded}`, '_blank')
+    // Com número da clínica configurado (VITE_CLINICA_WHATSAPP), abre direto a conversa;
+    // sem número, abre o WhatsApp com a mensagem pronta para o usuário escolher o contato.
+    window.open(
+      CLINICA_WHATSAPP
+        ? `https://wa.me/${CLINICA_WHATSAPP}?text=${encoded}`
+        : `https://wa.me/?text=${encoded}`,
+      '_blank',
+    )
   }
 
   const loadAdminData = async () => {
@@ -373,24 +386,46 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => navigate('/atendimento')}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm"
-            title="Registrar atendimento: presença + evolução em um único lugar"
-          >
-            <CalendarCheck2 className="h-4 w-4 text-emerald-100" />
-            <span>Registrar Atendimento</span>
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+          {/* Busca do paciente por nome ou CPF — leva ao prontuário */}
+          <div className="w-full sm:w-auto sm:min-w-[300px] md:min-w-[360px]">
+            <TopbarBuscaPaciente className="w-full" />
+          </div>
 
-          <Button
-            onClick={() => setNovaConsultaOpen(true)}
-            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] text-[#33221C] font-semibold shadow-sm hover:brightness-105 rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 border border-[#DFBF8E]/40"
-            title="Agendar nova consulta"
-          >
-            <Plus className="h-4 w-4 text-[#33221C]" />
-            <span>Nova Consulta</span>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => navigate('/prontuarios/novo')}
+              className="bg-gradient-to-r from-[#B87355] to-[#8C4A32] hover:brightness-105 text-white font-semibold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm"
+              title="Cadastrar nova avaliação clínica"
+            >
+              <FileText className="h-4 w-4 text-white/90" />
+              <span>Nova Avaliação</span>
+            </Button>
+
+            <Button
+              onClick={() => navigate('/atendimento')}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm"
+              title="Registrar atendimento: presença + evolução em um único lugar"
+            >
+              <CalendarCheck2 className="h-4 w-4 text-emerald-100" />
+              <span>Registro de Atendimento</span>
+            </Button>
+
+            <Button
+              onClick={() =>
+                CLINICA_WHATSAPP ? handleSharePreCadastroWhatsApp() : handleCopyPreCadastroLink()
+              }
+              className="bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm"
+              title={
+                CLINICA_WHATSAPP
+                  ? 'Enviar link de pré-cadastro via WhatsApp'
+                  : 'Número de WhatsApp não configurado — clique para copiar o link de pré-cadastro'
+              }
+            >
+              <MessageCircle className="h-4 w-4 fill-white" />
+              <span>Pré Cadastro</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1425,13 +1460,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {/* Modal Nova Consulta */}
-      <NovaConsultaModal
-        open={novaConsultaOpen}
-        onOpenChange={setNovaConsultaOpen}
-        onSuccess={loadDashboardData}
-      />
-
       {/* Modal de Compartilhamento do Link de Pré-Avaliação */}
       <ModalLinkPreCadastro
         open={modalLinkPreCadastroOpen}
