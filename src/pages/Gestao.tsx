@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
 import { getInitials } from '@/lib/constants'
 import { isProfissionalRole, isGestorRole, roleLabel } from '@/lib/roles'
+import PainelAcesso from '@/components/PainelAcesso'
 import type { UserRecord } from '@/types/database'
 import pb from '@/lib/pocketbase/client'
 import type { PacienteRecord } from '@/types/database'
@@ -56,12 +57,13 @@ import {
   ProntuarioLiberadoRecord,
 } from '@/services/gestao'
 
-type TabKey = 'usuarios' | 'designacoes' | 'prontuarios'
+type TabKey = 'usuarios' | 'designacoes' | 'prontuarios' | 'acesso'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'usuarios', label: 'Usuários & Perfis' },
   { key: 'designacoes', label: 'Pacientes designados' },
   { key: 'prontuarios', label: 'Prontuários liberados' },
+  { key: 'acesso', label: 'Acesso' },
 ]
 
 export default function Gestao() {
@@ -446,6 +448,9 @@ export default function Gestao() {
               </div>
             </div>
           )}
+
+          {/* ============ ACESSO ============ */}
+          {tab === 'acesso' && <PainelAcesso />}
 
           {/* ============ PRONTUÁRIOS LIBERADOS ============ */}
           {tab === 'prontuarios' && (
