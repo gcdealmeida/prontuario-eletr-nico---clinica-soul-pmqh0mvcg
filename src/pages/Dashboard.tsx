@@ -405,21 +405,6 @@ export default function Dashboard() {
               <CalendarCheck2 className="h-4 w-4 text-emerald-100" />
               <span>Registro de Atendimento</span>
             </Button>
-
-            <Button
-              onClick={() =>
-                CLINICA_WHATSAPP ? handleSharePreCadastroWhatsApp() : handleCopyPreCadastroLink()
-              }
-              className="bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm"
-              title={
-                CLINICA_WHATSAPP
-                  ? 'Enviar link de pré-cadastro via WhatsApp'
-                  : 'Número de WhatsApp não configurado — clique para copiar o link de pré-cadastro'
-              }
-            >
-              <MessageCircle className="h-4 w-4 fill-white" />
-              <span>Pré Cadastro</span>
-            </Button>
           </div>
         </div>
       </div>
