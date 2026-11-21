@@ -31,13 +31,15 @@ import { getConsultas } from '@/services/consultas'
 import { getAllPacientes } from '@/services/pacientes'
 import { getAllAvaliacoes } from '@/services/avaliacoes'
 import { ESPECIALIDADE_COLORS } from '@/lib/constants'
+import { isGestorRole } from '@/lib/roles'
 import { useAuth } from '@/contexts/AuthContext'
 import { PainelRelatoriosAdmin } from '@/components/relatorios/PainelRelatoriosAdmin'
 
 export default function Relatorios() {
-  const { profile } = useAuth()
-  const role = profile?.role
-  const isGestor = role === 'adm' || role === 'admin' || role === 'secretaria'
+  const { role } = useAuth()
+  // Perfis gestores (ADM, admin legado e Secretária) veem o painel administrativo;
+  // Profissional continua com o relatório individual existente, inalterado.
+  const isGestor = isGestorRole(role)
 
   const [loading, setLoading] = useState(true)
 
@@ -222,253 +224,275 @@ export default function Relatorios() {
           </p>
         </div>
 
-        <Button
-          onClick={handlePrintReport}
-          className="bg-[#1E2530] hover:bg-black text-white font-medium rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-sm"
-        >
-          <Printer className="h-4 w-4" />
-          Exportar PDF / Imprimir
-        </Button>
-      </div>
-
-      {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL vertical empilhado */}
-      <div className="hidden print:flex flex-col items-center justify-center pb-4 mb-4 border-b-2 border-[#E9E1D2] text-center gap-2 overflow-visible">
-        <LogoSOUL
-          variant="full"
-          size="sm"
-          theme="light"
-          className="shrink-0 mx-auto overflow-visible"
-        />
-        <div className="flex items-center justify-center gap-3 mt-1">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
-            Relatório Clínico Oficial
-          </span>
-          <span className="text-[#D4B278]">•</span>
-          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
-            Documento de Gestão Clínica
-          </div>
-          <span className="text-[#D4B278]">•</span>
-          <p className="text-[11px] text-[#73574A]">
-            Emitido em {new Date().toLocaleDateString('pt-BR')} às{' '}
-            {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+        {isGestor ? (
+          <p className="text-xs text-gray-400">
+            Painel de gestão com filtros de período, área, profissional e programas.
           </p>
-        </div>
+        ) : (
+          <Button
+            onClick={handlePrintReport}
+            className="bg-[#1E2530] hover:bg-black text-white font-medium rounded-xl h-10 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-sm"
+          >
+            <Printer className="h-4 w-4" />
+            Exportar PDF / Imprimir
+          </Button>
+        )}
       </div>
 
-      {loading ? (
-        <div className="py-24 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
-          <span className="text-xs text-[#73574A] font-medium">Processando indicadores...</span>
-        </div>
+      {isGestor ? (
+        <PainelRelatoriosAdmin />
       ) : (
-        <div className="space-y-6">
-          {/* Charts Row 1: Consultas por Mês (Stacked Bar) & Novos Pacientes (Line/Area) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Consultas por Mês */}
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-bold text-gray-900">Consultas por Mês</h3>
-                  <Badge variant="outline" className="text-xs">
-                    Últimos 6 meses
-                  </Badge>
-                </div>
-                <p className="text-xs text-gray-400 mb-6">
-                  Volume de atendimentos realizados empilhado por especialidade
-                </p>
-
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyConsultas}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: '#FFF',
-                          borderRadius: '12px',
-                          border: '1px solid #E5E7EB',
-                          fontSize: '12px',
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                      <Bar
-                        dataKey="Fisioterapia"
-                        stackId="a"
-                        fill="#C9A46A"
-                        radius={[0, 0, 0, 0]}
-                      />
-                      <Bar dataKey="Personal" stackId="a" fill="#B87355" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Nutrição" stackId="a" fill="#477A53" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Médico" stackId="a" fill="#5C4033" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+        <>
+          {/* Cabeçalho Oficial exclusivo para Impressão / PDF do Relatório com LogoSOUL vertical empilhado */}
+          <div className="hidden print:flex flex-col items-center justify-center pb-4 mb-4 border-b-2 border-[#E9E1D2] text-center gap-2 overflow-visible">
+            <LogoSOUL
+              variant="full"
+              size="sm"
+              theme="light"
+              className="shrink-0 mx-auto overflow-visible"
+            />
+            <div className="flex items-center justify-center gap-3 mt-1">
+              <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
+                Relatório Clínico Oficial
+              </span>
+              <span className="text-[#D4B278]">•</span>
+              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">
+                Documento de Gestão Clínica
               </div>
-            </div>
-
-            {/* Novos Pacientes por Mês */}
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-bold text-gray-900">Novos Pacientes por Mês</h3>
-                  <Badge
-                    variant="outline"
-                    className="text-xs bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]"
-                  >
-                    Crescimento
-                  </Badge>
-                </div>
-                <p className="text-xs text-gray-400 mb-6">
-                  Evolução do número de novos cadastros de prontuários
-                </p>
-
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={monthlyPacientes}>
-                      <defs>
-                        <linearGradient id="colorPac" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#C9A46A" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#C9A46A" stopOpacity={0.0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4EFE6" />
-                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#73574A" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#73574A" />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: '#FAF7F1',
-                          borderRadius: '12px',
-                          border: '1px solid #E9E1D2',
-                          fontSize: '12px',
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="pacientes"
-                        stroke="#C9A46A"
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorPac)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+              <span className="text-[#D4B278]">•</span>
+              <p className="text-[11px] text-[#73574A]">
+                Emitido em {new Date().toLocaleDateString('pt-BR')} às{' '}
+                {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
             </div>
           </div>
 
-          {/* Charts Row 2: Distribuição por Especialidade (Donut) & Top Pacientes Table */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Donut Distribuição */}
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">
-                  Distribuição por Especialidade
-                </h3>
-                <p className="text-xs text-gray-400 mb-6">Proporção global de atendimentos</p>
-
-                <div className="h-48 w-full relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: '#FFF',
-                          borderRadius: '12px',
-                          border: '1px solid #E5E7EB',
-                          fontSize: '12px',
-                        }}
-                      />
-                      <Pie
-                        data={specialtyDistribution}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={50}
-                        outerRadius={75}
-                        paddingAngle={4}
-                      >
-                        {specialtyDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="space-y-2 mt-4 pt-3 border-t border-gray-100">
-                  {specialtyDistribution.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-gray-600">{item.name}</span>
-                      </div>
-                      <span className="font-bold text-gray-900">{item.value}</span>
+          {loading ? (
+            <div className="py-24 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+              <span className="text-xs text-[#73574A] font-medium">Processando indicadores...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Charts Row 1: Consultas por Mês (Stacked Bar) & Novos Pacientes (Line/Area) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Consultas por Mês */}
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-base font-bold text-gray-900">Consultas por Mês</h3>
+                      <Badge variant="outline" className="text-xs">
+                        Últimos 6 meses
+                      </Badge>
                     </div>
-                  ))}
+                    <p className="text-xs text-gray-400 mb-6">
+                      Volume de atendimentos realizados empilhado por especialidade
+                    </p>
+
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={monthlyConsultas}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                          <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
+                          <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" />
+                          <RechartsTooltip
+                            contentStyle={{
+                              backgroundColor: '#FFF',
+                              borderRadius: '12px',
+                              border: '1px solid #E5E7EB',
+                              fontSize: '12px',
+                            }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                          <Bar
+                            dataKey="Fisioterapia"
+                            stackId="a"
+                            fill="#C9A46A"
+                            radius={[0, 0, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="Personal"
+                            stackId="a"
+                            fill="#B87355"
+                            radius={[0, 0, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="Nutrição"
+                            stackId="a"
+                            fill="#477A53"
+                            radius={[0, 0, 0, 0]}
+                          />
+                          <Bar dataKey="Médico" stackId="a" fill="#5C4033" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Novos Pacientes por Mês */}
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-base font-bold text-gray-900">Novos Pacientes por Mês</h3>
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-[#FAF4EA] text-[#8C6527] border-[#E3C89A]"
+                      >
+                        Crescimento
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-6">
+                      Evolução do número de novos cadastros de prontuários
+                    </p>
+
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={monthlyPacientes}>
+                          <defs>
+                            <linearGradient id="colorPac" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#C9A46A" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="#C9A46A" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4EFE6" />
+                          <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#73574A" />
+                          <YAxis tick={{ fontSize: 11 }} stroke="#73574A" />
+                          <RechartsTooltip
+                            contentStyle={{
+                              backgroundColor: '#FAF7F1',
+                              borderRadius: '12px',
+                              border: '1px solid #E9E1D2',
+                              fontSize: '12px',
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="pacientes"
+                            stroke="#C9A46A"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorPac)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Top Pacientes */}
-            <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-base font-bold text-gray-900">
-                    Top Pacientes Mais Atendidos
-                  </h3>
-                  <Badge variant="outline" className="text-xs">
-                    Engajamento Clínico
-                  </Badge>
-                </div>
-                <p className="text-xs text-gray-400 mb-6">
-                  Pacientes com maior recorrência de consultas e sessões na clínica
-                </p>
+              {/* Charts Row 2: Distribuição por Especialidade (Donut) & Top Pacientes Table */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Donut Distribuição */}
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 mb-1">
+                      Distribuição por Especialidade
+                    </h3>
+                    <p className="text-xs text-gray-400 mb-6">Proporção global de atendimentos</p>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                        <th className="pb-3 px-2">Rank</th>
-                        <th className="pb-3 px-4">Paciente</th>
-                        <th className="pb-3 px-4">Contato</th>
-                        <th className="pb-3 px-4 text-right">Consultas</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-xs">
-                      {topPacientes.map((tp, idx) => (
-                        <tr key={tp.nome} className="hover:bg-gray-50/60 transition-colors">
-                          <td className="py-3 px-2">
+                    <div className="h-48 w-full relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <RechartsTooltip
+                            contentStyle={{
+                              backgroundColor: '#FFF',
+                              borderRadius: '12px',
+                              border: '1px solid #E5E7EB',
+                              fontSize: '12px',
+                            }}
+                          />
+                          <Pie
+                            data={specialtyDistribution}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={50}
+                            outerRadius={75}
+                            paddingAngle={4}
+                          >
+                            {specialtyDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-2 mt-4 pt-3 border-t border-gray-100">
+                      {specialtyDistribution.map((item) => (
+                        <div key={item.name} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
                             <span
-                              className={`h-6 w-6 rounded-full inline-flex items-center justify-center font-bold text-xs ${
-                                idx === 0
-                                  ? 'bg-[#C9A46A] text-[#33221C] shadow-xs'
-                                  : idx === 1
-                                    ? 'bg-[#FDF2EE] text-[#B87355]'
-                                    : idx === 2
-                                      ? 'bg-[#F2F6F1] text-[#477A53]'
-                                      : 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              {idx + 1}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 font-bold text-gray-900">{tp.nome}</td>
-                          <td className="py-3 px-4 text-gray-500">{tp.email || '—'}</td>
-                          <td className="py-3 px-4 text-right font-black text-gray-900">
-                            {tp.count}
-                          </td>
-                        </tr>
+                              className="h-2.5 w-2.5 rounded-full"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="text-gray-600">{item.name}</span>
+                          </div>
+                          <span className="font-bold text-gray-900">{item.value}</span>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Pacientes */}
+                <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-base font-bold text-gray-900">
+                        Top Pacientes Mais Atendidos
+                      </h3>
+                      <Badge variant="outline" className="text-xs">
+                        Engajamento Clínico
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-6">
+                      Pacientes com maior recorrência de consultas e sessões na clínica
+                    </p>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                            <th className="pb-3 px-2">Rank</th>
+                            <th className="pb-3 px-4">Paciente</th>
+                            <th className="pb-3 px-4">Contato</th>
+                            <th className="pb-3 px-4 text-right">Consultas</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 text-xs">
+                          {topPacientes.map((tp, idx) => (
+                            <tr key={tp.nome} className="hover:bg-gray-50/60 transition-colors">
+                              <td className="py-3 px-2">
+                                <span
+                                  className={`h-6 w-6 rounded-full inline-flex items-center justify-center font-bold text-xs ${
+                                    idx === 0
+                                      ? 'bg-[#C9A46A] text-[#33221C] shadow-xs'
+                                      : idx === 1
+                                        ? 'bg-[#FDF2EE] text-[#B87355]'
+                                        : idx === 2
+                                          ? 'bg-[#F2F6F1] text-[#477A53]'
+                                          : 'bg-gray-100 text-gray-600'
+                                  }`}
+                                >
+                                  {idx + 1}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-gray-900">{tp.nome}</td>
+                              <td className="py-3 px-4 text-gray-500">{tp.email || '—'}</td>
+                              <td className="py-3 px-4 text-right font-black text-gray-900">
+                                {tp.count}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   )

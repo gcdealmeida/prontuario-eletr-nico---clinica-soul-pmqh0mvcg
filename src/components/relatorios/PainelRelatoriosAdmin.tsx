@@ -13,7 +13,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  Legend,
   ResponsiveContainer,
   Cell,
 } from 'recharts'
@@ -29,7 +28,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { pb } from '@/lib/pocketbase/client'
+// O cliente PocketBase é o export default do módulo (padrão do projeto — ver src/services/gestao.ts).
+import pb from '@/lib/pocketbase/client'
 import type { PresencaRecord, UserRecord } from '@/types/database'
 import { getAllUsers } from '@/services/acessos'
 import {
@@ -64,6 +64,8 @@ export interface FiltrosState {
   fim: string
   area: string // 'todas' | nome da área/serviço
   profissional: string // 'todos' | user id
+  // NOTA: a coleção `presencas` não tem campo de programa, então este filtro é
+  // apenas de UI (seleção visível, sem cruzamento com os dados agregados).
   programa: string // 'todos' | id do programa
 }
 
@@ -233,7 +235,7 @@ export function PainelRelatoriosAdmin() {
       try {
         const [regs, usrs, progs] = await Promise.all([
           pb
-            .collection('presencas')
+            .collection<PresencaRecord>('presencas')
             .getFullList({
               sort: '-data_atendimento',
               fields:
@@ -242,7 +244,7 @@ export function PainelRelatoriosAdmin() {
             .catch(() => [] as PresencaRecord[]),
           getAllUsers().catch(() => [] as UserRecord[]),
           pb
-            .collection('programa_acompanhamento')
+            .collection<{ id: string; nome: string }>('programa_acompanhamento')
             .getFullList({ filter: "status != 'rascunho'", sort: '-created', fields: 'id,nome' })
             .catch(() => [] as { id: string; nome: string }[]),
         ])
@@ -279,6 +281,8 @@ export function PainelRelatoriosAdmin() {
     [usuarios],
   )
 
+  // Filtro de programa NÃO é aplicado aqui de propósito: `presencas` não possui
+  // campo de programa e simular um cruzamento traria números falsos (ver nota em FiltrosState).
   const presencasFiltradas = useMemo(() => {
     return presencas.filter((p) => {
       const ymd = (p.data_atendimento || '').slice(0, 10)
