@@ -438,6 +438,9 @@ export default function Gestao() {
               </div>
             </div>
           )}
+
+          {/* ============ ACESSO (Acesso Público do Cliente / Pré-Avaliação via Link) ============ */}
+          {tab === 'acesso' && <PainelAcesso />}
         </>
       )}
 

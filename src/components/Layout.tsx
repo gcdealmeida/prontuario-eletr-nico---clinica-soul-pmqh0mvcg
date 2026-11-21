@@ -15,7 +15,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   Dumbbell,
   CalendarCheck2,
   Settings2,
@@ -127,16 +126,7 @@ export default function Layout() {
       icon: Dumbbell,
     },
     ...(isGestor ? [{ name: 'Gestão', path: '/gestao', icon: Settings2 }] : []),
-    ...(isAdmin
-      ? [
-          { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
-          {
-            name: 'Acessos',
-            path: '/acessos',
-            icon: ShieldCheck,
-          },
-        ]
-      : []),
+    ...(isAdmin ? [{ name: 'Relatórios', path: '/relatorios', icon: BarChart3 }] : []),
     { name: 'Guia de Uso', path: '/guia', icon: BookOpen },
   ]
 
