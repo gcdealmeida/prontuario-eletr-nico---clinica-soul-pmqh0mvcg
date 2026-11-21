@@ -14,6 +14,7 @@ import {
   Loader2,
   Activity,
   Stethoscope,
+  Lock,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -23,9 +24,11 @@ import { getAllAvaliacoes } from '@/services/avaliacoes'
 import { ESPECIALIDADE_COLORS, formatDataPTBR } from '@/lib/constants'
 import type { Especialidade } from '@/types/database'
 import { PacienteAcoesRapidas } from '@/components/PacienteAcoesRapidas'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Prontuarios() {
   const navigate = useNavigate()
+  const { isProfissional } = useAuth()
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [avaliacoes, setAvaliacoes] = useState<any[]>([])
@@ -85,6 +88,12 @@ export default function Prontuarios() {
             Histórico clínico centralizado com fichas de Fisioterapia, Personal, Nutrição e
             Medicina.
           </p>
+          {isProfissional && (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#8C6527] bg-[#FAF5EE] border border-[#E3C89A]/50 px-2.5 py-1 rounded-lg">
+              <Lock className="h-3 w-3" />
+              Visão do Profissional: apenas prontuários construídos por você ou liberados a você.
+            </p>
+          )}
         </div>
 
         <Button

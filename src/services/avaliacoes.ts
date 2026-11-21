@@ -8,6 +8,48 @@ import type {
   Especialidade,
 } from '@/types/database'
 
+/**
+ * Camada de segurança do perfil Profissional (regra do dono do produto):
+ * em PRONTUÁRIOS & AVALIAÇÕES o profissional só vê
+ *   (a) os prontuários que ELE mesmo construiu (user_id = ele),
+ *   (b) os prontuários liberados para ele via prontuarios_liberados,
+ *   (c) nada do resto da clínica.
+ * ADM e Secretária continuam vendo tudo, sem filtro.
+ * O backend (migration 0061) já aplica a mesma regra nas API rules — este
+ * filtro client-side é redundância defensiva e alimenta os contadores da tela.
+ */
+export async function filtrarAvaliacoesPorPerfil<
+  T extends { user_id?: string; paciente_id?: string | { id: string } },
+>(lista: T[]): Promise<T[]> {
+  const user = pb.authStore.record as unknown as {
+    id: string
+    role?: string
+    access_status?: string
+  } | null
+  if (!user) return []
+  const role = (user.role || '').toLowerCase()
+  const isProfissional =
+    role === 'profissional' || (role === 'professional' && user.access_status === 'approved')
+  if (!isProfissional) return lista
+
+  try {
+    const liberados = await pb.collection('prontuarios_liberados').getFullList({
+      filter: `profissional_id = "${user.id}"`,
+    })
+    const pacientesLiberados = new Set(
+      liberados.map((l) => (typeof l.paciente_id === 'string' ? l.paciente_id : l.paciente_id?.id)),
+    )
+    return lista.filter(
+      (av) =>
+        av.user_id === user.id ||
+        (av.paciente_id != null && pacientesLiberados.has(String(av.paciente_id))),
+    )
+  } catch {
+    // Sem acesso à lista de liberações: só o que ele construiu.
+    return lista.filter((av) => av.user_id === user.id)
+  }
+}
+
 export async function getTimelineByPaciente(pacienteId: string) {
   return await pb.collection('timeline').getFullList<TimelineRecord>({
     filter: `paciente_id = "${pacienteId}"`,
@@ -81,7 +123,7 @@ export async function getAllAvaliacoes() {
   ]
 
   all.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
-  return all
+  return await filtrarAvaliacoesPorPerfil(all)
 }
 
 export function getCollectionNameByEspecialidade(esp: Especialidade): string {
