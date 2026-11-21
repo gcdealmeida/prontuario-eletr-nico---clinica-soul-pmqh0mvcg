@@ -25,16 +25,6 @@ export interface VinculoPacienteRecord {
   }
 }
 
-export interface ProntuarioLiberadoRecord {
-  id: string
-  profissional_id: string
-  paciente_id: string
-  expand?: {
-    paciente_id?: { id: string; nome: string; status?: string; telefone?: string }
-    profissional_id?: { id: string; name: string }
-  }
-}
-
 export const OPCOES_PERFIL = [
   { value: 'adm', label: 'Administrador (ADM)' },
   { value: 'secretaria', label: 'Secretária' },
@@ -127,47 +117,4 @@ export async function designarPaciente(
 
 export async function removerVinculo(vinculoId: string): Promise<void> {
   await pb.collection('vinculos_pacientes').delete(vinculoId)
-}
-
-/* ------------------------------------------------------------------ */
-/* Prontuários liberados                                               */
-/* ------------------------------------------------------------------ */
-
-export async function listarProntuariosLiberados(): Promise<ProntuarioLiberadoRecord[]> {
-  return pb.collection('prontuarios_liberados').getFullList<ProntuarioLiberadoRecord>({
-    sort: '-created',
-    expand: 'paciente_id,profissional_id',
-  })
-}
-
-export async function listarProntuariosLiberadosPorProfissional(
-  profissionalId: string,
-): Promise<ProntuarioLiberadoRecord[]> {
-  return pb.collection('prontuarios_liberados').getFullList<ProntuarioLiberadoRecord>({
-    filter: `profissional_id = "${profissionalId}"`,
-    sort: '-created',
-    expand: 'paciente_id',
-  })
-}
-
-/** Libera os prontuários de um paciente a um profissional (par único). */
-export async function liberarProntuarios(
-  profissionalId: string,
-  pacienteId: string,
-): Promise<'criado' | 'existente'> {
-  try {
-    await pb.collection('prontuarios_liberados').create({
-      profissional_id: profissionalId,
-      paciente_id: pacienteId,
-    })
-    return 'criado'
-  } catch (err: unknown) {
-    const status = (err as { status?: number })?.status
-    if (status === 400) return 'existente'
-    throw err
-  }
-}
-
-export async function revogarProntuariosLiberados(registroId: string): Promise<void> {
-  await pb.collection('prontuarios_liberados').delete(registroId)
 }

@@ -1,19 +1,10 @@
 /**
  * Tela de Gestão (exclusiva ADM/Secretária).
  * Abas: Usuários (criar/editar com perfil), Designações (vínculos de pacientes
- * a profissionais) e Prontuários Liberados (acesso de prontuário por profissional).
+ * a profissionais) e Acesso.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Loader2,
-  Plus,
-  Search,
-  Trash2,
-  UserPlus,
-  ShieldCheck,
-  KeyRound,
-  Pencil,
-} from 'lucide-react'
+import { Loader2, Plus, Search, Trash2, UserPlus, ShieldCheck, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -52,18 +43,13 @@ import {
   designarPaciente,
   removerVinculo,
   VinculoPacienteRecord,
-  listarProntuariosLiberados,
-  liberarProntuarios,
-  revogarProntuariosLiberados,
-  ProntuarioLiberadoRecord,
 } from '@/services/gestao'
 
-type TabKey = 'usuarios' | 'designacoes' | 'prontuarios' | 'acesso'
+type TabKey = 'usuarios' | 'designacoes' | 'acesso'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'usuarios', label: 'Usuários & Perfis' },
   { key: 'designacoes', label: 'Pacientes designados' },
-  { key: 'prontuarios', label: 'Prontuários liberados' },
   { key: 'acesso', label: 'Acesso' },
 ]
 
@@ -74,7 +60,6 @@ export default function Gestao() {
   const [usuarios, setUsuarios] = useState<UserRecord[]>([])
   const [pacientes, setPacientes] = useState<PacienteRecord[]>([])
   const [vinculos, setVinculos] = useState<VinculoPacienteRecord[]>([])
-  const [prontuarios, setProntuarios] = useState<ProntuarioLiberadoRecord[]>([])
   const [busca, setBusca] = useState('')
 
   // modal de usuário
@@ -91,11 +76,9 @@ export default function Gestao() {
   const [usuarioCriado, setUsuarioCriado] = useState<UserRecord | null>(null)
   const [modalPosCriacao, setModalPosCriacao] = useState(false)
 
-  // designar / liberar
+  // designar
   const [profDesignar, setProfDesignar] = useState('')
   const [pacDesignar, setPacDesignar] = useState('')
-  const [profLiberar, setProfLiberar] = useState('')
-  const [pacLiberar, setPacLiberar] = useState('')
 
   const profissionais = useMemo(
     () => usuarios.filter((u) => isProfissionalRole(u.role) || isGestorRole(u.role)),
@@ -105,16 +88,14 @@ export default function Gestao() {
   const carregar = useCallback(async () => {
     setLoading(true)
     try {
-      const [us, pacRes, vin, pl] = await Promise.all([
+      const [us, pacRes, vin] = await Promise.all([
         listarUsuarios(),
         pb.collection('pacientes').getFullList<PacienteRecord>({ sort: 'nome' }),
         listarVinculos(),
-        listarProntuariosLiberados(),
       ])
       setUsuarios(us)
       setPacientes(pacRes)
       setVinculos(vin)
-      setProntuarios(pl)
     } catch (err: unknown) {
       console.error('Erro ao carregar gestão:', err)
       toast({
@@ -252,29 +233,6 @@ export default function Gestao() {
     }
   }
 
-  const handleLiberar = async () => {
-    if (!profLiberar || !pacLiberar) {
-      toast({ title: 'Escolha o profissional e o paciente', variant: 'destructive' })
-      return
-    }
-    try {
-      const r = await liberarProntuarios(profLiberar, pacLiberar)
-      toast({
-        title: r === 'criado' ? 'Prontuários liberados!' : 'Liberação já existia',
-        description:
-          r === 'criado' ? 'O profissional pode acessar os prontuários deste paciente.' : undefined,
-      })
-      setPacLiberar('')
-      await carregar()
-    } catch (err: unknown) {
-      toast({
-        title: 'Erro ao liberar',
-        description: (err as Error)?.message,
-        variant: 'destructive',
-      })
-    }
-  }
-
   const nomeUsuario = (id: string) => usuarios.find((u) => u.id === id)?.name || '—'
   const nomePaciente = (id: string) => pacientes.find((p) => p.id === id)?.nome || '—'
 
@@ -293,7 +251,7 @@ export default function Gestao() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[#4A322A]">Gestão da Clínica</h1>
         <p className="text-sm text-gray-500">
-          Usuários, perfis, designação de pacientes e liberação de prontuários.
+          Usuários, perfis e designação de pacientes a profissionais.
         </p>
       </div>
 
@@ -475,87 +433,6 @@ export default function Gestao() {
                 {vinculos.length === 0 && (
                   <p className="p-8 text-center text-sm text-gray-400">
                     Nenhum paciente designado ainda. Use o formulário acima.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ============ PRONTUÁRIOS LIBERADOS ============ */}
-          {tab === 'prontuarios' && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row md:items-end gap-3">
-                <div className="flex-1 space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600">Profissional</Label>
-                  <Select value={profLiberar} onValueChange={setProfLiberar}>
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Selecione o profissional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {profissionais.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name || u.email} ({roleLabel(u.role)})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600">Paciente</Label>
-                  <Select value={pacLiberar} onValueChange={setPacLiberar}>
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Selecione o paciente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pacientes.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nome} {p.status ? `· ${p.status}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={handleLiberar}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl h-10 gap-2"
-                >
-                  <KeyRound className="h-4 w-4" /> Liberar acesso
-                </Button>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-                {prontuarios.map((r) => (
-                  <div
-                    key={r.id}
-                    className="p-4 flex items-center justify-between gap-3 hover:bg-gray-50/60"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm text-gray-900 truncate">
-                        {nomePaciente(r.paciente_id)}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        Liberado para{' '}
-                        <span className="font-medium text-[#8C6527]">
-                          {nomeUsuario(r.profissional_id)}
-                        </span>
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 rounded-lg text-xs text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={async () => {
-                        await revogarProntuariosLiberados(r.id)
-                        toast({ title: 'Liberação revogada' })
-                        carregar()
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-                {prontuarios.length === 0 && (
-                  <p className="p-8 text-center text-sm text-gray-400">
-                    Nenhum prontuário liberado ainda. Use o formulário acima.
                   </p>
                 )}
               </div>
