@@ -1536,11 +1536,12 @@ export default function GuiaUso() {
                       Para conformidade e segurança clínica, cada criação ou edição em avaliações
                       (Fisioterapia, Personal, Nutrição, Médico), prontuários e assinaturas de
                       evoluções gera um registro de auditoria gravado diretamente pelo servidor na
-                      aba <strong>"Atualizações Clínicas"</strong> (em <code>/acessos</code>). O
-                      histórico empilha cronologicamente o nome do profissional, seu e-mail, ação,
-                      especialidade, paciente e carimbo temporal exato do servidor. Além disso, o
-                      ícone de sino no topo do sistema exibe alertas imediatos para o administrador
-                      com link direto para o registro modificado.
+                      aba <strong>"Atualizações Clínicas"</strong> (em{' '}
+                      <code>Gestão da Clínica → Acesso</code>). O histórico empilha cronologicamente
+                      o nome do profissional, seu e-mail, ação, especialidade, paciente e carimbo
+                      temporal exato do servidor. Além disso, o ícone de sino no topo do sistema
+                      exibe alertas imediatos para o administrador com link direto para o registro
+                      modificado.
                     </p>
                   </div>
                 </div>
@@ -1549,7 +1550,7 @@ export default function GuiaUso() {
 
             <div className="pt-2 flex flex-wrap gap-2">
               <Button
-                onClick={() => navigate('/acessos')}
+                onClick={() => navigate('/gestao?tab=acesso')}
                 className="bg-[#4A322A] hover:bg-[#3D2922] text-[#FAF4EA] rounded-xl text-xs font-semibold h-10 px-5 flex items-center gap-2"
               >
                 <ShieldCheck className="h-4 w-4 text-[#C9A46A]" />
@@ -1557,7 +1558,7 @@ export default function GuiaUso() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/acessos?tab=atualizacoes')}
+                onClick={() => navigate('/gestao?tab=acesso&sub=atualizacoes')}
                 className="border-[#C9A46A]/60 text-[#4A322A] hover:bg-[#FAF4EA] rounded-xl text-xs font-semibold h-10 px-4 flex items-center gap-2"
               >
                 <Activity className="h-4 w-4 text-[#8C6527]" />

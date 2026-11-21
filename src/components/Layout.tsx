@@ -541,7 +541,7 @@ export default function Layout() {
                         size="sm"
                         onClick={() => {
                           setNotifPopoverOpen(false)
-                          navigate('/acessos?tab=atualizacoes')
+                          navigate('/gestao?tab=acesso&sub=atualizacoes')
                         }}
                         className="w-full text-xs font-semibold text-[#4A322A] hover:text-[#8C6527] h-8"
                       >

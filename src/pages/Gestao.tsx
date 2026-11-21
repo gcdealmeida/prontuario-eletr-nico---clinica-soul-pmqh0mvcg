@@ -1,9 +1,10 @@
 /**
  * Tela de Gestão (exclusiva ADM/Secretária).
  * Abas: Usuários (criar/editar com perfil), Designações (vínculos de pacientes
- * a profissionais) e Acesso.
+ * a profissionais) e Acesso (com Painel de Acessos & Governança embutido).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Loader2, Plus, Search, Trash2, UserPlus, ShieldCheck, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +30,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getInitials } from '@/lib/constants'
 import { isProfissionalRole, isGestorRole, roleLabel } from '@/lib/roles'
 import PainelAcesso from '@/components/PainelAcesso'
+import Acessos, { isAcessosSubTab, type AcessosSubTab } from '@/pages/Acessos'
 import SecaoPacientesDesignados from '@/components/gestao/SecaoPacientesDesignados'
 import type { UserRecord } from '@/types/database'
 import pb from '@/lib/pocketbase/client'
@@ -55,7 +57,27 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export default function Gestao() {
   const { toast } = useToast()
-  const [tab, setTab] = useState<TabKey>('usuarios')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Aba ativa vem da URL (?tab=acesso), com fallback para 'usuarios'.
+  const tab = (searchParams.get('tab') as TabKey) || 'usuarios'
+  const setTab = (t: TabKey) => {
+    const params = new URLSearchParams(searchParams)
+    if (t === 'usuarios') params.delete('tab')
+    else params.set('tab', t)
+    if (t !== 'acesso') params.delete('sub')
+    setSearchParams(params, { replace: true })
+  }
+
+  // Sub-aba do painel de Acessos embutido na aba Acesso (?tab=acesso&sub=...).
+  const subParam = searchParams.get('sub')
+  const subAcesso: AcessosSubTab = isAcessosSubTab(subParam) ? subParam : 'pendentes'
+  const setSubAcesso = (s: AcessosSubTab) => {
+    const params = new URLSearchParams(searchParams)
+    if (s === 'pendentes') params.delete('sub')
+    else params.set('sub', s)
+    setSearchParams(params, { replace: true })
+  }
   const [loading, setLoading] = useState(true)
   const [usuarios, setUsuarios] = useState<UserRecord[]>([])
   const [pacientes, setPacientes] = useState<PacienteRecord[]>([])
@@ -439,8 +461,18 @@ export default function Gestao() {
             </div>
           )}
 
-          {/* ============ ACESSO (Acesso Público do Cliente / Pré-Avaliação via Link) ============ */}
-          {tab === 'acesso' && <PainelAcesso />}
+          {/* ============ ACESSO ============ */}
+          {/* PainelAcesso (link público de pré-avaliação) + painel completo de
+              Acessos & Governança (pendentes/ativos/suspensos, Atualizações
+              Clínicas e Auditoria de Acessos), embutido sem o cabeçalho próprio.
+              Deep-link: /gestao?tab=acesso&sub=atualizacoes */}
+          {tab === 'acesso' && (
+            <div className="space-y-6">
+              <PainelAcesso />
+
+              <Acessos embedded subTab={subAcesso} onSubTabChange={setSubAcesso} />
+            </div>
+          )}
         </>
       )}
 

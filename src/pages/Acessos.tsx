@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   ShieldCheck,
   UserCheck,
@@ -38,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -56,7 +56,41 @@ import type {
 import { formatDataHoraPTBR, getInitials, ESPECIALIDADE_COLORS } from '@/lib/constants'
 import { useRealtime } from '@/hooks/use-realtime'
 
-export default function Acessos() {
+/** Sub-abas válidas do painel de Acessos & Governança. */
+export type AcessosSubTab = 'pendentes' | 'ativos' | 'suspensos' | 'atualizacoes' | 'historico'
+
+export function isAcessosSubTab(v: string | null | undefined): v is AcessosSubTab {
+  return (
+    v === 'pendentes' ||
+    v === 'ativos' ||
+    v === 'suspensos' ||
+    v === 'atualizacoes' ||
+    v === 'historico'
+  )
+}
+
+interface AcessosPanelProps {
+  /**
+   * Modo embutido (dentro da aba Acesso da Gestão): sem o cabeçalho grande
+   * da tela antiga e sem ler/escrever a URL — o estado da sub-aba vem da prop.
+   */
+  embedded?: boolean
+  /** Sub-aba ativa no modo embutido (controlado pelo pai via query ?sub=). */
+  subTab?: AcessosSubTab
+  onSubTabChange?: (tab: AcessosSubTab) => void
+}
+
+/**
+ * Painel de Acessos & Governança — controle de acessos de profissionais,
+ * atualizações clínicas (auditoria completa) e trilha de auditoria de acessos.
+ * Usado como tela independente (rota /acessos) e embutido na aba Acesso da
+ * Gestão da Clínica (/gestao?tab=acesso).
+ */
+export default function Acessos({
+  embedded = false,
+  subTab,
+  onSubTabChange,
+}: AcessosPanelProps = {}) {
   const { toast } = useToast()
   const { user: currentUser, isAdmin } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -66,19 +100,30 @@ export default function Acessos() {
   const [logs, setLogs] = useState<AccessLogRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState(() => {
+  const [activeTab, setActiveTab] = useState<AcessosSubTab>(() => {
+    if (subTab !== undefined) return subTab
     const tabParam = searchParams.get('tab')
-    if (
-      tabParam === 'atualizacoes' ||
-      tabParam === 'pendentes' ||
-      tabParam === 'ativos' ||
-      tabParam === 'suspensos' ||
-      tabParam === 'historico'
-    ) {
-      return tabParam
-    }
+    if (isAcessosSubTab(tabParam)) return tabParam
     return 'pendentes'
   })
+
+  // No modo embutido a sub-aba é controlada pelo pai; no modo tela, pela URL.
+  useEffect(() => {
+    if (subTab !== undefined) setActiveTab(subTab)
+  }, [subTab])
+
+  const handleTabChange = (t: string) => {
+    const next = t as AcessosSubTab
+    if (onSubTabChange) {
+      onSubTabChange(next)
+      return
+    }
+    setActiveTab(next)
+    const params = new URLSearchParams(searchParams)
+    if (t === 'pendentes') params.delete('tab')
+    else params.set('tab', t)
+    setSearchParams(params, { replace: true })
+  }
 
   // Estado da aba Atualizações Clínicas
   const [clinicalLogs, setClinicalLogs] = useState<ClinicalUpdateLogRecord[]>([])
@@ -433,55 +478,9 @@ export default function Acessos() {
     }
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="p-8 text-center bg-white rounded-3xl border border-[#E9E1D2] space-y-4 max-w-md mx-auto my-12">
-        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
-        <h2 className="text-xl font-serif font-bold text-[#4A322A]">
-          Acesso Restrito ao Administrador
-        </h2>
-        <p className="text-xs text-gray-600">
-          Esta página é exclusiva para a gestão e autorização de acessos profissionais da Clínica
-          SOUL.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
-      {/* Header com identidade SOUL */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#C9A46A]" />
-            <span className="text-[11px] uppercase tracking-widest text-[#73574A] font-semibold">
-              Painel de Governança & Segurança
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#4A322A] tracking-tight">
-            Controle de Acessos Profissionais
-          </h1>
-          <p className="text-xs sm:text-sm text-[#73574A] max-w-2xl">
-            Somente pessoas autorizadas por você podem visualizar e registrar prontuários de
-            pacientes. Monitore solicitações, aprove novos profissionais e acompanhe a auditoria
-            completa.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={loadData}
-            disabled={loading}
-            variant="outline"
-            className="h-10 border-[#E9E1D2] text-[#4A322A] hover:bg-[#FAF7F1] rounded-xl text-xs font-semibold flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
-      </div>
-
+  // Conteúdo compartilhado entre tela independente e modo embutido.
+  const conteudoPainel = (
+    <>
       {/* Métricas Rápidas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E9E1D2] shadow-xs flex items-center justify-between">
@@ -531,7 +530,7 @@ export default function Acessos() {
       </div>
 
       {/* Abas Principais: Pendentes, Ativos, Histórico */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
         <TabsList className="bg-white border border-[#E9E1D2] rounded-2xl p-1.5 h-auto flex flex-wrap shadow-xs">
           <TabsTrigger
             value="pendentes"
@@ -1265,6 +1264,50 @@ export default function Acessos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
+
+  // Tela independente (rota /acessos): cabeçalho SOUL completo.
+  if (!embedded) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
+        {/* Header com identidade SOUL */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#C9A46A]" />
+              <span className="text-[11px] uppercase tracking-widest text-[#73574A] font-semibold">
+                Painel de Governança & Segurança
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#4A322A] tracking-tight">
+              Controle de Acessos Profissionais
+            </h1>
+            <p className="text-xs sm:text-sm text-[#73574A] max-w-2xl">
+              Somente pessoas autorizadas por você podem visualizar e registrar prontuários de
+              pacientes. Monitore solicitações, aprove novos profissionais e acompanhe a auditoria
+              completa.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={loadData}
+              disabled={loading}
+              variant="outline"
+              className="h-10 border-[#E9E1D2] text-[#4A322A] hover:bg-[#FAF7F1] rounded-xl text-xs font-semibold flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
+        </div>
+
+        {conteudoPainel}
+      </div>
+    )
+  }
+
+  // Modo embutido (aba Acesso da Gestão): painel sem o cabeçalho duplicado.
+  return <div className="space-y-6 pb-12 animate-fade-in">{conteudoPainel}</div>
 }

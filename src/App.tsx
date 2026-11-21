@@ -6,7 +6,22 @@ import {
   Route,
   Navigate,
   Outlet,
+  useLocation,
 } from 'react-router-dom'
+import { isAcessosSubTab } from '@/pages/Acessos'
+
+/**
+ * /acessos saiu de circulação: redireciona para o painel de Acessos &
+ * Governança embutido na aba Acesso da Gestão, preservando a query
+ * (?tab=atualizacoes → &sub=atualizacoes etc.) para não quebrar os links
+ * das notificações e do Guia de Uso.
+ */
+const RedirectAcessos = () => {
+  const location = useLocation()
+  const tabParam = new URLSearchParams(location.search).get('tab')
+  const sub = isAcessosSubTab(tabParam) ? `&sub=${tabParam}` : ''
+  return <Navigate to={`/gestao?tab=acesso${sub}`} replace />
+}
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -42,7 +57,6 @@ import NovaAvaliacao from '@/pages/NovaAvaliacao'
 import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
 import Relatorios from '@/pages/Relatorios'
 import GuiaUso from '@/pages/GuiaUso'
-import Acessos from '@/pages/Acessos'
 import { Programas } from '@/pages/Programas'
 import { ProgramaDetalhe } from '@/pages/ProgramaDetalhe'
 import { ProgramaVersaoCliente } from '@/components/programas/ProgramaVersaoCliente'
@@ -164,7 +178,10 @@ const router = createBrowserRouter(
           </Route>
           <Route element={<AdminOnlyRoute />}>
             <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/acessos" element={<Acessos />} />
+            {/* /acessos saiu de circulação: redireciona (preservando ?tab=)
+                para o painel de Acessos & Governança embutido na aba Acesso
+                da Gestão da Clínica — /gestao?tab=acesso&sub=... */}
+            <Route path="/acessos" element={<RedirectAcessos />} />
           </Route>
           <Route path="/guia" element={<GuiaUso />} />
         </Route>
