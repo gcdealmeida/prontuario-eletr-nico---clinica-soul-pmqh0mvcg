@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getInitials } from '@/lib/constants'
 import { isProfissionalRole, isGestorRole, roleLabel } from '@/lib/roles'
 import type { UserRecord } from '@/types/database'
-import { pb } from '@/lib/pocketbase/client'
+import pb from '@/lib/pocketbase/client'
 import type { PacienteRecord } from '@/types/database'
 import {
   OPCOES_PERFIL,

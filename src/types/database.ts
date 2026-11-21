@@ -52,7 +52,7 @@ export interface EvolucaoRecord {
 }
 
 export type AccessStatus = 'pending' | 'approved' | 'suspended'
-export type UserRole = 'admin' | 'professional'
+export type UserRole = 'admin' | 'professional' | 'adm' | 'secretaria' | 'profissional'
 
 export interface UserRecord {
   id: string
