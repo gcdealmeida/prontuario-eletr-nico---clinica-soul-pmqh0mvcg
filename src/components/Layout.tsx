@@ -18,12 +18,14 @@ import {
   ShieldCheck,
   Dumbbell,
   CalendarCheck2,
+  Settings2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
+import { isGestorRole } from '@/lib/roles'
 import { getConsultasHoje } from '@/services/consultas'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { TopbarBuscaPaciente } from '@/components/TopbarBuscaPaciente'
@@ -45,6 +47,7 @@ import { CheckCheck, ExternalLink } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
+  const isGestor = isGestorRole(user?.role)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -123,6 +126,7 @@ export default function Layout() {
       path: '/programas',
       icon: Dumbbell,
     },
+    ...(isGestor ? [{ name: 'Gestão', path: '/gestao', icon: Settings2 }] : []),
     ...(isAdmin
       ? [
           { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
@@ -152,6 +156,7 @@ export default function Layout() {
     if (path.startsWith('/programas/') && path !== '/programas') return 'Programa de Acompanhamento'
     if (path.startsWith('/programas')) return 'Programas de Treino & Periodização'
     if (path.startsWith('/prontuarios')) return 'Prontuários & Avaliações'
+    if (path.startsWith('/gestao')) return 'Gestão da Clínica'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
     if (path.startsWith('/acessos')) return 'Acessos & Governança'
     if (path.startsWith('/guia')) return 'Guia de Uso & Ajuda'

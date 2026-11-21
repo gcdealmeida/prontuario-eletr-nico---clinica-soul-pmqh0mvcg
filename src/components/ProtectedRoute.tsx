@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { isGestorRole } from '@/lib/roles'
 import { Loader2 } from 'lucide-react'
 
 export function ProtectedRoute() {
@@ -46,6 +47,29 @@ export function AdminOnlyRoute() {
   }
 
   if (!isAdmin) {
+    return <Navigate to="/painel" replace />
+  }
+
+  return <Outlet />
+}
+
+export function GestorOnlyRoute() {
+  const { isAuthenticated, user, isLoading } = useAuth()
+  const location = useLocation()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#FAF7F1]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#C9A46A]" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />
+  }
+
+  if (!isGestorRole(user?.role)) {
     return <Navigate to="/painel" replace />
   }
 

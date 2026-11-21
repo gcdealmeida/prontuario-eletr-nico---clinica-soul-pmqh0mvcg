@@ -11,7 +11,12 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { ProtectedRoute, AdminOnlyRoute, PublicOnlyRoute } from '@/components/ProtectedRoute'
+import {
+  ProtectedRoute,
+  AdminOnlyRoute,
+  GestorOnlyRoute,
+  PublicOnlyRoute,
+} from '@/components/ProtectedRoute'
 import Layout from '@/components/Layout'
 
 // Public Auth Pages
@@ -26,6 +31,7 @@ import AguardandoAprovacao from '@/pages/AguardandoAprovacao'
 
 // Protected Clinic Pages
 import Dashboard from '@/pages/Dashboard'
+import Gestao from '@/pages/Gestao'
 import PainelAtendimento from '@/pages/atendimento/PainelAtendimento'
 import Pacientes from '@/pages/Pacientes'
 import PacienteDetalhe from '@/pages/PacienteDetalhe'
@@ -153,6 +159,9 @@ const router = createBrowserRouter(
             path="/programas/:id/cliente"
             element={<ProgramaVersaoCliente modoPublico={false} />}
           />
+          <Route element={<GestorOnlyRoute />}>
+            <Route path="/gestao" element={<Gestao />} />
+          </Route>
           <Route element={<AdminOnlyRoute />}>
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/acessos" element={<Acessos />} />

@@ -70,10 +70,7 @@ export async function atualizarUsuario(
   },
 ): Promise<UserRecord> {
   const payload: Record<string, unknown> = { ...data }
-  if (payload.password && payload.passwordConfirm) {
-    payload.password = payload.password
-    payload.passwordConfirm = payload.passwordConfirm
-  } else {
+  if (!payload.password || !payload.passwordConfirm) {
     delete payload.password
     delete payload.passwordConfirm
   }
