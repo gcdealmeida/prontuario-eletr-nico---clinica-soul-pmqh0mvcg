@@ -1,13 +1,26 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
 import type { UserRecord } from '@/types/database'
+import {
+  isGestorRole,
+  isProfissionalRole,
+  isSecretariaRole,
+  normalizeRole,
+  type AppRole,
+} from '@/lib/roles'
 
 interface AuthContextType {
   user: UserRecord | null
   token: string | null
+  /** role normalizado: adm | admin | secretaria | profissional | professional */
+  role: AppRole | null
   isLoading: boolean
   isAuthenticated: boolean
+  /** ADM ou Secretária (acesso total). Inclui os e-mails master. */
   isAdmin: boolean
+  isSecretaria: boolean
+  /** Profissional com acesso limitado (inclui o legado 'professional'). */
+  isProfissional: boolean
   isApproved: boolean
   login: (email: string, pass: string) => Promise<void>
   logout: () => void
@@ -15,6 +28,10 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const EMAILS_MASTER = ['gcdealmeida@gmail.com', 'guivemax@hotmail.com']
+
+const isMasterEmail = (email?: string | null) => EMAILS_MASTER.includes((email || '').toLowerCase())
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserRecord | null>(
@@ -51,12 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Se o usuário não for admin e seu access_status for pending ou suspended,
     // garantimos logout local caso chegue até aqui
-    const emailNorm = (rec.email || '').toLowerCase()
-    const isMaster =
-      emailNorm === 'gcdealmeida@gmail.com' ||
-      emailNorm === 'guivemax@hotmail.com' ||
-      rec.role === 'admin'
-    const status = isMaster ? 'approved' : rec.access_status || 'pending'
+    const status =
+      isMasterEmail(rec.email) || isGestorRole(rec.role)
+        ? 'approved'
+        : rec.access_status || 'pending'
     if (status !== 'approved') {
       pb.authStore.clear()
       setUser(null)
@@ -89,21 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // E-mails master + perfis gestores (adm/admin legado + secretaria) = acesso total.
+  // Usuários antigos criados antes da migration 0060 podem ter role vazio:
+  // se access_status = approved e role não reconhecido, tratamos como gestor
+  // para não travar ninguém que já usava o sistema.
+  const role = normalizeRole(user?.role)
+  const gestor = isMasterEmail(user?.email) || (user ? isGestorRole(user.role) : false)
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
+        role,
         isLoading,
         isAuthenticated: !!token && !!user,
-        isAdmin:
-          (user?.email || '').toLowerCase() === 'gcdealmeida@gmail.com' ||
-          (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' ||
-          user?.role === 'admin',
+        isAdmin: gestor || (!role && !!user && user.access_status === 'approved'),
+        isSecretaria: isSecretariaRole(user?.role),
+        isProfissional: !!user && !gestor && isProfissionalRole(user.role),
         isApproved:
-          (user?.email || '').toLowerCase() === 'gcdealmeida@gmail.com' ||
-          (user?.email || '').toLowerCase() === 'guivemax@hotmail.com' ||
-          user?.role === 'admin' ||
+          isMasterEmail(user?.email) ||
+          (user ? isGestorRole(user.role) : false) ||
           user?.access_status === 'approved',
         login,
         logout,
