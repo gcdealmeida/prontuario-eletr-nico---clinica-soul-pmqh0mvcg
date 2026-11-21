@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getInitials } from '@/lib/constants'
 import { isProfissionalRole, isGestorRole, roleLabel } from '@/lib/roles'
 import PainelAcesso from '@/components/PainelAcesso'
+import SecaoPacientesDesignados from '@/components/gestao/SecaoPacientesDesignados'
 import type { UserRecord } from '@/types/database'
 import pb from '@/lib/pocketbase/client'
 import type { PacienteRecord } from '@/types/database'
@@ -85,6 +86,10 @@ export default function Gestao() {
   const [fPerfil, setFPerfil] = useState<'adm' | 'secretaria' | 'profissional'>('profissional')
   const [fEspecialidade, setFEspecialidade] = useState('Fisioterapia')
   const [salvando, setSalvando] = useState(false)
+  // Após CRIAR um usuário, o modal reabre em modo EDIÇÃO para permitir
+  // designar pacientes de imediato (vínculo só faz sentido com usuário salvo).
+  const [usuarioCriado, setUsuarioCriado] = useState<UserRecord | null>(null)
+  const [modalPosCriacao, setModalPosCriacao] = useState(false)
 
   // designar / liberar
   const [profDesignar, setProfDesignar] = useState('')
@@ -125,6 +130,14 @@ export default function Gestao() {
   useEffect(() => {
     carregar()
   }, [carregar])
+
+  // Reabre o modal, em modo EDIÇÃO, logo após criar um usuário novo.
+  useEffect(() => {
+    if (!modalPosCriacao || !usuarioCriado) return
+    const alvo = usuarios.find((u) => u.id === usuarioCriado.id)
+    setModalPosCriacao(false)
+    if (alvo) abrirEditarUsuario(alvo)
+  }, [modalPosCriacao, usuarioCriado, usuarios])
 
   const abrirNovoUsuario = () => {
     setEditando(null)
@@ -184,7 +197,7 @@ export default function Gestao() {
         })
         toast({ title: 'Usuário atualizado!' })
       } else {
-        await criarUsuario({
+        const novo = await criarUsuario({
           name: fNome.trim(),
           email: fEmail.trim(),
           password: fSenha,
@@ -194,6 +207,13 @@ export default function Gestao() {
           access_status: 'approved',
         })
         toast({ title: 'Usuário criado!', description: `${fNome.trim()} já pode fazer login.` })
+        // Após CRIAR, reabre o modal em modo EDIÇÃO para designar pacientes
+        // de imediato (vínculo só faz sentido com usuário já salvo).
+        setUsuarioCriado(novo)
+        setModalPosCriacao(true)
+        setModalOpen(false)
+        await carregar()
+        return
       }
       setModalOpen(false)
       await carregar()
@@ -461,9 +481,6 @@ export default function Gestao() {
             </div>
           )}
 
-          {/* ============ ACESSO ============ */}
-          {tab === 'acesso' && <PainelAcesso />}
-
           {/* ============ PRONTUÁRIOS LIBERADOS ============ */}
           {tab === 'prontuarios' && (
             <div className="space-y-4">
@@ -622,6 +639,18 @@ export default function Gestao() {
               </div>
             </div>
           </div>
+
+          {/* Pacientes designados (só na edição — vínculo precisa do usuário já salvo) */}
+          {editando && (
+            <div className="border-t border-gray-100 pt-3">
+              <SecaoPacientesDesignados
+                usuarios={usuarios}
+                pacientes={pacientes}
+                usuarioFixo={editando.id}
+              />
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)} className="rounded-xl">
               Cancelar
