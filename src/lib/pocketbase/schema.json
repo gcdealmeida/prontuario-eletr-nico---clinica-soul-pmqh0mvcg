@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-11-21T09:38:54.901Z",
+  "generatedAt": "2026-11-21T10:30:54.834Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
-        "view": "id = @request.auth.id || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
+        "list": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || id = @request.auth.id",
+        "view": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || id = @request.auth.id",
         "create": "",
-        "update": "id = @request.auth.id || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'",
-        "delete": "@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin'"
+        "update": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (id = @request.auth.id && @request.body.role:changed = false && @request.body.access_status:changed = false)",
+        "delete": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'"
       },
       "fields": [
         {
@@ -52,13 +52,6 @@
           "selectValues": ["pending", "approved", "suspended"]
         },
         {
-          "name": "role",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["admin", "professional"]
-        },
-        {
           "name": "especialidade",
           "type": "select",
           "required": false,
@@ -88,6 +81,13 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "adm", "secretaria", "professional", "profissional"]
         }
       ],
       "indexes": [
@@ -99,11 +99,11 @@
       "name": "pacientes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_responsavel_id = @request.auth.id || (@collection.vinculos_pacientes.paciente_id ?= id && @collection.vinculos_pacientes.profissional_id ?= @request.auth.id))",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_responsavel_id = @request.auth.id || (@collection.vinculos_pacientes.paciente_id ?= id && @collection.vinculos_pacientes.profissional_id ?= @request.auth.id))",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' || @request.body.status = 'Pré-cadastro'",
         "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin')"
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com')"
       },
       "fields": [
         {
@@ -318,11 +318,11 @@
       "name": "consultas",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)"
       },
       "fields": [
         {
@@ -490,11 +490,11 @@
       "name": "avaliacoes_fisioterapia",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)"
       },
       "fields": [
         {
@@ -798,11 +798,11 @@
       "name": "avaliacoes_personal",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)"
       },
       "fields": [
         {
@@ -1084,11 +1084,11 @@
       "name": "avaliacoes_nutricao",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)"
       },
       "fields": [
         {
@@ -1286,11 +1286,11 @@
       "name": "avaliacoes_medico",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = '' || user_id = null || user_id = @request.auth.id)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.user_id = @request.auth.id)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || user_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || user_id = @request.auth.id || user_id = '' || user_id = null)"
       },
       "fields": [
         {
@@ -1544,11 +1544,11 @@
       "name": "evolucoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.assinado_por_user_id = @request.auth.id || @request.body.assinado_por_user_id = '' || @request.body.assinado_por_user_id = null)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.assinado_por_user_id = @request.auth.id || @request.body.assinado_por_user_id = '' || @request.body.assinado_por_user_id = null)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)"
       },
       "fields": [
         {
@@ -2061,11 +2061,11 @@
       "name": "programa_acompanhamento",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = '' || profissional_id = null || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = '' || paciente_id.profissional_responsavel_id = null || paciente_id.profissional_responsavel_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = '' || profissional_id = null || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = '' || paciente_id.profissional_responsavel_id = null || paciente_id.profissional_responsavel_id = @request.auth.id) || token_compartilhamento != ''",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.profissional_id = @request.auth.id || @request.body.profissional_id = '' || @request.body.profissional_id = null)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = '' || profissional_id = null || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = '' || paciente_id.profissional_responsavel_id = null || paciente_id.profissional_responsavel_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = '' || profissional_id = null || profissional_id = @request.auth.id || paciente_id.profissional_responsavel_id = '' || paciente_id.profissional_responsavel_id = null || paciente_id.profissional_responsavel_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id || profissional_id = '' || profissional_id = null || paciente_id.profissional_responsavel_id = @request.auth.id)",
+        "view": "token_compartilhamento != '' || (@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id || profissional_id = '' || profissional_id = null || paciente_id.profissional_responsavel_id = @request.auth.id))",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.profissional_id = @request.auth.id || @request.body.profissional_id = '' || @request.body.profissional_id = null)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id || profissional_id = '' || profissional_id = null || paciente_id.profissional_responsavel_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id || profissional_id = '' || profissional_id = null || paciente_id.profissional_responsavel_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -2658,11 +2658,11 @@
       "name": "presencas",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || @request.body.profissional_id = @request.auth.id)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com' || @request.auth.role = 'admin' || profissional_id = @request.auth.id)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.profissional_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -3169,6 +3169,94 @@
         "CREATE INDEX idx_regat_paciente ON registros_atendimento (paciente_id, data_atendimento DESC)",
         "CREATE INDEX idx_regat_profissional ON registros_atendimento (profissional_id, data_atendimento DESC)",
         "CREATE INDEX idx_regat_data ON registros_atendimento (data_atendimento DESC)"
+      ]
+    },
+    {
+      "name": "vinculos_pacientes",
+      "type": "base",
+      "apiRules": {
+        "list": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id",
+        "view": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id",
+        "create": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'",
+        "update": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'",
+        "delete": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'"
+      },
+      "fields": [
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_vinculos_pacientes_unica ON vinculos_pacientes (profissional_id, paciente_id)"
+      ]
+    },
+    {
+      "name": "prontuarios_liberados",
+      "type": "base",
+      "apiRules": {
+        "list": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id",
+        "view": "(@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || profissional_id = @request.auth.id",
+        "create": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'",
+        "update": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'",
+        "delete": "@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com'"
+      },
+      "fields": [
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_prontuarios_liberados_unica ON prontuarios_liberados (profissional_id, paciente_id)"
       ]
     }
   ]
