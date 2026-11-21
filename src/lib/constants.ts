@@ -1,5 +1,7 @@
 // Número de WhatsApp da clínica (só dígitos, com DDI+DDD) usado para enviar o link
 // de pré-cadastro ao paciente. Editável via variável de ambiente VITE_CLINICA_WHATSAPP.
+// Configurado: 5519998950080 (+55 19 99895-0080) — com valor definido, o botão
+// "Pré Cadastro" do Painel Geral abre direto a conversa wa.me em vez de copiar o link.
 export const CLINICA_WHATSAPP = (import.meta.env.VITE_CLINICA_WHATSAPP || '').replace(/\D/g, '')
 
 export const SOUL_PALETTE = {
