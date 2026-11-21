@@ -153,19 +153,31 @@ export default function Gestao() {
   }
 
   const salvarUsuario = async () => {
-    if (!fNome.trim() || !fEmail.trim()) {
-      toast({ title: 'Preencha nome e e-mail', variant: 'destructive' })
+    // Na EDIÇÃO, o ADM pode salvar qualquer alteração (perfil, nome, especialidade,
+    // senha etc.) sem a validação travar campos que não está alterando — inclusive
+    // quando o e-mail vem oculto do backend. Na CRIAÇÃO, nome, e-mail e senha
+    // continuam obrigatórios.
+    if (!editando && !fNome.trim()) {
+      toast({ title: 'Preencha o nome do usuário', variant: 'destructive' })
+      return
+    }
+    if (!editando && !fEmail.trim()) {
+      toast({ title: 'Preencha o e-mail do usuário', variant: 'destructive' })
       return
     }
     if (!editando && fSenha.length < 8) {
       toast({ title: 'A senha deve ter ao menos 8 caracteres', variant: 'destructive' })
       return
     }
+    if (editando && fSenha && fSenha.length < 8) {
+      toast({ title: 'A nova senha deve ter ao menos 8 caracteres', variant: 'destructive' })
+      return
+    }
     setSalvando(true)
     try {
       if (editando) {
         await atualizarUsuario(editando.id, {
-          name: fNome.trim(),
+          ...(fNome.trim() ? { name: fNome.trim() } : {}),
           role: fPerfil,
           especialidade: fEspecialidade,
           ...(fSenha ? { password: fSenha, passwordConfirm: fSenha } : {}),
