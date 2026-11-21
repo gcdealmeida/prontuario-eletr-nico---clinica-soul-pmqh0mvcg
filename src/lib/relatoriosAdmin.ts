@@ -250,8 +250,140 @@ const MESES_ABREV = [
   'Dez',
 ]
 
-function diaDiferenca(a: string, b: string): number {
+export function diaDiferenca(a: string, b: string): number {
   const [a1, m1, d1] = a.split('-').map(Number)
   const [a2, m2, d2] = b.split('-').map(Number)
   return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / (24 * 60 * 60 * 1000))
+}
+
+/** Granularidade sugerida para o período: até 45 dias = dia, até 2 anos = semana, senão ano. */
+export type Granularidade = 'dia' | 'semana' | 'mes' | 'ano'
+
+export function granularidadeSugerida(inicio: string, fim: string): Granularidade {
+  const dias = diaDiferenca(inicio, fim)
+  if (dias <= 45) return 'dia'
+  if (dias <= 150) return 'semana'
+  if (dias <= 760) return 'mes'
+  return 'ano'
+}
+
+export const LABELS_GRANULARIDADE: Record<Granularidade, string> = {
+  dia: 'Dia',
+  semana: 'Semana',
+  mes: 'Mês',
+  ano: 'Ano',
+}
+
+function segundaFeiraDe(ymd: string): string {
+  const [a, m, d] = ymd.split('-').map(Number)
+  const dt = new Date(Date.UTC(a, m - 1, d))
+  const diaSemana = (dt.getUTCDay() + 6) % 7 // 0 = segunda
+  dt.setUTCDate(dt.getUTCDate() - diaSemana)
+  return dt.toISOString().slice(0, 10)
+}
+
+/**
+ * Série temporal MULTI-SÉRIE do gráfico "Atendimentos no tempo": uma série por
+ * entidade escolhida (profissional, serviço ou programa). Cada entrada da série
+ * tem { chave, label, [nomeEntidade]: total }.
+ */
+export function serieTemporalMulti(
+  presencas: {
+    data_atendimento: string
+    profissional_id?: string
+    profissional_nome?: string
+    servico?: string
+    area_servico?: string
+    programa?: string
+  }[],
+  inicio: string,
+  fim: string,
+  agrupamento: 'profissional' | 'servico' | 'programa',
+  granularidade: Granularidade,
+  entidades: string[],
+  nomesPorId?: Map<string, string>,
+): { chave: string; label: string; [nome: string]: string | number }[] {
+  const conta = new Map<string, number>() // `${chaveTempo}||${entidade}` -> total
+  for (const p of presencas) {
+    const ymd = ymdDeData(p.data_atendimento)
+    if (!ymd || ymd < inicio || ymd > fim) continue
+    let entidade = ''
+    if (agrupamento === 'profissional') {
+      entidade = p.profissional_nome || nomesPorId?.get(p.profissional_id || '') || ''
+    } else if (agrupamento === 'servico') {
+      entidade = (p.servico || p.area_servico || '').trim()
+    } else {
+      entidade = (p.programa || '').trim()
+    }
+    if (!entidade) continue
+    const chaveTempo = chaveTempoDe(ymd, granularidade)
+    const k = `${chaveTempo}||${entidade}`
+    conta.set(k, (conta.get(k) || 0) + 1)
+  }
+
+  const serie: { chave: string; label: string; [nome: string]: string | number }[] = []
+  let cursor = inicio
+  let guard = 0
+  while (cursor <= fim && guard < 400) {
+    guard++
+    const linha: { chave: string; label: string; [nome: string]: string | number } = {
+      chave: cursor,
+      label: rotuloChave(cursor, granularidade),
+    }
+    for (const ent of entidades) linha[ent] = conta.get(`${cursor}||${ent}`) || 0
+    serie.push(linha)
+    cursor = proximaChave(cursor, granularidade)
+  }
+  return serie
+}
+
+export function chaveTempoDe(ymd: string, g: Granularidade): string {
+  if (g === 'dia') return ymd
+  if (g === 'semana') return segundaFeiraDe(ymd)
+  if (g === 'mes') return ymd.slice(0, 7)
+  return ymd.slice(0, 4)
+}
+
+export function rotuloChave(chave: string, g: Granularidade): string {
+  if (g === 'dia') {
+    const [, m, d] = chave.split('-').map(Number)
+    return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`
+  }
+  if (g === 'semana') {
+    const [, m, d] = chave.split('-').map(Number)
+    return `sem ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`
+  }
+  if (g === 'mes') {
+    const [a, m] = chave.split('-').map(Number)
+    return `${MESES_ABREV[m - 1]}/${String(a).slice(-2)}`
+  }
+  return chave
+}
+
+export function proximaChave(chave: string, g: Granularidade): string {
+  if (g === 'dia') return deslocarYMD(chave, 1)
+  if (g === 'semana') return deslocarYMD(chave, 7)
+  const [a, m] = chave.split('-').map(Number)
+  if (g === 'mes') {
+    const dt = new Date(Date.UTC(a, m - 1, 1))
+    dt.setUTCMonth(dt.getUTCMonth() + 1)
+    return dt.toISOString().slice(0, 7)
+  }
+  return String(a + 1)
+}
+
+/** Lista distinta de serviços presentes nos registros (para o multi-seletor). */
+export function listarServicosDe(
+  presencas: { servico?: string; area_servico?: string }[],
+): string[] {
+  return [
+    ...new Set(presencas.map((p) => (p.servico || p.area_servico || '').trim()).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b))
+}
+
+/** Lista distinta de programas presentes nos registros (para o multi-seletor). */
+export function listarProgramasDe(presencas: { programa?: string }[]): string[] {
+  return [...new Set(presencas.map((p) => (p.programa || '').trim()).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b),
+  )
 }

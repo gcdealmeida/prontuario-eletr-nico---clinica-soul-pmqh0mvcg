@@ -1,14 +1,32 @@
 /**
- * Painel Administrativo de Relatórios da clínica SOUL (visão ADM/Secretária).
- * Filtros de período, área, profissional e programas + gráficos Recharts
- * (atendimentos no tempo, por área, por profissional) + Relatório de Frequência.
+ * Painel de Relatórios do gestor (ADM/Secretária) em /relatorios.
+ *
+ * Cuidado estrutural: TabsContent SEMPRE dentro de <Tabs> (regressão v0.0.132).
+ * Números-chave e gráficos respeitam TODOS os filtros, incluindo serviço
+ * (campo `servico`, migration 0065) e programa (campo `programa`, 0065).
+ * Presenças antigas sem esses campos ficam fora dos filtros específicos.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
+import { getAllUsers } from '@/services/acessos'
+import {
+  resolverPreset,
+  rotuloPeriodo,
+  corPorIndice,
+  listarServicosDe,
+  listarProgramasDe,
+  agruparPorArea,
+  agruparPorProfissional,
+} from '@/lib/relatoriosAdmin'
+import type { PeriodoRange } from '@/lib/relatoriosAdmin'
+import { isCompareceu } from '@/lib/relatoriosAdmin'
+import type { PresencaRecord, UserRecord } from '@/types/database'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,34 +34,11 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts'
-import { AlertTriangle, CalendarDays, FolderKanban, Users } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-// O cliente PocketBase é o export default do módulo (padrão do projeto — ver src/services/gestao.ts).
-import pb from '@/lib/pocketbase/client'
-import type { PresencaRecord, UserRecord } from '@/types/database'
-import { getAllUsers } from '@/services/acessos'
-import {
-  agruparPorArea,
-  agruparPorProfissional,
-  corPorIndice,
-  isCompareceu,
-  LABELS_PRESET,
-  rotuloPeriodo,
-  resolverPreset,
-  serieTemporal,
-} from '@/lib/relatoriosAdmin'
-import type { PeriodoRange, PresetPeriodo } from '@/lib/relatoriosAdmin'
 import { RelatorioFrequencia } from '@/components/relatorios/RelatorioFrequencia'
+import { GraficoAtendimentosTempo } from '@/components/relatorios/GraficoAtendimentosTempo'
+import { FiltrosBarra } from './FiltrosBarra'
+import { iniciaisFiltros } from './FiltrosBarra'
+import type { FiltrosState } from './FiltrosBarra'
 
 const TOOLTIP_STYLE = {
   backgroundColor: '#FFF',
@@ -52,173 +47,11 @@ const TOOLTIP_STYLE = {
   fontSize: '12px',
 }
 
-/* ------------------------------------------------------------------ */
-/* Filtros                                                             */
-/* ------------------------------------------------------------------ */
-
-const PRESETS: PresetPeriodo[] = ['hoje', '7d', 'mes', 'mesAnterior', 'ano', 'custom']
-
-export interface FiltrosState {
-  preset: PresetPeriodo
-  inicio: string
-  fim: string
-  area: string // 'todas' | nome da área/serviço
-  profissional: string // 'todos' | user id
-  // NOTA: a coleção `presencas` não tem campo de programa, então este filtro é
-  // apenas de UI (seleção visível, sem cruzamento com os dados agregados).
-  programa: string // 'todos' | id do programa
-}
-
-export function iniciaisFiltros(): FiltrosState {
-  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-  return {
-    preset: 'mes',
-    inicio: `${hoje.slice(0, 7)}-01`,
-    fim: hoje,
-    area: 'todas',
-    profissional: 'todos',
-    programa: 'todos',
-  }
-}
-
-interface PropsFiltros {
-  filtros: FiltrosState
-  setFiltros: (f: FiltrosState) => void
-  areas: string[]
-  profissionais: { id: string; nome: string }[]
-  programas: { id: string; nome: string }[]
-}
-
-function FiltrosBarra({ filtros, setFiltros, areas, profissionais, programas }: PropsFiltros) {
-  const set = (p: Partial<FiltrosState>) => setFiltros({ ...filtros, ...p })
-
-  return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Período */}
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold text-[#73574A] flex items-center gap-1.5">
-            <CalendarDays className="h-3.5 w-3.5" /> Período
-          </Label>
-          <Select
-            value={filtros.preset}
-            onValueChange={(v) => {
-              const preset = v as PresetPeriodo
-              const r = resolverPreset(preset, { inicio: filtros.inicio, fim: filtros.fim })
-              set({ preset, inicio: r.inicio, fim: r.fim })
-            }}
-          >
-            <SelectTrigger className="w-full h-9 bg-white text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PRESETS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {LABELS_PRESET[p]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {filtros.preset === 'custom' && (
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={filtros.inicio}
-                onChange={(e) => set({ inicio: e.target.value })}
-                className="h-9 text-xs bg-white"
-              />
-              <span className="text-xs text-gray-400">até</span>
-              <Input
-                type="date"
-                value={filtros.fim}
-                onChange={(e) => set({ fim: e.target.value })}
-                className="h-9 text-xs bg-white"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Área de atendimento */}
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold text-[#73574A]">Área de atendimento</Label>
-          <Select value={filtros.area || 'todas'} onValueChange={(v) => set({ area: v })}>
-            <SelectTrigger className="w-full h-9 bg-white text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as áreas</SelectItem>
-              {areas.map((a) => (
-                <SelectItem key={a} value={a}>
-                  {a}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Profissional */}
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold text-[#73574A] flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" /> Profissional
-          </Label>
-          <Select
-            value={filtros.profissional || 'todos'}
-            onValueChange={(v) => set({ profissional: v })}
-          >
-            <SelectTrigger className="w-full h-9 bg-white text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os profissionais</SelectItem>
-              {profissionais.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Programas */}
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold text-[#73574A] flex items-center gap-1.5">
-            <FolderKanban className="h-3.5 w-3.5" /> Programas
-          </Label>
-          {programas.length === 0 ? (
-            <div className="h-9 flex items-center px-3 rounded-md border border-dashed border-gray-200 bg-[#FAF7F1]/50 text-xs text-gray-400">
-              Sem programas cadastrados
-            </div>
-          ) : (
-            <Select value={filtros.programa || 'todos'} onValueChange={(v) => set({ programa: v })}>
-              <SelectTrigger className="w-full h-9 bg-white text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os programas</SelectItem>
-                {programas.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Painel                                                              */
-/* ------------------------------------------------------------------ */
-
 export function PainelRelatoriosAdmin() {
   const [filtros, setFiltros] = useState<FiltrosState>(iniciaisFiltros)
   const [carregando, setCarregando] = useState(true)
   const [presencas, setPresencas] = useState<PresencaRecord[]>([])
   const [usuarios, setUsuarios] = useState<UserRecord[]>([])
-  const [programas, setProgramas] = useState<{ id: string; nome: string }[]>([])
   const [erro, setErro] = useState<string | null>(null)
 
   const periodo: PeriodoRange = useMemo(
@@ -226,32 +59,28 @@ export function PainelRelatoriosAdmin() {
     [filtros.preset, filtros.inicio, filtros.fim],
   )
 
-  // Carga inicial: presenças (clínica toda), usuários e programas
+  // Carga inicial: presenças (clínica toda) + usuários. Programas agora vêm do
+  // campo `programa` das próprias presenças (0065) — sem carga extra.
   useEffect(() => {
     let ativo = true
     ;(async () => {
       setCarregando(true)
       setErro(null)
       try {
-        const [regs, usrs, progs] = await Promise.all([
+        const [regs, usrs] = await Promise.all([
           pb
             .collection<PresencaRecord>('presencas')
             .getFullList({
               sort: '-data_atendimento',
               fields:
-                'id,paciente_id,profissional_id,profissional_nome,data_atendimento,area_servico,status',
+                'id,paciente_id,profissional_id,profissional_nome,data_atendimento,area_servico,servico,programa,status',
             })
             .catch(() => [] as PresencaRecord[]),
           getAllUsers().catch(() => [] as UserRecord[]),
-          pb
-            .collection<{ id: string; nome: string }>('programa_acompanhamento')
-            .getFullList({ filter: "status != 'rascunho'", sort: '-created', fields: 'id,nome' })
-            .catch(() => [] as { id: string; nome: string }[]),
         ])
         if (!ativo) return
         setPresencas(regs)
         setUsuarios(usrs)
-        setProgramas(progs)
       } catch {
         if (ativo) setErro('Não foi possível carregar os dados dos relatórios.')
       }
@@ -262,16 +91,14 @@ export function PainelRelatoriosAdmin() {
     }
   }, [])
 
-  const areas = useMemo(
-    () => [...new Set(presencas.map((p) => (p.area_servico || '').trim()).filter(Boolean))].sort(),
-    [presencas],
-  )
-
   const nomesPorId = useMemo(() => {
     const m = new Map<string, string>()
     for (const u of usuarios) m.set(u.id, u.name || u.email)
     return m
   }, [usuarios])
+
+  const areas = useMemo(() => listarServicosDe(presencas), [presencas])
+  const programasDisponiveis = useMemo(() => listarProgramasDe(presencas), [presencas])
 
   const profissionais = useMemo(
     () =>
@@ -281,18 +108,15 @@ export function PainelRelatoriosAdmin() {
     [usuarios],
   )
 
-  // Filtro de programa NÃO é aplicado aqui de propósito: `presencas` não possui
-  // campo de programa e simular um cruzamento traria números falsos (ver nota em FiltrosState).
+  // Todos os filtros valem para TODO o painel (KPIs, gráficos e frequência):
+  // período, profissional, serviço e programa (0065 grava servico/programa).
   const presencasFiltradas = useMemo(() => {
     return presencas.filter((p) => {
       const ymd = (p.data_atendimento || '').slice(0, 10)
       if (!ymd) return false
       if (ymd < periodo.inicio || ymd > periodo.fim) return false
-      if (
-        filtros.area &&
-        filtros.area !== 'todas' &&
-        (p.area_servico || '').trim() !== filtros.area
-      )
+      const servico = (p.servico || p.area_servico || '').trim()
+      if (filtros.servico && filtros.servico !== 'todos' && servico !== filtros.servico)
         return false
       if (
         filtros.profissional &&
@@ -300,19 +124,23 @@ export function PainelRelatoriosAdmin() {
         p.profissional_id !== filtros.profissional
       )
         return false
+      if (
+        filtros.programa &&
+        filtros.programa !== 'todos' &&
+        (p.programa || '').trim() !== filtros.programa
+      )
+        return false
       return true
     })
-  }, [presencas, periodo, filtros.area, filtros.profissional])
+  }, [presencas, periodo, filtros.servico, filtros.profissional, filtros.programa])
 
-  const serie = useMemo(
-    () => serieTemporal(presencasFiltradas, periodo.inicio, periodo.fim),
-    [presencasFiltradas, periodo],
-  )
-  const porArea = useMemo(() => agruparPorArea(presencasFiltradas), [presencasFiltradas])
+  const porServico = useMemo(() => agruparPorArea(presencasFiltradas), [presencasFiltradas])
   const porProfissional = useMemo(
     () => agruparPorProfissional(presencasFiltradas, nomesPorId),
     [presencasFiltradas, nomesPorId],
   )
+  // 'serie' antigo removido — o gráfico "Atendimentos no tempo" agora é o
+  // GraficoAtendimentosTempo (granularidade + agrupamento + multi-série).
 
   const totalPeriodo = presencasFiltradas.length
   const compareceu = presencasFiltradas.filter((p) => isCompareceu(p.status)).length
@@ -325,7 +153,7 @@ export function PainelRelatoriosAdmin() {
         setFiltros={setFiltros}
         areas={areas}
         profissionais={profissionais}
-        programas={programas}
+        programas={programasDisponiveis}
       />
 
       {erro && (
@@ -351,7 +179,7 @@ export function PainelRelatoriosAdmin() {
         </div>
       ) : (
         <>
-          {/* Números-chave */}
+          {/* Números-chave — todos os filtros aplicados */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Atendimentos no período', valor: String(totalPeriodo) },
@@ -382,44 +210,28 @@ export function PainelRelatoriosAdmin() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
-                  {serie.every((s) => s.total === 0) ? (
-                    <SemDados mensagem="Sem atendimentos no período filtrado." />
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={serie}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="#73574A" />
-                        <YAxis tick={{ fontSize: 11 }} stroke="#73574A" allowDecimals={false} />
-                        <RechartsTooltip contentStyle={TOOLTIP_STYLE} />
-                        <Line
-                          type="monotone"
-                          dataKey="total"
-                          name="Atendimentos"
-                          stroke="#C9A46A"
-                          strokeWidth={3}
-                          dot={serie.length <= 45 ? { r: 3, fill: '#C9A46A' } : false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
+                <GraficoAtendimentosTempo
+                  presencas={presencasFiltradas}
+                  periodoInicio={periodo.inicio}
+                  periodoFim={periodo.fim}
+                  nomesPorId={nomesPorId}
+                />
               </CardContent>
             </Card>
 
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-bold text-gray-900">
-                  Atendimentos por área
+                  Atendimentos por serviço
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
-                  {porArea.length === 0 ? (
+                  {porServico.length === 0 ? (
                     <SemDados mensagem="Sem atendimentos no período filtrado." />
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={porArea} layout="vertical">
+                      <BarChart data={porServico} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
                         <XAxis
                           type="number"
@@ -436,7 +248,7 @@ export function PainelRelatoriosAdmin() {
                         />
                         <RechartsTooltip contentStyle={TOOLTIP_STYLE} />
                         <Bar dataKey="total" name="Atendimentos" radius={[0, 6, 6, 0]}>
-                          {porArea.map((_, i) => (
+                          {porServico.map((_, i) => (
                             <Cell key={i} fill={corPorIndice(i)} />
                           ))}
                         </Bar>
@@ -501,9 +313,14 @@ export function PainelRelatoriosAdmin() {
 
           <p className="text-xs text-gray-400 text-center">
             Período analisado: {rotuloPeriodo(periodo)}
-            {filtros.area !== 'todas' && ` · Área: ${filtros.area}`}
+            {filtros.servico !== 'todos' && ` · Serviço: ${filtros.servico}`}
+            {filtros.programa !== 'todos' && ` · Programa: ${filtros.programa}`}
             {filtros.profissional !== 'todos' &&
               ` · Profissional: ${profissionais.find((p) => p.id === filtros.profissional)?.nome ?? filtros.profissional}`}
+          </p>
+          <p className="text-[11px] text-gray-300 text-center">
+            Presenças anteriores à gravação de serviço/programa (migration 0065) podem ficar fora
+            dos filtros específicos de serviço ou programa.
           </p>
         </>
       )}

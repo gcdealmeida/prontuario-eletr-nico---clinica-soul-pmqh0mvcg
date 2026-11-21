@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T15:28:09.850Z",
+  "generatedAt": "2026-11-21T15:45:37.809Z",
   "collections": [
     {
       "name": "users",
@@ -2738,6 +2738,18 @@
         },
         {
           "name": "horario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "servico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "programa",
           "type": "text",
           "required": false,
           "system": false

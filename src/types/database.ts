@@ -884,6 +884,10 @@ export interface PresencaRecord {
   profissional_id: string
   data_atendimento: string
   horario?: string
+  /** Nome normalizado do serviço (migration 0065) — espelho de area_servico; presenças antigas podem estar vazias. */
+  servico?: string
+  /** Nome do programa de acompanhamento ativo do paciente na data da presença (migration 0065); presenças antigas podem estar vazias. */
+  programa?: string
   area_servico: string // ex: Sessão Fisioterapia, Personal Individual, Assessoria Esportiva, etc.
   detalhe_servico?: string // detalhamento opcional do serviço
   observacoes?: string
