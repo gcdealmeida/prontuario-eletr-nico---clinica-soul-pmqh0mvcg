@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T13:29:32.321Z",
+  "generatedAt": "2026-11-21T13:55:31.983Z",
   "collections": [
     {
       "name": "users",
@@ -1544,11 +1544,11 @@
       "name": "evolucoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
-        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
-        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.assinado_por_user_id = @request.auth.id || @request.body.assinado_por_user_id = '' || @request.body.assinado_por_user_id = null)",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || assinado_por_user_id = '' || assinado_por_user_id = null)"
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id || (@collection.prontuarios_liberados.paciente_id ?= paciente_id && @collection.prontuarios_liberados.profissional_id ?= @request.auth.id))",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.body.assinado_por_user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && ((@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || assinado_por_user_id = @request.auth.id)"
       },
       "fields": [
         {

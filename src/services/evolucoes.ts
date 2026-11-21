@@ -1,21 +1,43 @@
 import pb from '@/lib/pocketbase/client'
 import type { EvolucaoRecord, Especialidade } from '@/types/database'
-import { createTimelineEvent } from './avaliacoes'
+import { createTimelineEvent, filtrarAvaliacoesPorPerfil } from './avaliacoes'
+
+/**
+ * Redundância defensiva client-side da regra do dono do produto (backend:
+ * migration 0062): o Profissional só vê evoluções
+ *   (a) criadas/assinadas por ELE (assinado_por_user_id = ele),
+ *   (b) de pacientes liberados para ele via prontuarios_liberados.
+ * ADM e Secretária passam sem filtro. Reaproveita o mesmo filtro usado em
+ * getAllAvaliacoes (campos user_id/assinado_por_user_id + paciente_id).
+ */
+async function filtrarEvolucoesPorPerfil(lista: EvolucaoRecord[]): Promise<EvolucaoRecord[]> {
+  const filtradas = await filtrarAvaliacoesPorPerfil(
+    lista.map((e) => ({
+      ...e,
+      user_id: e.assinado_por_user_id || '',
+    })),
+  )
+  return filtradas.map(({ user_id: _user_id, ...evo }) => evo as EvolucaoRecord)
+}
 
 export async function getEvolucoesByPaciente(pacienteId: string) {
-  return await pb.collection('evolucoes').getFullList<EvolucaoRecord>({
-    filter: `paciente_id = "${pacienteId}"`,
-    sort: '-data_evolucao,-created',
-    expand: 'paciente_id',
-  })
+  return await filtrarEvolucoesPorPerfil(
+    await pb.collection('evolucoes').getFullList<EvolucaoRecord>({
+      filter: `paciente_id = "${pacienteId}"`,
+      sort: '-data_evolucao,-created',
+      expand: 'paciente_id',
+    }),
+  )
 }
 
 export async function getEvolucoesByAvaliacao(avaliacaoId: string) {
-  return await pb.collection('evolucoes').getFullList<EvolucaoRecord>({
-    filter: `avaliacao_id = "${avaliacaoId}"`,
-    sort: '-data_evolucao,-created',
-    expand: 'paciente_id',
-  })
+  return await filtrarEvolucoesPorPerfil(
+    await pb.collection('evolucoes').getFullList<EvolucaoRecord>({
+      filter: `avaliacao_id = "${avaliacaoId}"`,
+      sort: '-data_evolucao,-created',
+      expand: 'paciente_id',
+    }),
+  )
 }
 
 export async function getEvolucaoById(id: string) {
@@ -36,6 +58,13 @@ export async function createEvolucao(
     documento_fechado: isFinalizada,
   }
 
+  // Autor da evolução gravado SEMPRE (inclusive rascunhos): a regra de create
+  // da migration 0062 exige assinado_por_user_id = autor para perfil Profissional
+  // e é ele que define quem pode ver/editar o registro depois.
+  if (pb.authStore.record?.id && !payload.assinado_por_user_id) {
+    payload.assinado_por_user_id = pb.authStore.record.id
+  }
+
   // Preenche dados de assinatura no payload inicial (o backend também assegura no hook com carimbo oficial)
   if (isFinalizada) {
     if (!payload.assinado_por_nome) {
@@ -44,9 +73,6 @@ export async function createEvolucao(
     }
     if (!payload.assinado_por_especialidade) {
       payload.assinado_por_especialidade = data.especialidade || 'Fisioterapia'
-    }
-    if (pb.authStore.record?.id && !payload.assinado_por_user_id) {
-      payload.assinado_por_user_id = pb.authStore.record.id
     }
   }
 
