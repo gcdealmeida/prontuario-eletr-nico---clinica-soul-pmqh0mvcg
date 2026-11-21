@@ -10,14 +10,61 @@ import type {
 
 /**
  * Camada de segurança do perfil Profissional (regra do dono do produto):
- * em PRONTUÁRIOS & AVALIAÇÕES o profissional só vê
+ * em PRONTUÁRIOS & AVALIAÇÕES o profissional vê
  *   (a) os prontuários que ELE mesmo construiu (user_id = ele),
- *   (b) os prontuários liberados para ele via prontuarios_liberados,
- *   (c) nada do resto da clínica.
+ *   (b) TUDO dos pacientes DESIGNADOS a ele (vínculo ativo em
+ *       vinculos_pacientes — regra nova, backend migration 0064),
+ *   (c) os prontuários liberados manualmente via prontuarios_liberados
+ *       (legado: a aba Prontuários Liberados deixou de ser necessária, mas
+ *       continua valendo enquanto existir),
+ *   (d) nada do resto da clínica.
  * ADM e Secretária continuam vendo tudo, sem filtro.
- * O backend (migration 0061) já aplica a mesma regra nas API rules — este
- * filtro client-side é redundância defensiva e alimenta os contadores da tela.
+ * O backend (migrations 0061/0064) já aplica a mesma regra nas API rules —
+ * este filtro client-side é redundância defensiva e alimenta os contadores.
  */
+let cachePacientesAcessiveis: { ids: Set<string>; expiraEm: number } | null = null
+
+async function carregarPacientesAcessiveisAoProfissional(userId: string): Promise<Set<string>> {
+  const agora = Date.now()
+  if (cachePacientesAcessiveis && cachePacientesAcessiveis.expiraEm > agora) {
+    return cachePacientesAcessiveis.ids
+  }
+  const ids = new Set<string>()
+
+  // (b) Pacientes designados: vínculo ativo em vinculos_pacientes.
+  try {
+    const vinculos = await pb.collection('vinculos_pacientes').getFullList({
+      filter: `profissional_id = "${userId}"`,
+    })
+    for (const v of vinculos) {
+      const pid = typeof v.paciente_id === 'string' ? v.paciente_id : v.paciente_id?.id
+      if (pid) ids.add(pid)
+    }
+  } catch {
+    // Sem acesso à lista de vínculos: segue só com liberações/autoria.
+  }
+
+  // (c) Liberações manuais legadas (prontuarios_liberados) continuam valendo.
+  try {
+    const liberados = await pb.collection('prontuarios_liberados').getFullList({
+      filter: `profissional_id = "${userId}"`,
+    })
+    for (const l of liberados) {
+      const pid = typeof l.paciente_id === 'string' ? l.paciente_id : l.paciente_id?.id
+      if (pid) ids.add(pid)
+    }
+  } catch {
+    // Sem acesso à lista de liberações: segue só com vínculos/autoria.
+  }
+
+  cachePacientesAcessiveis = { ids, expiraEm: agora + 60_000 }
+  return ids
+}
+
+export function invalidarCachePacientesAcessiveis() {
+  cachePacientesAcessiveis = null
+}
+
 export async function filtrarAvaliacoesPorPerfil<
   T extends { user_id?: string; paciente_id?: string | { id: string } },
 >(lista: T[]): Promise<T[]> {
@@ -33,19 +80,14 @@ export async function filtrarAvaliacoesPorPerfil<
   if (!isProfissional) return lista
 
   try {
-    const liberados = await pb.collection('prontuarios_liberados').getFullList({
-      filter: `profissional_id = "${user.id}"`,
-    })
-    const pacientesLiberados = new Set(
-      liberados.map((l) => (typeof l.paciente_id === 'string' ? l.paciente_id : l.paciente_id?.id)),
-    )
+    const pacientesAcessiveis = await carregarPacientesAcessiveisAoProfissional(user.id)
     return lista.filter(
       (av) =>
         av.user_id === user.id ||
-        (av.paciente_id != null && pacientesLiberados.has(String(av.paciente_id))),
+        (av.paciente_id != null && pacientesAcessiveis.has(String(av.paciente_id))),
     )
   } catch {
-    // Sem acesso à lista de liberações: só o que ele construiu.
+    // Falha ao carregar vínculos/liberações: só o que ele construiu.
     return lista.filter((av) => av.user_id === user.id)
   }
 }

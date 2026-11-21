@@ -27,6 +27,7 @@ import {
   removerVinculo,
   type VinculoPacienteRecord,
 } from '@/services/gestao'
+import { invalidarCachePacientesAcessiveis } from '@/services/avaliacoes'
 
 interface SecaoPacientesDesignadosProps {
   /** Lista completa de usuários (para o seletor quando não há usuário fixo). */
@@ -114,6 +115,8 @@ export default function SecaoPacientesDesignados({
       setPacSel('')
       setBuscaPac('')
       await carregarVinculos()
+      // Novo vínculo muda o que o profissional passa a ver: invalida o cache.
+      invalidarCachePacientesAcessiveis()
     } catch (err: unknown) {
       toast({
         title: 'Erro ao designar',
@@ -131,6 +134,8 @@ export default function SecaoPacientesDesignados({
       await removerVinculo(vinculoId)
       toast({ title: 'Vínculo desfeito' })
       await carregarVinculos()
+      // Sem o vínculo, o profissional deixa de ver o paciente: invalida o cache.
+      invalidarCachePacientesAcessiveis()
     } catch (err: unknown) {
       toast({
         title: 'Erro ao desfazer vínculo',

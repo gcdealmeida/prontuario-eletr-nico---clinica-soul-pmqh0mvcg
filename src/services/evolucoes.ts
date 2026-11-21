@@ -4,9 +4,12 @@ import { createTimelineEvent, filtrarAvaliacoesPorPerfil } from './avaliacoes'
 
 /**
  * Redundância defensiva client-side da regra do dono do produto (backend:
- * migration 0062): o Profissional só vê evoluções
+ * migrations 0062/0064): o Profissional vê evoluções
  *   (a) criadas/assinadas por ELE (assinado_por_user_id = ele),
- *   (b) de pacientes liberados para ele via prontuarios_liberados.
+ *   (b) de pacientes DESIGNADOS a ele (vínculo ativo em vinculos_pacientes —
+ *       regra nova: ele enxerga TUDO do paciente, de qualquer autor),
+ *   (c) de pacientes liberados manualmente via prontuarios_liberados (legado,
+ *       continua valendo).
  * ADM e Secretária passam sem filtro. Reaproveita o mesmo filtro usado em
  * getAllAvaliacoes (campos user_id/assinado_por_user_id + paciente_id).
  */
@@ -165,3 +168,5 @@ export async function updateEvolucao(id: string, data: Partial<EvolucaoRecord>) 
 export async function deleteEvolucao(id: string) {
   return await pb.collection('evolucoes').delete(id)
 }
+
+export { invalidarCachePacientesAcessiveis } from './avaliacoes'

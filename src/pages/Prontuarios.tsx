@@ -91,7 +91,8 @@ export default function Prontuarios() {
           {isProfissional && (
             <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#8C6527] bg-[#FAF5EE] border border-[#E3C89A]/50 px-2.5 py-1 rounded-lg">
               <Lock className="h-3 w-3" />
-              Visão do Profissional: apenas prontuários construídos por você ou liberados a você.
+              Visão do Profissional: você vê tudo dos pacientes designados a você, além dos
+              prontuários construídos por você.
             </p>
           )}
         </div>

@@ -1356,6 +1356,11 @@ export default function GuiaUso() {
                     <strong>Avaliações e Evoluções:</strong> cria e edita laudos clínicos em seu
                     nome com vinculação direta (<code>user_id</code>).
                   </li>
+                  <li>
+                    <strong>Pacientes Designados:</strong> vê TUDO dos pacientes designados a ele na
+                    Gestão da Clínica — avaliações, evoluções e histórico completo, mesmo os criados
+                    por outros profissionais ou pelo Administrador.
+                  </li>
                 </ul>
               </div>
 
