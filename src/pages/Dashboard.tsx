@@ -387,11 +387,6 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-          {/* Busca do paciente por nome ou CPF — leva ao prontuário */}
-          <div className="w-full sm:w-auto sm:min-w-[300px] md:min-w-[360px]">
-            <TopbarBuscaPaciente className="w-full" />
-          </div>
-
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => navigate('/prontuarios/novo')}
