@@ -31,8 +31,14 @@ import { getConsultas } from '@/services/consultas'
 import { getAllPacientes } from '@/services/pacientes'
 import { getAllAvaliacoes } from '@/services/avaliacoes'
 import { ESPECIALIDADE_COLORS } from '@/lib/constants'
+import { useAuth } from '@/contexts/AuthContext'
+import { PainelRelatoriosAdmin } from '@/components/relatorios/PainelRelatoriosAdmin'
 
 export default function Relatorios() {
+  const { profile } = useAuth()
+  const role = profile?.role
+  const isGestor = role === 'adm' || role === 'admin' || role === 'secretaria'
+
   const [loading, setLoading] = useState(true)
 
   // 1. Consultas por Mês (últimos 6 meses, empilhado por especialidade)
