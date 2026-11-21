@@ -182,7 +182,11 @@ export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
   }, [presencas])
 
   return (
-    <div className="space-y-4">
+    <Tabs
+      value={visao}
+      onValueChange={(v) => setVisao(v as Visao)}
+      className="space-y-4 focus-visible:outline-none"
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <CardTitle className="text-base font-bold text-gray-900">
@@ -192,22 +196,20 @@ export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
             Comparecimentos vs. faltas/cancelamentos — {rotuloPeriodo(periodo)}
           </p>
         </div>
-        <Tabs value={visao} onValueChange={(v) => setVisao(v as Visao)}>
-          <TabsList className="bg-[#FAF7F1] h-9">
-            <TabsTrigger value="geral" className="text-xs">
-              Geral
-            </TabsTrigger>
-            <TabsTrigger value="profissional" className="text-xs">
-              Por profissional
-            </TabsTrigger>
-            <TabsTrigger value="servico" className="text-xs">
-              Por serviço
-            </TabsTrigger>
-            <TabsTrigger value="evolucao" className="text-xs">
-              Evolução
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <TabsList className="bg-[#FAF7F1] h-9">
+          <TabsTrigger value="geral" className="text-xs">
+            Geral
+          </TabsTrigger>
+          <TabsTrigger value="profissional" className="text-xs">
+            Por profissional
+          </TabsTrigger>
+          <TabsTrigger value="servico" className="text-xs">
+            Por serviço
+          </TabsTrigger>
+          <TabsTrigger value="evolucao" className="text-xs">
+            Evolução
+          </TabsTrigger>
+        </TabsList>
       </div>
 
       {/* Geral */}
@@ -316,6 +318,6 @@ export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
           </div>
         )}
       </TabsContent>
-    </div>
+    </Tabs>
   )
 }
