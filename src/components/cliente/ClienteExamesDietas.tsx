@@ -10,7 +10,7 @@ import type { SaudeRegistroRecord } from '@/services/saudeBemEstar'
 
 interface Props {
   registros: SaudeRegistroRecord[]
-  onRegistrar: (tipo: 'exame' | 'dieta') => void
+  onRegistrar: (tipo: 'exame' | 'dieta', titulo?: string) => Promise<void> | void
   onExcluir: (id: string) => void
 }
 
@@ -28,7 +28,9 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
     if (!titulo.trim()) return
     setSalvando(true)
     try {
-      await onRegistrar(tipoNovo)
+      await onRegistrar(tipoNovo, titulo.trim())
+      setTitulo('')
+      setAberto(false)
     } finally {
       setSalvando(false)
     }

@@ -1,60 +1,72 @@
-import { useEffect, useState } from 'react'
-import { Bell, BookOpen, Dumbbell, Plus, Stethoscope } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
+  BookOpen,
+  ChartLine,
+  ClipboardList,
+  HeartPulse,
+  Home,
+  Salad,
+  UserRound,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { formatDataPTBR, formatDataHoraPTBR } from '@/lib/constants'
 import {
-  carregarMeuPainel,
-  criarSaudeRegistro,
   atualizarSaudeDevPessoal,
-  labelTipoRegistro,
-  TIPOS_REGISTRO,
+  criarSaudeRegistro,
+  atualizarSaudeRegistro,
+  excluirSaudeRegistro,
+  carregarMeuPainel,
   type MeuPerfilSaude,
+  type SaudeClienteRecord,
   type SaudeRegistroTipo,
 } from '@/services/saudeBemEstar'
-import { ICONES_TIPO } from '@/components/saude/SaudeResumoIcones'
+import { VALORES_HUMOR, hojeYMD } from '@/lib/saudeAgregacoes'
+import { ClienteHoje } from '@/components/cliente/ClienteHoje'
+import { ClienteMetricas } from '@/components/cliente/ClienteMetricas'
+import { ClienteRefeicoesMedicacoes } from '@/components/cliente/ClienteRefeicoesMedicacoes'
+import { ClienteDiarioEmocional } from '@/components/cliente/ClienteDiarioEmocional'
+import { ClienteExamesDietas } from '@/components/cliente/ClienteExamesDietas'
+import { ClienteInsights } from '@/components/cliente/ClienteInsights'
+import { ClientePerfil } from '@/components/cliente/ClientePerfil'
+import {
+  ModalRegistroMetrica,
+  type ValoresRegistro,
+} from '@/components/cliente/ModalRegistroMetrica'
 
-const hojeYMD = () => new Date().toISOString().slice(0, 10)
+export type AbaCliente =
+  | 'hoje'
+  | 'metricas'
+  | 'refeicoes'
+  | 'diario'
+  | 'exames'
+  | 'insights'
+  | 'perfil'
 
-const rotulosCategoria: Record<string, string> = {
-  orientacao: 'Orientação',
-  dica: 'Dica',
-  desenvolvimento_pessoal: 'Desenvolvimento Pessoal',
-}
-
-const integracoes = [
-  { nome: 'Garmin Connect', cor: 'text-[#007CC3]' },
-  { nome: 'Google Fit', cor: 'text-[#4285F4]' },
-  { nome: 'Google Health', cor: 'text-[#34A853]' },
-  { nome: 'Apple Health', cor: 'text-[#1D1D1F]' },
+const ABAS: { v: AbaCliente; l: string; curto: string; icone: typeof Home }[] = [
+  { v: 'hoje', l: 'Hoje', curto: 'Hoje', icone: Home },
+  { v: 'metricas', l: 'Métricas', curto: 'Métricas', icone: ChartLine },
+  { v: 'refeicoes', l: 'Refeições & Medicações', curto: 'Refeições', icone: Salad },
+  { v: 'diario', l: 'Diário', curto: 'Diário', icone: BookOpen },
+  { v: 'exames', l: 'Exames & Dietas', curto: 'Exames', icone: ClipboardList },
+  { v: 'insights', l: 'Insights', curto: 'Insights', icone: HeartPulse },
+  { v: 'perfil', l: 'Perfil', curto: 'Perfil', icone: UserRound },
 ]
 
-/** Ambiente logado do Cliente Soul — layout EXCLUSIVO (verde/creme). */
+const rotuloRefeicao = (v: string) =>
+  ({ cafe: 'Café da manhã', almoco: 'Almoço', janta: 'Jantar', lanche: 'Lanche' })[v] || 'Refeição'
+
+/** Ambiente logado do Cliente Soul — shell de 7 abas (modelo do health-tracker de referência). */
 export function ClienteSoulApp() {
   const { toast } = useToast()
   const [perfil, setPerfil] = useState<MeuPerfilSaude | null>(null)
   const [carregando, setCarregando] = useState(true)
-  const [aba, setAba] = useState<'hoje' | 'exames' | 'conteudo' | 'integracoes'>('hoje')
+  const [aba, setAba] = useState<AbaCliente>('hoje')
+
+  // modal de registro (compartilhado pelas abas)
   const [modalRegistro, setModalRegistro] = useState(false)
-  const [novoTipo, setNovoTipo] = useState<SaudeRegistroTipo>('atividade_fisica')
-  const [novaData, setNovaData] = useState(hojeYMD())
-  const [novaObs, setNovaObs] = useState('')
-  const [salvando, setSalvando] = useState(false)
+  const [tipoInicial, setTipoInicial] = useState<SaudeRegistroTipo | undefined>(undefined)
+  const [registroEdit, setRegistroEdit] = useState<MeuPerfilSaude['registros'][number] | null>(null)
 
   const carregar = async () => {
-    setCarregando(true)
     try {
       setPerfil(await carregarMeuPainel())
     } catch (err) {
@@ -74,25 +86,115 @@ export function ClienteSoulApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const salvarRegistro = async () => {
+  const abrirRegistro = (tipo?: SaudeRegistroTipo) => {
+    setRegistroEdit(null)
+    setTipoInicial(tipo)
+    setModalRegistro(true)
+  }
+
+  const salvarValores = async (v: ValoresRegistro) => {
     if (!perfil) return
-    setSalvando(true)
     try {
-      await criarSaudeRegistro({
-        cliente_id: perfil.cliente.id,
-        tipo: novoTipo,
-        data: `${novaData} 12:00:00.000Z`,
-        observacao: novaObs.trim() || undefined,
-      })
-      toast({ title: 'Registro salvo! Sua clínica já pode vê-lo.' })
-      setModalRegistro(false)
-      setNovaObs('')
+      if (registroEdit) {
+        await atualizarSaudeRegistro(registroEdit.id, {
+          tipo: v.tipo,
+          data: v.data,
+          observacao: v.observacao || undefined,
+          dados_json: v.dados,
+        })
+        toast({ title: 'Registro atualizado!' })
+      } else {
+        await criarSaudeRegistro({
+          cliente_id: perfil.cliente.id,
+          tipo: v.tipo,
+          data: v.data,
+          observacao: v.observacao || undefined,
+          dados_json: v.dados,
+        })
+        toast({ title: 'Registro salvo! Sua clínica já pode vê-lo.' })
+      }
       await carregar()
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro ao salvar registro.', variant: 'destructive' })
-    } finally {
-      setSalvando(false)
+    }
+  }
+
+  const excluirRegistro = async (id: string) => {
+    try {
+      await excluirSaudeRegistro(id)
+      toast({ title: 'Registro excluído.' })
+      await carregar()
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro ao excluir registro.', variant: 'destructive' })
+    }
+  }
+
+  const salvarDiario = async (humor: string, notas: string) => {
+    if (!perfil) return
+    try {
+      await criarSaudeRegistro({
+        cliente_id: perfil.cliente.id,
+        tipo: 'emocao',
+        data: `${hojeYMD()} 12:00:00.000Z`,
+        dados_json: {
+          humor,
+          notas,
+          ...(VALORES_HUMOR.find((h) => h.v === humor)
+            ? { emoji: VALORES_HUMOR.find((h) => h.v === humor)!.emoji }
+            : {}),
+        },
+      })
+      toast({ title: 'Registrado no diário!' })
+      await carregar()
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro ao salvar no diário.', variant: 'destructive' })
+    }
+  }
+
+  const registrarExameDieta = async (tipo: 'exame' | 'dieta', titulo?: string) => {
+    if (!perfil) return
+    try {
+      await criarSaudeRegistro({
+        cliente_id: perfil.cliente.id,
+        tipo,
+        data: `${hojeYMD()} 12:00:00.000Z`,
+        dados_json: titulo ? { descricao: titulo } : undefined,
+      })
+      toast({ title: `${tipo === 'exame' ? 'Exame' : 'Dieta'} registrado!` })
+      await carregar()
+    } catch (err) {
+      console.error(err)
+      toast({ title: `Erro ao registrar ${tipo}.`, variant: 'destructive' })
+    }
+  }
+
+  const alternarIngerida = async (r: MeuPerfilSaude['registros'][number]) => {
+    const d = { ...((r.dados_json || {}) as Record<string, unknown>) }
+    const deHoje = (r.data || '').slice(0, 10) === hojeYMD()
+    if (deHoje) {
+      d.ingerida = d.ingerida === false
+    } else {
+      // nova dose hoje para a rotina
+      d.ingerida = true
+      await criarSaudeRegistro({
+        cliente_id: perfil.cliente.id,
+        tipo: 'medicacao',
+        data: `${hojeYMD()} 12:00:00.000Z`,
+        dados_json: d,
+      })
+      toast({ title: 'Dose registrada hoje!' })
+      await carregar()
+      return
+    }
+    try {
+      await atualizarSaudeRegistro(r.id, { dados_json: d })
+      await carregar()
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro ao atualizar medicação.', variant: 'destructive' })
     }
   }
 
@@ -105,6 +207,20 @@ export function ClienteSoulApp() {
       toast({ title: 'Erro ao atualizar.', variant: 'destructive' })
     }
   }
+
+  const perfilAtualizado = (c: SaudeClienteRecord) => {
+    setPerfil((p) => (p ? { ...p, cliente: c } : p))
+  }
+
+  const lembretes = useMemo(() => perfil?.lembretes ?? [], [perfil])
+  const devAtivos = useMemo(
+    () => (perfil?.devPessoal ?? []).filter((d) => d.status === 'ativo'),
+    [perfil],
+  )
+  const devConcluidos = useMemo(
+    () => (perfil?.devPessoal ?? []).filter((d) => d.status === 'concluido'),
+    [perfil],
+  )
 
   if (carregando) {
     return (
@@ -126,12 +242,7 @@ export function ClienteSoulApp() {
     )
   }
 
-  const { cliente, registros, orientacoes, lembretes, devPessoal } = perfil
-
-  const exames = orientacoes.filter((o) => o.categoria === 'exame')
-  const conteudos = orientacoes.filter((o) => o.categoria !== 'exame')
-  const devAtivos = devPessoal.filter((d) => d.status === 'ativo')
-  const devConcluidos = devPessoal.filter((d) => d.status === 'concluido')
+  const { cliente, registros } = perfil
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EAF3EC] via-[#F6F1E7] to-[#FDFBF6] pb-24">
@@ -150,322 +261,104 @@ export function ClienteSoulApp() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 md:px-8 -mt-4 space-y-6">
-        {/* Lembretes em destaque */}
-        {lembretes.length > 0 && (
-          <Card className="border-[#C9A46A] bg-white/90">
-            <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <Bell className="h-4 w-4 text-[#C9A46A]" />
-              <CardTitle className="text-sm">Lembretes da clínica</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {lembretes.slice(0, 3).map((l) => (
-                <div key={l.id} className="rounded-lg bg-[#FDF6E9] border border-[#C9A46A]/30 p-3">
-                  <p className="text-sm font-medium text-[#33221C]">{l.titulo}</p>
-                  {l.descricao && (
-                    <p className="text-xs text-[#73574A] mt-0.5 whitespace-pre-wrap">
-                      {l.descricao}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-[#73574A]/60 mt-1">
-                    {formatDataHoraPTBR(l.data_hora)}
-                    {l.repeticao && l.repeticao !== 'nenhuma' ? ` • repete: ${l.repeticao}` : ''}
-                  </p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Navegação */}
-        <div className="flex gap-2 overflow-x-auto">
-          {(
-            [
-              { v: 'hoje', l: 'Meu dia' },
-              { v: 'exames', l: 'Meus exames' },
-              { v: 'conteudo', l: 'Orientações & Dicas' },
-              { v: 'integracoes', l: 'Integrações' },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.v}
-              onClick={() => setAba(t.v)}
-              className={`rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-colors ${
-                aba === t.v
-                  ? 'bg-[#3E7C59] text-white'
-                  : 'bg-white/70 text-[#5C7263] hover:bg-white'
-              }`}
-            >
-              {t.l}
-            </button>
-          ))}
+      {/* Navegação mobile-first: rolagem horizontal no celular, abas no desktop */}
+      <nav className="sticky top-0 z-30 bg-[#2C4A3B] text-white shadow-md">
+        <div className="max-w-3xl mx-auto flex overflow-x-auto scrollbar-none">
+          {ABAS.map((t) => {
+            const Icone = t.icone
+            const ativa = aba === t.v
+            return (
+              <button
+                key={t.v}
+                onClick={() => setAba(t.v)}
+                className={`flex min-w-fit flex-1 flex-col items-center gap-0.5 px-3 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors ${
+                  ativa
+                    ? 'bg-[#3E7C59] text-white'
+                    : 'text-white/70 hover:bg-[#3E7C59]/40 hover:text-white'
+                }`}
+                title={t.l}
+              >
+                <Icone className="h-4 w-4" />
+                <span className="md:hidden">{t.curto}</span>
+                <span className="hidden md:inline">{t.l}</span>
+              </button>
+            )
+          })}
         </div>
+      </nav>
 
-        {/* Aba: Meu dia */}
+      <main className="max-w-3xl mx-auto px-4 md:px-8 py-5 space-y-6">
         {aba === 'hoje' && (
-          <>
-            <Button
-              onClick={() => setModalRegistro(true)}
-              className="w-full h-12 rounded-xl bg-[#3E7C59] hover:bg-[#33684A] text-white"
-            >
-              <Plus className="h-5 w-5 mr-2" /> Registrar meu dia
-            </Button>
-
-            <div className="grid grid-cols-2 gap-3">
-              {TIPOS_REGISTRO.map((t) => {
-                const qtd = registros.filter((r) => r.tipo === t.value).length
-                const Icone = ICONES_TIPO[t.value]
-                return (
-                  <Card key={t.value} className="bg-white/80">
-                    <CardContent className="flex items-center gap-3 py-4">
-                      <div className="rounded-full bg-[#3E7C59]/10 p-2.5">
-                        <Icone className="h-5 w-5 text-[#3E7C59]" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-[#2C4A3B] leading-none">{qtd}</p>
-                        <p className="text-xs text-[#5C7263] mt-1">{t.label}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-
-            {/* Desenvolvimento pessoal */}
-            <Card className="bg-white/80">
-              <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-                <BookOpen className="h-4 w-4 text-[#3E7C59]" />
-                <CardTitle className="text-sm">Meu desenvolvimento pessoal</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {devAtivos.length === 0 && devConcluidos.length === 0 ? (
-                  <p className="text-sm text-[#5C7263] italic">
-                    Nenhum desafio ou meta no momento.
-                  </p>
-                ) : (
-                  <>
-                    {devAtivos.map((d) => (
-                      <label
-                        key={d.id}
-                        className="flex items-start gap-3 rounded-lg bg-[#F0F5F0] p-3"
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1"
-                          checked={false}
-                          onChange={() => concluirDev(d.id, true)}
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-[#2C4A3B]">{d.titulo}</p>
-                          {d.descricao && (
-                            <p className="text-xs text-[#5C7263] whitespace-pre-wrap">
-                              {d.descricao}
-                            </p>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                    {devConcluidos.slice(0, 3).map((d) => (
-                      <label
-                        key={d.id}
-                        className="flex items-start gap-3 rounded-lg bg-white p-3 opacity-70"
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1"
-                          checked
-                          onChange={() => concluirDev(d.id, false)}
-                        />
-                        <p className="text-sm text-[#2C4A3B] line-through">{d.titulo}</p>
-                      </label>
-                    ))}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Últimos registros */}
-            <Card className="bg-white/80">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Histórico recente</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {registros.slice(0, 8).map((r) => {
-                  const Icone = ICONES_TIPO[r.tipo]
-                  return (
-                    <div key={r.id} className="flex items-start gap-3">
-                      <Icone className="h-4 w-4 text-[#3E7C59] mt-0.5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-[#2C4A3B]">
-                          <span className="font-medium">{labelTipoRegistro(r.tipo)}</span>
-                          {r.observacao ? ` — ${r.observacao}` : ''}
-                        </p>
-                        <p className="text-[10px] text-[#5C7263]/70">
-                          {formatDataHoraPTBR(r.data)}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-                {registros.length === 0 && (
-                  <p className="text-sm text-[#5C7263] italic">Comece registrando seu dia! 🌱</p>
-                )}
-              </CardContent>
-            </Card>
-          </>
+          <ClienteHoje
+            cliente={cliente}
+            registros={registros}
+            lembretes={lembretes}
+            devAtivos={devAtivos}
+            devConcluidos={devConcluidos}
+            onConcluirDev={concluirDev}
+            onAbrirRegistro={abrirRegistro}
+            onIrPara={(destino) => {
+              const mapa: Record<string, AbaCliente> = {
+                refeicoes: 'refeicoes',
+                medicacoes: 'refeicoes',
+                diario: 'diario',
+                exames: 'exames',
+                metricas: 'metricas',
+                insights: 'insights',
+                perfil: 'perfil',
+              }
+              setAba(mapa[destino] ?? 'hoje')
+            }}
+          />
         )}
 
-        {/* Aba: Exames */}
+        {aba === 'metricas' && (
+          <ClienteMetricas
+            registros={registros}
+            onAbrirRegistro={abrirRegistro}
+            onExcluir={excluirRegistro}
+          />
+        )}
+
+        {aba === 'refeicoes' && (
+          <ClienteRefeicoesMedicacoes
+            registros={registros}
+            onRegistrarRefeicao={() => abrirRegistro('refeicao')}
+            onRegistrarMedicacao={() => abrirRegistro('medicacao')}
+            onExcluir={excluirRegistro}
+            onAlternarIngerida={alternarIngerida}
+          />
+        )}
+
+        {aba === 'diario' && (
+          <ClienteDiarioEmocional
+            registros={registros}
+            onSalvar={salvarDiario}
+            onExcluir={excluirRegistro}
+          />
+        )}
+
         {aba === 'exames' && (
-          <Card className="bg-white/80">
-            <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <Stethoscope className="h-4 w-4 text-[#3E7C59]" />
-              <CardTitle className="text-sm">Meus exames</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {exames.length === 0 ? (
-                <p className="text-sm text-[#5C7263] italic">
-                  Nenhum exame disponível ainda. Sua clínica pode inseri-los aqui.
-                </p>
-              ) : (
-                exames.map((o) => (
-                  <div key={o.id} className="rounded-lg bg-[#F0F5F0] p-3">
-                    <p className="text-sm font-medium text-[#2C4A3B]">{o.titulo}</p>
-                    {o.texto && (
-                      <p className="text-sm text-[#5C7263] whitespace-pre-wrap mt-0.5">{o.texto}</p>
-                    )}
-                    <p className="text-[10px] text-[#5C7263]/60 mt-1">{formatDataPTBR(o.data)}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+          <ClienteExamesDietas
+            registros={registros}
+            onRegistrar={registrarExameDieta}
+            onExcluir={excluirRegistro}
+          />
         )}
 
-        {/* Aba: Orientações & Dicas */}
-        {aba === 'conteudo' && (
-          <div className="space-y-3">
-            {conteudos.length === 0 ? (
-              <Card className="bg-white/80">
-                <CardContent className="py-8 text-center text-sm text-[#5C7263]">
-                  Nenhuma orientação ou dica publicada pela clínica ainda.
-                </CardContent>
-              </Card>
-            ) : (
-              conteudos.map((o) => (
-                <Card key={o.id} className="bg-white/80">
-                  <CardHeader className="pb-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <CardTitle className="text-sm">{o.titulo}</CardTitle>
-                      <Badge className="bg-[#3E7C59]/15 text-[#2C4A3B] hover:bg-[#3E7C59]/25">
-                        {rotulosCategoria[o.categoria] || o.categoria}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {o.texto && (
-                      <p className="text-sm text-[#5C7263] whitespace-pre-wrap">{o.texto}</p>
-                    )}
-                    <p className="text-[10px] text-[#5C7263]/60 mt-2">{formatDataPTBR(o.data)}</p>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        )}
+        {aba === 'insights' && <ClienteInsights registros={registros} />}
 
-        {/* Aba: Integrações (em breve) */}
-        {aba === 'integracoes' && (
-          <div className="space-y-3">
-            <Card className="bg-white/80 border-dashed border-[#3E7C59]/30">
-              <CardContent className="py-4 text-center">
-                <p className="text-sm font-medium text-[#2C4A3B]">Integrações em breve 🚀</p>
-                <p className="text-xs text-[#5C7263] mt-1">
-                  Em breve você poderá conectar seus apps de saúde e trazer seus dados
-                  automaticamente. Por enquanto, registre tudo manualmente aqui.
-                </p>
-              </CardContent>
-            </Card>
-            <div className="grid grid-cols-2 gap-3">
-              {integracoes.map((i) => (
-                <Card key={i.nome} className="bg-white/60 opacity-80">
-                  <CardContent className="flex items-center gap-3 py-4">
-                    <div className="rounded-full bg-[#3E7C59]/10 p-2">
-                      <Dumbbell className="h-4 w-4 text-[#3E7C59]" />
-                    </div>
-                    <div>
-                      <p className={`text-sm font-medium ${i.cor}`}>{i.nome}</p>
-                      <p className="text-[10px] text-[#5C7263]">em breve</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+        {aba === 'perfil' && <ClientePerfil cliente={cliente} onAtualizado={perfilAtualizado} />}
       </main>
 
-      {/* Modal registrar */}
-      <Dialog open={modalRegistro} onOpenChange={setModalRegistro}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Registrar meu dia</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2">
-              {TIPOS_REGISTRO.map((t) => {
-                const Icone = ICONES_TIPO[t.value]
-                const ativo = novoTipo === t.value
-                return (
-                  <button
-                    key={t.value}
-                    onClick={() => setNovoTipo(t.value)}
-                    className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-xs transition-colors ${
-                      ativo
-                        ? 'border-[#3E7C59] bg-[#3E7C59]/10 text-[#2C4A3B]'
-                        : 'border-[#3E7C59]/15 text-[#5C7263] hover:border-[#3E7C59]/40'
-                    }`}
-                  >
-                    <Icone className="h-5 w-5" />
-                    {t.label}
-                  </button>
-                )
-              })}
-            </div>
-            <div>
-              <Label className="text-[#2C4A3B]">Data</Label>
-              <Input
-                type="date"
-                value={novaData}
-                onChange={(e) => setNovaData(e.target.value)}
-                className="rounded-xl border-[#3E7C59]/20"
-              />
-            </div>
-            <div>
-              <Label className="text-[#2C4A3B]">Descrição</Label>
-              <Textarea
-                rows={3}
-                value={novaObs}
-                onChange={(e) => setNovaObs(e.target.value)}
-                placeholder="Ex.: dormi 8 horas, caminhei 30 min..."
-                className="rounded-xl border-[#3E7C59]/20"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalRegistro(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={salvarRegistro}
-              disabled={salvando}
-              className="bg-[#3E7C59] hover:bg-[#33684A] text-white"
-            >
-              {salvando ? 'Salvando...' : 'Salvar registro'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal registrar/editar (compartilhado) */}
+      <ModalRegistroMetrica
+        open={modalRegistro}
+        onOpenChange={setModalRegistro}
+        tipoInicial={tipoInicial}
+        registro={registroEdit}
+        onSalvar={salvarValores}
+      />
     </div>
   )
 }

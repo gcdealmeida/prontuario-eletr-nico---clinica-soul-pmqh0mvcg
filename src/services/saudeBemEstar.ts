@@ -219,6 +219,18 @@ export async function criarSaudeRegistro(payload: {
   return pb.collection('saude_registros').create<SaudeRegistroRecord>(payload)
 }
 
+export async function atualizarSaudeRegistro(
+  id: string,
+  data: Partial<{
+    tipo: SaudeRegistroTipo
+    data: string
+    observacao?: string
+    dados_json?: Record<string, unknown>
+  }>,
+): Promise<SaudeRegistroRecord> {
+  return pb.collection('saude_registros').update<SaudeRegistroRecord>(id, data)
+}
+
 export async function excluirSaudeRegistro(id: string): Promise<void> {
   await pb.collection('saude_registros').delete(id)
 }
