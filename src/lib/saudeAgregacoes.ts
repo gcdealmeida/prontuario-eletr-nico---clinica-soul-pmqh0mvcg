@@ -348,3 +348,80 @@ export function descreverRegistro(r: SaudeRegistroRecord): string {
 }
 
 const labelTipoFallback = (t: SaudeRegistroTipo) => t.replace(/_/g, ' ')
+
+/* ------------------------- seletores de humor (UI) ------------------------ */
+
+export interface ValorHumor {
+  v: DadosEmocao['humor']
+  l: string
+  emoji: string
+  cor: string
+}
+
+export const VALORES_HUMOR: ValorHumor[] = [
+  { v: 'otimo', l: 'Ótimo', emoji: '😄', cor: '#2C4A3B' },
+  { v: 'bom', l: 'Bom', emoji: '🙂', cor: '#3E7C59' },
+  { v: 'neutro', l: 'Neutro', emoji: '😐', cor: '#7FA98F' },
+  { v: 'baixo', l: 'Baixo', emoji: '😕', cor: '#C9A46A' },
+  { v: 'ruim', l: 'Ruim', emoji: '😢', cor: '#B45B4C' },
+]
+
+export const rotuloHumor = (v: string): string => ROTULOS_HUMOR[v as DadosEmocao['humor']] ?? v
+
+/* ------------------------ helpers por registro único ----------------------- */
+
+/** Horas de sono de UM registro de sono ("8h" ou "—"). */
+export function horasSonoDeRegistro(r: SaudeRegistroRecord): string {
+  const d = dadosSono(r)
+  if (typeof d.horas === 'number' && d.horas > 0) return `${d.horas}h`
+  if (d.hora_deitar && d.hora_acordar) {
+    const [h1, m1] = d.hora_deitar.split(':').map(Number)
+    const [h2, m2] = d.hora_acordar.split(':').map(Number)
+    let mins = h2 * 60 + m2 - (h1 * 60 + m1)
+    if (mins <= 0) mins += 24 * 60
+    return `${Math.round((mins / 60) * 10) / 10}h`
+  }
+  return '—'
+}
+
+/** Calorias de um registro de refeição/alimento. */
+export function totalCaloriasDeRegistro(r: SaudeRegistroRecord): number {
+  if (r.tipo !== 'refeicao' && r.tipo !== 'alimento') return 0
+  const d = (r.dados_json || {}) as Record<string, unknown>
+  return typeof d.calorias === 'number' ? d.calorias : Number(d.calorias) || 0
+}
+
+/* ----------------------- séries dos últimos N dias ------------------------ */
+
+export interface PontoSerie {
+  dia: string
+  atividade_min: number
+  copos_agua: number
+  calorias: number
+  horas_sono: number | null
+  humor?: DadosEmocao['humor']
+}
+
+/** Série diária (atividade, água, calorias, sono) dos últimos N dias. */
+export function serieUltimosDias(rs: SaudeRegistroRecord[], dias = 14): PontoSerie[] {
+  const out: PontoSerie[] = []
+  const base = new Date(`${hojeYMD()}T12:00:00`)
+  for (let i = dias - 1; i >= 0; i--) {
+    const dia = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10)
+    const emocaoDia = registrosDeTipoNoDia(rs, 'emocao', dia)[0]
+    out.push({
+      dia,
+      atividade_min: minutosAtividadeNoDia(rs, dia),
+      copos_agua: coposAguaNoDia(rs, dia),
+      calorias: caloriasNoDia(rs, dia),
+      horas_sono: horasSonoNoDia(rs, dia),
+      humor: emocaoDia ? dadosEmocao(emocaoDia).humor : undefined,
+    })
+  }
+  return out
+}
+
+/** Alias no plural usado pela tela de Métricas (série de sono por dia). */
+export function seriesSonoPorDia(rs: SaudeRegistroRecord[], dias = 14): PontoSono[] {
+  return serieSono(rs, dias)
+}
