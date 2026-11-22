@@ -31,7 +31,6 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
       await onRegistrar(tipoNovo)
     } finally {
       setSalvando(false)
-      uta
     }
   }
 
