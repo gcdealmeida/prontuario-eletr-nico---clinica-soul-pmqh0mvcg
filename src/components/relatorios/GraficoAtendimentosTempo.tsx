@@ -93,12 +93,14 @@ export function GraficoAtendimentosTempo({
     return listarProgramasDe(presencas).map((p) => ({ id: p, nome: p }))
   }, [agrupamento, presencas, nomesPorId])
 
-  // Garante coerência quando troca o agrupamento ou as opções mudam
+  // Garante coerência quando troca o agrupamento ou as opções mudam: mantém as
+  // escolhas ainda válidas e, se nada restou, pré-seleciona a primeira opção
+  // para o gráfico já vir preenchido (o usuário pode desmarcar depois).
   useEffect(() => {
     const ids = new Set(opcoes.map((o) => o.id))
     setSelecionadas((atual) => {
       const filtradas = atual.filter((s) => ids.has(s))
-      return filtradas.length > 0 ? filtradas : []
+      return filtradas.length > 0 ? filtradas : opcoes.length > 0 ? [opcoes[0].id] : []
     })
   }, [opcoes])
 

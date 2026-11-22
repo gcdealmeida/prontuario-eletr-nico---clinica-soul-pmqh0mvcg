@@ -175,64 +175,11 @@ export function contagemPorStatus(presencas: { status?: string }[]): ContagemSta
       case 'Justificado':
         c.justificado++
         break
-      case 'Cancelado':
-        c.cancelado++
-        break
       default:
         c.semStatus++
     }
   }
   return c
-}
-
-/**
- * Série temporal de atendimentos no período. Para períodos <= 45 dias agrupa por dia,
- * senão por mês (chave YYYY-MM).
- */
-export function serieTemporal(
-  presencas: { data_atendimento: string }[],
-  inicio: string,
-  fim: string,
-): { chave: string; label: string; total: number }[] {
-  const contagem = new Map<string, number>()
-  for (const p of presencas) {
-    const ymd = ymdDeData(p.data_atendimento)
-    if (!ymd) continue
-    const chave = ymd > fim || diaDiferenca(inicio, fim) > 45 ? ymd.slice(0, 7) : ymd
-    contagem.set(chave, (contagem.get(chave) || 0) + 1)
-  }
-  // Preenche lacunas
-  const dias = diaDiferenca(inicio, fim)
-  const serie: { chave: string; label: string; total: number }[] = []
-  if (dias > 45) {
-    let cursor = inicio.slice(0, 7)
-    const fimMes = fim.slice(0, 7)
-    while (cursor <= fimMes) {
-      const [a, m] = cursor.split('-').map(Number)
-      serie.push({
-        chave: cursor,
-        label: `${MESES_ABREV[m - 1]}/${String(a).slice(-2)}`,
-        total: contagem.get(cursor) || 0,
-      })
-      const dt = new Date(Date.UTC(a, m - 1, 1))
-      dt.setUTCMonth(dt.getUTCMonth() + 1)
-      cursor = dt.toISOString().slice(0, 7)
-      if (serie.length > 60) break
-    }
-  } else {
-    let cursor = inicio
-    while (cursor <= fim) {
-      const [a, m, d] = cursor.split('-').map(Number)
-      serie.push({
-        chave: cursor,
-        label: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`,
-        total: contagem.get(cursor) || 0,
-      })
-      cursor = deslocarYMD(cursor, 1)
-      if (serie.length > 120) break
-    }
-  }
-  return serie
 }
 
 const MESES_ABREV = [
@@ -283,56 +230,51 @@ function segundaFeiraDe(ymd: string): string {
 }
 
 /**
- * Série temporal MULTI-SÉRIE do gráfico "Atendimentos no tempo": uma série por
- * entidade escolhida (profissional, serviço ou programa). Cada entrada da série
- * tem { chave, label, [nomeEntidade]: total }.
+ * Série temporal de atendimentos no período (versão simples, total único).
+ * Para períodos <= 45 dias agrupa por dia, senão por mês (chave YYYY-MM).
  */
-export function serieTemporalMulti(
-  presencas: {
-    data_atendimento: string
-    profissional_id?: string
-    profissional_nome?: string
-    servico?: string
-    area_servico?: string
-    programa?: string
-  }[],
+export function serieTemporal(
+  presencas: { data_atendimento: string }[],
   inicio: string,
   fim: string,
-  agrupamento: 'profissional' | 'servico' | 'programa',
-  granularidade: Granularidade,
-  entidades: string[],
-  nomesPorId?: Map<string, string>,
-): { chave: string; label: string; [nome: string]: string | number }[] {
-  const conta = new Map<string, number>() // `${chaveTempo}||${entidade}` -> total
+): { chave: string; label: string; total: number }[] {
+  const contagem = new Map<string, number>()
   for (const p of presencas) {
     const ymd = ymdDeData(p.data_atendimento)
-    if (!ymd || ymd < inicio || ymd > fim) continue
-    let entidade = ''
-    if (agrupamento === 'profissional') {
-      entidade = p.profissional_nome || nomesPorId?.get(p.profissional_id || '') || ''
-    } else if (agrupamento === 'servico') {
-      entidade = (p.servico || p.area_servico || '').trim()
-    } else {
-      entidade = (p.programa || '').trim()
-    }
-    if (!entidade) continue
-    const chaveTempo = chaveTempoDe(ymd, granularidade)
-    const k = `${chaveTempo}||${entidade}`
-    conta.set(k, (conta.get(k) || 0) + 1)
+    if (!ymd) continue
+    const chave = ymd > fim || diaDiferenca(inicio, fim) > 45 ? ymd.slice(0, 7) : ymd
+    contagem.set(chave, (contagem.get(chave) || 0) + 1)
   }
-
-  const serie: { chave: string; label: string; [nome: string]: string | number }[] = []
-  let cursor = inicio
-  let guard = 0
-  while (cursor <= fim && guard < 400) {
-    guard++
-    const linha: { chave: string; label: string; [nome: string]: string | number } = {
-      chave: cursor,
-      label: rotuloChave(cursor, granularidade),
+  // Preenche lacunas
+  const dias = diaDiferenca(inicio, fim)
+  const serie: { chave: string; label: string; total: number }[] = []
+  if (dias > 45) {
+    let cursor = inicio.slice(0, 7)
+    const fimMes = fim.slice(0, 7)
+    while (cursor <= fimMes) {
+      const [a, m] = cursor.split('-').map(Number)
+      serie.push({
+        chave: cursor,
+        label: `${MESES_ABREV[m - 1]}/${String(a).slice(-2)}`,
+        total: contagem.get(cursor) || 0,
+      })
+      const dt = new Date(Date.UTC(a, m - 1, 1))
+      dt.setUTCMonth(dt.getUTCMonth() + 1)
+      cursor = dt.toISOString().slice(0, 7)
+      if (serie.length > 60) break
     }
-    for (const ent of entidades) linha[ent] = conta.get(`${cursor}||${ent}`) || 0
-    serie.push(linha)
-    cursor = proximaChave(cursor, granularidade)
+  } else {
+    let cursor = inicio
+    while (cursor <= fim) {
+      const [a, m, d] = cursor.split('-').map(Number)
+      serie.push({
+        chave: cursor,
+        label: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`,
+        total: contagem.get(cursor) || 0,
+      })
+      cursor = deslocarYMD(cursor, 1)
+      if (serie.length > 120) break
+    }
   }
   return serie
 }
@@ -370,6 +312,73 @@ export function proximaChave(chave: string, g: Granularidade): string {
     return dt.toISOString().slice(0, 7)
   }
   return String(a + 1)
+}
+
+/**
+ * Série temporal MULTI-SÉRIE do gráfico "Atendimentos no tempo": uma série por
+ * entidade escolhida (profissional, serviço ou programa). Cada entrada da série
+ * tem { chave, label, [nomeEntidade]: total }.
+ */
+export function serieTemporalMulti(
+  presencas: {
+    data_atendimento: string
+    profissional_id?: string
+    profissional_nome?: string
+    servico?: string
+    area_servico?: string
+    programa?: string
+  }[],
+  inicio: string,
+  fim: string,
+  agrupamento: 'profissional' | 'servico' | 'programa',
+  granularidade: Granularidade,
+  entidades: string[],
+  nomesPorId?: Map<string, string>,
+): { chave: string; label: string; [nome: string]: string | number }[] {
+  // No agrupamento por profissional, `entidades` chega como IDs de usuário —
+  // as chaves do mapa usam o NOME (mesmo rótulo que os chips exibem).
+  const nomes = entidades.map((e) => (agrupamento === 'profissional' ? nomesPorId?.get(e) || e : e))
+
+  const conta = new Map<string, number>() // `${chaveTempo}||${entidade}` -> total
+  for (const p of presencas) {
+    const ymd = ymdDeData(p.data_atendimento)
+    if (!ymd || ymd < inicio || ymd > fim) continue
+    let entidade = ''
+    if (agrupamento === 'profissional') {
+      // Nome canônico = o mesmo que os chips exibem (nomesPorId); o campo
+      // profissional_nome gravado pode divergir (ex.: sufixo "(Admin)").
+      entidade = nomesPorId?.get(p.profissional_id || '') || (p.profissional_nome || '').trim()
+    } else if (agrupamento === 'servico') {
+      entidade = (p.servico || p.area_servico || '').trim()
+    } else {
+      entidade = (p.programa || '').trim()
+    }
+    if (!entidade) continue
+    const chaveTempo = chaveTempoDe(ymd, granularidade)
+    const k = `${chaveTempo}||${entidade}`
+    conta.set(k, (conta.get(k) || 0) + 1)
+  }
+
+  // O cursor percorre CHAVES de bucket (mesma forma das chaves do mapa): dia =
+  // YYYY-MM-DD, semana = segunda-feira, mês = YYYY-MM, ano = YYYY. Iterar a
+  // data cheia fazia semana/mês/ano nunca casarem (série inteira zerada).
+  const primeira = chaveTempoDe(inicio, granularidade)
+  const corte = granularidade === 'dia' ? fim : chaveTempoDe(fim, granularidade)
+
+  const serie: { chave: string; label: string; [nome: string]: string | number }[] = []
+  let cursor = primeira
+  let guard = 0
+  while (cursor <= corte && guard < 400) {
+    guard++
+    const linha: { chave: string; label: string; [nome: string]: string | number } = {
+      chave: cursor,
+      label: rotuloChave(cursor, granularidade),
+    }
+    for (const nome of nomes) linha[nome] = conta.get(`${cursor}||${nome}`) || 0
+    serie.push(linha)
+    cursor = proximaChave(cursor, granularidade)
+  }
+  return serie
 }
 
 /** Lista distinta de serviços presentes nos registros (para o multi-seletor). */
