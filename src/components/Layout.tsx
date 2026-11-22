@@ -143,7 +143,7 @@ export default function Layout() {
       return 'Versão do Cliente - Programa'
     if (path.startsWith('/programas/') && path !== '/programas') return 'Programa de Acompanhamento'
     if (path.startsWith('/programas')) return 'Programas de Treino & Periodização'
-    if (path.startsWith('/prontuarios')) return 'Prontuários & Avaliações'
+    if (path.startsWith('/prontuarios')) return 'Prontuários'
     if (path.startsWith('/gestao')) return 'Gestão da Clínica'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
     if (path.startsWith('/acessos')) return 'Acessos & Governança'

@@ -81,12 +81,10 @@ export default function Prontuarios() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Prontuários & Avaliações
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Prontuários</h1>
           <p className="text-sm text-gray-500">
-            Histórico clínico centralizado com fichas de Fisioterapia, Personal, Nutrição e
-            Medicina.
+            Consolidação da avaliação + evolução + dados relacionados ao acompanhamento do cliente
+            na Clinica SOUL.
           </p>
           {isProfissional && (
             <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#8C6527] bg-[#FAF5EE] border border-[#E3C89A]/50 px-2.5 py-1 rounded-lg">
