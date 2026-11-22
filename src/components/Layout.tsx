@@ -108,11 +108,9 @@ export default function Layout() {
     { name: 'Painel', path: '/painel', icon: Home },
     { name: 'Pacientes', path: '/pacientes', icon: Users },
     { name: 'Agenda', path: '/agenda', icon: Calendar },
-    {
-      name: 'Presença / Confirmação',
-      path: '/presencas',
-      icon: CalendarCheck2,
-    },
+    /* Painel administrativo de Presenças foi embutido na aba Presenças da
+       Gestão (/gestao?tab=presencas) — item removido do menu lateral.
+       O profissional segue com a visão individual em /presencas (fachada). */
     {
       name: 'Prontuários',
       path: '/prontuarios',
@@ -134,6 +132,8 @@ export default function Layout() {
     if (path.startsWith('/pacientes/') && path !== '/pacientes') return 'Prontuário do Paciente'
     if (path.startsWith('/pacientes')) return 'Pacientes'
     if (path.startsWith('/agenda')) return 'Agenda de Consultas'
+    // /presencas continua existindo como fachada (visão do profissional);
+    // o título se mantém para ela e para /gestao?tab=presencas.
     if (path.startsWith('/presencas')) return 'Presença / Confirmação de Atendimentos'
     if (path.startsWith('/prontuarios/novo')) return 'Nova Avaliação Clínica'
     if (path.startsWith('/prontuarios/') && path !== '/prontuarios')

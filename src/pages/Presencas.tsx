@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CalendarCheck2,
   Plus,
@@ -134,9 +134,10 @@ function getMesRange(date: Date): { inicio: string; fim: string; mesNome: string
   }
 }
 
-export default function Presencas() {
+export default function Presencas({ embedded = false }: { embedded?: boolean }) {
   const { user, isAdmin } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const lancarAutoAbertoRef = useRef(false)
 
   // Navegação mensal (compartilhada por todos)
@@ -510,6 +511,18 @@ export default function Presencas() {
     setSearchTerm('')
   }
 
+  // Fachada por papel (padrão /relatorios e /acessos): o painel administrativo
+  // completo agora vive na aba Presenças da Gestão da Clínica. Gestor acessando
+  // /presencas direto é levado para /gestao?tab=presencas; o profissional
+  // mantém a visão individual dele nesta rota, inalterada. Quando embutido
+  // (embedded=true, dentro da Gestão) renderiza o painel completo sem redirecionar.
+  // Fica após todos os hooks para não violar as regras do React.
+  useEffect(() => {
+    if (isAdmin && !embedded) {
+      navigate('/gestao?tab=presencas', { replace: true })
+    }
+  }, [isAdmin, embedded, navigate])
+
   // Auto-abertura do modal de lançamento quando ?lancar=1 ou ?lancar=true
   useEffect(() => {
     const lancarParam = searchParams.get('lancar')
@@ -832,6 +845,11 @@ export default function Presencas() {
       .filter((p) => p.nome.toLowerCase().includes(q) || (p.cpf && p.cpf.includes(q)))
       .slice(0, 8)
   }, [pacientes, formPacienteBusca])
+
+  // Fachada por papel: após TODOS os hooks, para não violar as regras do React.
+  // Gestor em /presencas direto → /gestao?tab=presencas (aba da Gestão);
+  // profissional mantém a visão individual nesta rota, inalterada.
+  if (isAdmin && !embedded) return null
 
   // Componente unificado da barra de controle mensal (‹ Mês Anterior | Mês Ano | Próximo Mês › + Mês Atual)
   const renderNavegacaoMensal = () => (

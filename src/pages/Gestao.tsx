@@ -33,6 +33,7 @@ import PainelAcesso from '@/components/PainelAcesso'
 import Acessos, { isAcessosSubTab, type AcessosSubTab } from '@/pages/Acessos'
 import SecaoPacientesDesignados from '@/components/gestao/SecaoPacientesDesignados'
 import { PainelRelatoriosAdmin } from '@/components/relatorios/PainelRelatoriosAdmin'
+import Presencas from '@/pages/Presencas'
 import type { UserRecord } from '@/types/database'
 import pb from '@/lib/pocketbase/client'
 import type { PacienteRecord } from '@/types/database'
@@ -48,13 +49,14 @@ import {
   VinculoPacienteRecord,
 } from '@/services/gestao'
 
-type TabKey = 'usuarios' | 'designacoes' | 'acesso' | 'relatorios'
+type TabKey = 'usuarios' | 'designacoes' | 'acesso' | 'relatorios' | 'presencas'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'usuarios', label: 'Usuários & Perfis' },
   { key: 'designacoes', label: 'Pacientes designados' },
   { key: 'acesso', label: 'Acesso' },
   { key: 'relatorios', label: 'Relatórios' },
+  { key: 'presencas', label: 'Presenças' },
 ]
 
 export default function Gestao() {
@@ -67,7 +69,7 @@ export default function Gestao() {
     const params = new URLSearchParams(searchParams)
     if (t === 'usuarios') params.delete('tab')
     else params.set('tab', t)
-    if (t !== 'acesso' && t !== 'relatorios') params.delete('sub')
+    if (t !== 'acesso' && t !== 'relatorios' && t !== 'presencas') params.delete('sub')
     setSearchParams(params, { replace: true })
   }
 
@@ -469,6 +471,15 @@ export default function Gestao() {
               /relatorios (v0.0.137 — padrão da aba Acesso).
               Deep-link: /gestao?tab=relatorios (a rota antiga redireciona). */}
           {tab === 'relatorios' && <PainelRelatoriosAdmin />}
+
+          {/* ============ PRESENÇAS ============ */}
+          {/* Painel completo de Presença / Confirmação de Atendimentos (lista,
+              filtros, marcação de status, lançamento/edição, exportações Excel
+              e impressão), movido de /presencas (v0.0.139 — padrão das abas
+              Acesso e Relatórios). Quando embutido (embedded) o componente
+              renderiza o painel administrativo integral sem redirecionar.
+              Deep-link: /gestao?tab=presencas (a rota antiga redireciona). */}
+          {tab === 'presencas' && <Presencas embedded />}
 
           {/* ============ ACESSO ============ */}
           {/* PainelAcesso (link público de pré-avaliação) + painel completo de

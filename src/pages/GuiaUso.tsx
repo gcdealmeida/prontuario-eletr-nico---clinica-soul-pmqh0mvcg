@@ -1935,8 +1935,11 @@ export default function GuiaUso() {
                     1
                   </div>
                   <div>
-                    <strong>Acessar o Menu:</strong> No menu lateral, clique em{' '}
-                    <strong>"Presença / Confirmação"</strong> (rota <code>/presencas</code>).
+                    <strong>Acessar o Painel:</strong> Administradores e secretária acessam pela{' '}
+                    <strong>Gestão da Clínica → aba "Presenças"</strong> (
+                    <code>/gestao?tab=presencas</code>); o colaborador/profissional acessa pelo menu
+                    lateral, em <strong>"Presença / Confirmação"</strong> (rota{' '}
+                    <code>/presencas</code>) — ambos chegam ao mesmo painel.
                   </div>
                 </div>
 
@@ -2341,8 +2344,9 @@ export default function GuiaUso() {
                   Logo após fazer o login no Sistema SOUL, tanto no topo do Dashboard quanto na
                   barra superior (Topbar), você encontra dois botões de acesso ultra-rápido:
                   <br />• <strong>Presença e Confirmação:</strong> Leva diretamente à tela de
-                  lançamentos de atendimento diário (<code>/presencas</code>). Os registros entram
-                  tanto
+                  lançamentos de atendimento diário (Gestão da Clínica → aba{' '}
+                  <strong>Presenças</strong>, em <code>/gestao?tab=presencas</code>; o profissional
+                  também acessa pela rota <code>/presencas</code>). Os registros entram tanto
                   <strong>
                     automaticamente ao assinar uma evolução de prontuário ou concluir avaliação
                   </strong>

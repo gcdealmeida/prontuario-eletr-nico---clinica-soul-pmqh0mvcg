@@ -52,6 +52,7 @@ import Pacientes from '@/pages/Pacientes'
 import PacienteDetalhe from '@/pages/PacienteDetalhe'
 import Agenda from '@/pages/Agenda'
 import Presencas from '@/pages/Presencas'
+import { isGestorRole } from '@/lib/roles'
 import Prontuarios from '@/pages/Prontuarios'
 import NovaAvaliacao from '@/pages/NovaAvaliacao'
 import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
@@ -162,6 +163,10 @@ const router = createBrowserRouter(
             element={<Navigate to="..?tab=dados" replace relative="path" />}
           />
           <Route path="/agenda" element={<Agenda />} />
+          {/* /presencas: rota com ProtectedRoute apenas — a própria página é uma
+              fachada por papel (v0.0.139): gestor → /gestao?tab=presencas (painel
+              completo movido para a aba Presenças da Gestão); profissional →
+              mantém a visão individual de presenças nesta rota, sem perder acesso. */}
           <Route path="/presencas" element={<Presencas />} />
           <Route path="/prontuarios" element={<Prontuarios />} />
           <Route path="/prontuarios/novo" element={<NovaAvaliacao />} />
