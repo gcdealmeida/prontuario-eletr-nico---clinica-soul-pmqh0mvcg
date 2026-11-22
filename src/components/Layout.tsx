@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
-import { isGestorRole } from '@/lib/roles'
+import { isGestorRole, isProfissionalRole } from '@/lib/roles'
 import { getConsultasHoje } from '@/services/consultas'
 import { NovaConsultaModal } from '@/components/NovaConsultaModal'
 import { TopbarBuscaPaciente } from '@/components/TopbarBuscaPaciente'
@@ -41,11 +41,12 @@ import {
 } from '@/services/notifications'
 import type { NotificationRecord } from '@/types/database'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CheckCheck, ExternalLink } from 'lucide-react'
+import { CheckCheck, ExternalLink, HeartPulse } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
   const isGestor = isGestorRole(user?.role)
+  const isProfissional = isProfissionalRole(user?.role)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -122,6 +123,12 @@ export default function Layout() {
       path: '/programas',
       icon: Dumbbell,
     },
+    /* Saúde & Bem-Estar: ADM/Secretária veem todos os clientes com conta de
+       saúde; Profissional vê apenas os clientes com vínculo ativo (a página
+       aplica a restrição; regras do backend reforçam). */
+    ...(isGestor || isProfissional
+      ? [{ name: 'Saúde & Bem-Estar', path: '/saude-bem-estar', icon: HeartPulse }]
+      : []),
     ...(isGestor ? [{ name: 'Gestão', path: '/gestao', icon: Settings2 }] : []),
     { name: 'Guia de Uso', path: '/guia', icon: BookOpen },
   ]
@@ -146,6 +153,7 @@ export default function Layout() {
     if (path.startsWith('/prontuarios')) return 'Prontuários'
     if (path.startsWith('/gestao')) return 'Gestão da Clínica'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'
+    if (path.startsWith('/saude-bem-estar')) return 'Saúde & Bem-Estar'
     if (path.startsWith('/acessos')) return 'Acessos & Governança'
     if (path.startsWith('/guia')) return 'Guia de Uso & Ajuda'
     return 'Soul Clínica'

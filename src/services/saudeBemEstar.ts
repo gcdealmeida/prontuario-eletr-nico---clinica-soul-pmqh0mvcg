@@ -1,0 +1,322 @@
+import pb from '@/lib/pocketbase/client'
+
+/* ------------------------------------------------------------------ */
+/* Tipos — coleções da migration 0066/0067 (Saúde & Bem-Estar)         */
+/* ------------------------------------------------------------------ */
+
+export type SaudeRegistroTipo =
+  | 'atividade_fisica'
+  | 'sono'
+  | 'bebida'
+  | 'alimento'
+  | 'exame'
+  | 'sintoma'
+
+export const TIPOS_REGISTRO: { value: SaudeRegistroTipo; label: string }[] = [
+  { value: 'atividade_fisica', label: 'Atividade Física' },
+  { value: 'sono', label: 'Sono' },
+  { value: 'bebida', label: 'Bebidas' },
+  { value: 'alimento', label: 'Alimentos' },
+  { value: 'exame', label: 'Exames' },
+  { value: 'sintoma', label: 'Sintomas' },
+]
+
+export const labelTipoRegistro = (t: SaudeRegistroTipo) =>
+  TIPOS_REGISTRO.find((x) => x.value === t)?.label || t
+
+export interface SaudeClienteRecord {
+  id: string
+  user_id?: string
+  paciente_id?: string
+  nome: string
+  email?: string
+  data_nascimento?: string
+  observacoes?: string
+  ativo?: boolean
+  ultima_visita_clinica?: string
+  created?: string
+  updated?: string
+  expand?: {
+    user_id?: { id: string; email: string; name?: string }
+    paciente_id?: { id: string; nome: string }
+  }
+}
+
+export interface SaudeRegistroRecord {
+  id: string
+  cliente_id: string
+  tipo: SaudeRegistroTipo
+  data: string
+  observacao?: string
+  dados_json?: Record<string, unknown> | null
+  registrado_por?: string
+  created?: string
+  updated?: string
+}
+
+export interface SaudeOrientacaoRecord {
+  id: string
+  titulo: string
+  texto?: string
+  categoria: 'orientacao' | 'dica' | 'desenvolvimento_pessoal' | 'exame'
+  data: string
+  cliente_id?: string
+  publicada?: boolean
+  criado_por?: string
+  created?: string
+  expand?: { cliente_id?: { id: string; nome: string } }
+}
+
+export interface SaudeLembreteRecord {
+  id: string
+  cliente_id: string
+  titulo: string
+  descricao?: string
+  data_hora: string
+  repeticao?: 'nenhuma' | 'diaria' | 'semanal' | 'mensal'
+  created?: string
+}
+
+export interface SaudeDevPessoalRecord {
+  id: string
+  cliente_id: string
+  titulo: string
+  descricao?: string
+  categoria: 'habito' | 'meta' | 'desafio'
+  status: 'ativo' | 'concluido'
+  prazo?: string
+  progresso?: number
+  created?: string
+}
+
+/* ------------------------------------------------------------------ */
+/* Área Clínica                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Lista de clientes de saúde visíveis a este usuário:
+ * - ADM/Secretária: todos;
+ * - Profissional: somente os com vínculo ativo em vinculos_pacientes
+ *   (paciente_id do saude_clientes designado a ele — mesmo padrão da 0064).
+ * A regra de API do backend já filtra; aqui apenas buscamos a lista completa
+ * (o filtro por papel é servidor-side, não client-side).
+ */
+export async function listarSaudeClientes(): Promise<SaudeClienteRecord[]> {
+  return pb.collection('saude_clientes').getFullList<SaudeClienteRecord>({
+    sort: 'nome',
+    expand: 'user_id,paciente_id',
+  })
+}
+
+export async function criarSaudeCliente(payload: {
+  nome: string
+  email?: string
+  data_nascimento?: string
+  observacoes?: string
+  paciente_id?: string
+  ativo?: boolean
+}): Promise<SaudeClienteRecord> {
+  return pb.collection('saude_clientes').create<SaudeClienteRecord>(payload)
+}
+
+export async function atualizarSaudeCliente(
+  id: string,
+  data: Partial<{
+    nome: string
+    email: string
+    data_nascimento: string
+    observacoes: string
+    paciente_id: string
+    ativo: boolean
+    ultima_visita_clinica: string
+  }>,
+): Promise<SaudeClienteRecord> {
+  return pb.collection('saude_clientes').update<SaudeClienteRecord>(id, data)
+}
+
+/** Cria a conta de login do cliente (Fase B) — endpoint do hook saude_criar_conta_cliente.js. */
+export async function criarContaClienteSoul(payload: {
+  saude_cliente_id: string
+  email: string
+  password: string
+  nome?: string
+}): Promise<{ success: boolean; message?: string; error?: string; user_id?: string }> {
+  return pb.send('/backend/v1/saude/cliente/criar-conta', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export interface FiltroRegistros {
+  clienteId: string
+  tipos?: SaudeRegistroTipo[]
+  /** ISO dates (yyyy-mm-dd) */
+  de?: string
+  ate?: string
+}
+
+const dataMinimaDoDia = (ymd: string) => `${ymd} 00:00:00.000Z`
+const dataMaximaDoDia = (ymd: string) => `${ymd} 23:59:59.999Z`
+
+export async function listarSaudeRegistros(f: FiltroRegistros): Promise<SaudeRegistroRecord[]> {
+  const partes: string[] = [`cliente_id = "${f.clienteId}"`]
+  if (f.tipos && f.tipos.length > 0 && f.tipos.length < 6) {
+    partes.push(`(${f.tipos.map((t) => `tipo = "${t}"`).join(' || ')})`)
+  }
+  if (f.de) partes.push(`data >= "${dataMinimaDoDia(f.de)}"`)
+  if (f.ate) partes.push(`data <= "${dataMaximaDoDia(f.ate)}"`)
+  return pb.collection('saude_registros').getFullList<SaudeRegistroRecord>({
+    filter: partes.join(' && '),
+    sort: '-data,-created',
+  })
+}
+
+export async function listarSaudeRegistrosTodosClientes(): Promise<SaudeRegistroRecord[]> {
+  return pb.collection('saude_registros').getFullList<SaudeRegistroRecord>({
+    sort: '-data,-created',
+  })
+}
+
+export async function criarSaudeRegistro(payload: {
+  cliente_id: string
+  tipo: SaudeRegistroTipo
+  data: string
+  observacao?: string
+  dados_json?: Record<string, unknown>
+}): Promise<SaudeRegistroRecord> {
+  return pb.collection('saude_registros').create<SaudeRegistroRecord>(payload)
+}
+
+export async function excluirSaudeRegistro(id: string): Promise<void> {
+  await pb.collection('saude_registros').delete(id)
+}
+
+/* ------------------------------------------------------------------ */
+/* Intervenção da clínica (orientações / dicas / lembretes / dev)      */
+/* ------------------------------------------------------------------ */
+
+export async function listarSaudeOrientacoes(filtro?: {
+  clienteId?: string
+  somentePublicadas?: boolean
+}): Promise<SaudeOrientacaoRecord[]> {
+  const partes: string[] = []
+  if (filtro?.clienteId) {
+    partes.push(`(cliente_id = "${filtro.clienteId}" || cliente_id = '')`)
+  }
+  if (filtro?.somentePublicadas) partes.push('publicada = true')
+  return pb.collection('saude_orientacoes').getFullList<SaudeOrientacaoRecord>({
+    filter: partes.length > 0 ? partes.join(' && ') : undefined,
+    sort: '-data,-created',
+  })
+}
+
+export async function criarSaudeOrientacao(payload: {
+  titulo: string
+  texto?: string
+  categoria: SaudeOrientacaoRecord['categoria']
+  data: string
+  cliente_id?: string
+  publicada?: boolean
+}): Promise<SaudeOrientacaoRecord> {
+  return pb.collection('saude_orientacoes').create<SaudeOrientacaoRecord>(payload)
+}
+
+export async function atualizarSaudeOrientacao(
+  id: string,
+  data: Partial<Pick<SaudeOrientacaoRecord, 'titulo' | 'texto' | 'publicada'>>,
+): Promise<SaudeOrientacaoRecord> {
+  return pb.collection('saude_orientacoes').update<SaudeOrientacaoRecord>(id, data)
+}
+
+export async function excluirSaudeOrientacao(id: string): Promise<void> {
+  await pb.collection('saude_orientacoes').delete(id)
+}
+
+export async function listarSaudeLembretes(clienteId: string): Promise<SaudeLembreteRecord[]> {
+  return pb.collection('saude_lembretes').getFullList<SaudeLembreteRecord>({
+    filter: `cliente_id = "${clienteId}"`,
+    sort: 'data_hora',
+  })
+}
+
+export async function criarSaudeLembrete(payload: {
+  cliente_id: string
+  titulo: string
+  descricao?: string
+  data_hora: string
+  repeticao?: SaudeLembreteRecord['repeticao']
+}): Promise<SaudeLembreteRecord> {
+  return pb.collection('saude_lembretes').create<SaudeLembreteRecord>(payload)
+}
+
+export async function excluirSaudeLembrete(id: string): Promise<void> {
+  await pb.collection('saude_lembretes').delete(id)
+}
+
+export async function listarSaudeDevPessoal(clienteId: string): Promise<SaudeDevPessoalRecord[]> {
+  return pb.collection('saude_dev_pessoal').getFullList<SaudeDevPessoalRecord>({
+    filter: `cliente_id = "${clienteId}"`,
+    sort: '-created',
+  })
+}
+
+export async function criarSaudeDevPessoal(payload: {
+  cliente_id: string
+  titulo: string
+  descricao?: string
+  categoria: SaudeDevPessoalRecord['categoria']
+  status?: SaudeDevPessoalRecord['status']
+  prazo?: string
+  progresso?: number
+}): Promise<SaudeDevPessoalRecord> {
+  return pb.collection('saude_dev_pessoal').create<SaudeDevPessoalRecord>(payload)
+}
+
+export async function atualizarSaudeDevPessoal(
+  id: string,
+  data: Partial<Pick<SaudeDevPessoalRecord, 'status' | 'progresso'>>,
+): Promise<SaudeDevPessoalRecord> {
+  return pb.collection('saude_dev_pessoal').update<SaudeDevPessoalRecord>(id, data)
+}
+
+/* ------------------------------------------------------------------ */
+/* Área Cliente Soul                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface MeuPerfilSaude {
+  cliente: SaudeClienteRecord
+  registros: SaudeRegistroRecord[]
+  orientacoes: SaudeOrientacaoRecord[]
+  lembretes: SaudeLembreteRecord[]
+  devPessoal: SaudeDevPessoalRecord[]
+}
+
+/** Carrega tudo do cliente logado (as API rules do backend já restringem ao dele). */
+export async function carregarMeuPainel(): Promise<MeuPerfilSaude> {
+  const clientes = await pb
+    .collection('saude_clientes')
+    .getFullList<SaudeClienteRecord>({ expand: 'paciente_id' })
+  const cliente = clientes[0]
+  if (!cliente) throw new Error('Nenhum cadastro de Cliente Soul vinculado a esta conta.')
+
+  const [registros, orientacoes, lembretes, devPessoal] = await Promise.all([
+    pb.collection('saude_registros').getFullList<SaudeRegistroRecord>({
+      filter: `cliente_id = "${cliente.id}"`,
+      sort: '-data,-created',
+    }),
+    pb.collection('saude_orientacoes').getFullList<SaudeOrientacaoRecord>({
+      filter: `publicada = true && (cliente_id = "${cliente.id}" || cliente_id = '')`,
+      sort: '-data,-created',
+    }),
+    pb.collection('saude_lembretes').getFullList<SaudeLembreteRecord>({
+      filter: `cliente_id = "${cliente.id}"`,
+      sort: 'data_hora',
+    }),
+    pb.collection('saude_dev_pessoal').getFullList<SaudeDevPessoalRecord>({
+      filter: `cliente_id = "${cliente.id}"`,
+      sort: '-created',
+    }),
+  ])
+
+  return { cliente, registros, orientacoes, lembretes, devPessoal }
+}

@@ -57,6 +57,8 @@ import Prontuarios from '@/pages/Prontuarios'
 import NovaAvaliacao from '@/pages/NovaAvaliacao'
 import AvaliacaoDetalhe from '@/pages/AvaliacaoDetalhe'
 import Relatorios from '@/pages/Relatorios'
+import SaudeBemEstar from '@/pages/SaudeBemEstar'
+import ClienteSoulPage from '@/pages/cliente/ClienteSoulPage'
 import GuiaUso from '@/pages/GuiaUso'
 import { Programas } from '@/pages/Programas'
 import { ProgramaDetalhe } from '@/pages/ProgramaDetalhe'
@@ -139,6 +141,11 @@ const router = createBrowserRouter(
       {/* Página de espera de aprovação de acesso */}
       <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
 
+      {/* App do Cliente Soul — rota pública com layout próprio (verde/creme),
+          autenticação de cliente via users (role 'cliente'), conta criada pela
+          clínica. Sem Layout/ProtectedRoute: visual totalmente distinto. */}
+      <Route path="/cliente" element={<ClienteSoulPage />} />
+
       {/* Protected Routes inside Global Layout */}
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
@@ -186,6 +193,7 @@ const router = createBrowserRouter(
               (painel completo movido para a aba Relatórios da Gestão);
               profissional → relatório individual, sem perder acesso. */}
           <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/saude-bem-estar" element={<SaudeBemEstar />} />
           <Route element={<AdminOnlyRoute />}>
             {/* /acessos saiu de circulação: redireciona (preservando ?tab=)
                 para o painel de Acessos & Governança embutido na aba Acesso
