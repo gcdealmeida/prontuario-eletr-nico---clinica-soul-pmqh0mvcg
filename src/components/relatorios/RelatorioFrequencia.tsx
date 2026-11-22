@@ -3,6 +3,9 @@
  * Por profissional, Por serviço e Evolução no período. Números absolutos e percentuais.
  * Novo: painel de definição dos dados (o que incluir na contagem) e exportação
  * da visão ativa para Excel (xlsx) e PDF (jspdf) — src/lib/exportFrequencia.ts.
+ * Exportação DETALHADA (uma linha por atendimento, formato da planilha exemplo
+ * do usuário) — src/lib/exportFrequenciaDetalhado.ts, alternada pelo seletor
+ * Agregado/Detalhado ao lado dos botões Excel/PDF.
  * A granularidade da Evolução segue o período escolhido na barra de filtros:
  * até 31 dias = por dia; até 12 meses = por mês; acima = por ano.
  */
@@ -19,7 +22,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts'
-import { FileDown, FileSpreadsheet, SlidersHorizontal } from 'lucide-react'
+import { FileDown, FileSpreadsheet, List, SlidersHorizontal, Table2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -27,6 +30,11 @@ import { isCompareceu, rotuloPeriodo } from '@/lib/relatoriosAdmin'
 import type { PeriodoRange } from '@/lib/relatoriosAdmin'
 import { exportarExcelFrequencia, exportarPdfFrequencia } from '@/lib/exportFrequencia'
 import type { LinhaExportFrequencia } from '@/lib/exportFrequencia'
+import {
+  exportarExcelFrequenciaDetalhado,
+  exportarPdfFrequenciaDetalhado,
+} from '@/lib/exportFrequenciaDetalhado'
+import type { LinhaDetalhadaFrequencia } from '@/lib/exportFrequenciaDetalhado'
 import type { PresencaRecord } from '@/types/database'
 
 const MESES_ABREV = [
@@ -155,6 +163,9 @@ function TabelaFrequencia({
 
 export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
   const [visao, setVisao] = useState<Visao>('geral')
+  // Formato de exportação: agregado (visões existentes) ou detalhado
+  // (uma linha por atendimento, como a planilha exemplo do usuário).
+  const [formatoExportacao, setFormatoExportacao] = useState<'agregado' | 'detalhado'>('agregado')
   // Painel de definição dos dados: o gestor decide quais status entram na contagem.
   // Presente/Confirmado = comparecimento; Justificado/Cancelado = ausência (mesma
   // regra dos KPIs do painel). "Sem status" inclui presenças sem status gravado.
@@ -278,7 +289,31 @@ export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
     ]
   }, [visao, porProfissional, porServico, evolucao, geral])
 
+  // Linhas do formato DETALHADO (uma por atendimento): mesmos filtros do painel
+  // (período/profissional/serviço/programa, aplicados antes em presencasFiltradas)
+  // e mesmo escopo de status da definição dos dados (presencasEscopo).
+  const linhasDetalhadas = useMemo<LinhaDetalhadaFrequencia[]>(() => {
+    return presencasEscopo.map((p) => {
+      const horario = (p.horario || '').trim()
+      return {
+        dataYmd: (p.data_atendimento || '').slice(0, 10),
+        horario: horario ? horario.slice(0, 5) : undefined,
+        paciente: p.paciente_nome || 'Paciente',
+        areaEspecialidade: (p.servico || p.area_servico || '').trim() || 'Sem serviço',
+        detalheServico: (p.detalhe_servico || '').trim() || undefined,
+        status: (p.status || 'Sem status').trim(),
+        profissional:
+          p.profissional_nome || nomesPorId?.get(p.profissional_id) || p.profissional_id || '—',
+      }
+    })
+  }, [presencasEscopo, nomesPorId])
+
   const exportar = (tipo: 'xlsx' | 'pdf') => {
+    if (formatoExportacao === 'detalhado') {
+      if (tipo === 'xlsx') exportarExcelFrequenciaDetalhado(linhasDetalhadas, periodo)
+      else exportarPdfFrequenciaDetalhado(linhasDetalhadas, periodo)
+      return
+    }
     const titulo = `Relatório de Frequência — ${ROTULO_VISAO[visao]}`
     if (tipo === 'xlsx') exportarExcelFrequencia(linhasAtivas, titulo, periodo)
     else exportarPdfFrequencia(linhasAtivas, titulo, periodo)
@@ -330,13 +365,43 @@ export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
             </span>
           </button>
           <div className="flex items-center gap-2">
+            {/* Formato da exportação: visão agregada (padrão) ou detalhada
+                (uma linha por atendimento, planilha exemplo do usuário). */}
+            <div className="inline-flex items-center rounded-lg border border-[#E7E0D6] bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setFormatoExportacao('agregado')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  formatoExportacao === 'agregado'
+                    ? 'bg-[#73574A] text-white'
+                    : 'text-gray-500 hover:text-[#73574A]'
+                }`}
+              >
+                <Table2 className="h-3 w-3" /> Agregado
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormatoExportacao('detalhado')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  formatoExportacao === 'detalhado'
+                    ? 'bg-[#73574A] text-white'
+                    : 'text-gray-500 hover:text-[#73574A]'
+                }`}
+              >
+                <List className="h-3 w-3" /> Detalhado
+              </button>
+            </div>
             <Button
               type="button"
               size="sm"
               variant="outline"
               className="h-8 text-xs border-[#C9A46A] text-[#73574A] hover:bg-[#FAF7F1]"
               onClick={() => exportar('xlsx')}
-              disabled={linhasAtivas.length === 0}
+              disabled={
+                formatoExportacao === 'agregado'
+                  ? linhasAtivas.length === 0
+                  : linhasDetalhadas.length === 0
+              }
             >
               <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" /> Excel
             </Button>
@@ -346,7 +411,11 @@ export function RelatorioFrequencia({ presencas, periodo, nomesPorId }: Props) {
               variant="outline"
               className="h-8 text-xs border-[#C9A46A] text-[#73574A] hover:bg-[#FAF7F1]"
               onClick={() => exportar('pdf')}
-              disabled={linhasAtivas.length === 0}
+              disabled={
+                formatoExportacao === 'agregado'
+                  ? linhasAtivas.length === 0
+                  : linhasDetalhadas.length === 0
+              }
             >
               <FileDown className="h-3.5 w-3.5 mr-1.5" /> PDF
             </Button>
