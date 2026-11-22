@@ -32,6 +32,7 @@ import { isProfissionalRole, isGestorRole, roleLabel } from '@/lib/roles'
 import PainelAcesso from '@/components/PainelAcesso'
 import Acessos, { isAcessosSubTab, type AcessosSubTab } from '@/pages/Acessos'
 import SecaoPacientesDesignados from '@/components/gestao/SecaoPacientesDesignados'
+import { PainelRelatoriosAdmin } from '@/components/relatorios/PainelRelatoriosAdmin'
 import type { UserRecord } from '@/types/database'
 import pb from '@/lib/pocketbase/client'
 import type { PacienteRecord } from '@/types/database'
@@ -47,12 +48,13 @@ import {
   VinculoPacienteRecord,
 } from '@/services/gestao'
 
-type TabKey = 'usuarios' | 'designacoes' | 'acesso'
+type TabKey = 'usuarios' | 'designacoes' | 'acesso' | 'relatorios'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'usuarios', label: 'Usuários & Perfis' },
   { key: 'designacoes', label: 'Pacientes designados' },
   { key: 'acesso', label: 'Acesso' },
+  { key: 'relatorios', label: 'Relatórios' },
 ]
 
 export default function Gestao() {
@@ -65,7 +67,7 @@ export default function Gestao() {
     const params = new URLSearchParams(searchParams)
     if (t === 'usuarios') params.delete('tab')
     else params.set('tab', t)
-    if (t !== 'acesso') params.delete('sub')
+    if (t !== 'acesso' && t !== 'relatorios') params.delete('sub')
     setSearchParams(params, { replace: true })
   }
 
@@ -460,6 +462,13 @@ export default function Gestao() {
               </div>
             </div>
           )}
+
+          {/* ============ RELATÓRIOS ============ */}
+          {/* Painel completo de Relatórios do gestor (indicadores, filtros,
+              gráficos, frequência e exportações Excel/PDF), movido de
+              /relatorios (v0.0.137 — padrão da aba Acesso).
+              Deep-link: /gestao?tab=relatorios (a rota antiga redireciona). */}
+          {tab === 'relatorios' && <PainelRelatoriosAdmin />}
 
           {/* ============ ACESSO ============ */}
           {/* PainelAcesso (link público de pré-avaliação) + painel completo de

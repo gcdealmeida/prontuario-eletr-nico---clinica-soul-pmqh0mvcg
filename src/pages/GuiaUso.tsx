@@ -207,7 +207,7 @@ export default function GuiaUso() {
 
           {/* Card 5: Relatórios */}
           <div
-            onClick={() => navigate('/relatorios')}
+            onClick={() => navigate('/gestao?tab=relatorios')}
             className="group bg-white rounded-2xl p-4 border border-[#E9E1D2] shadow-xs hover:shadow-md hover:border-[#C9A46A]/60 transition-all cursor-pointer flex flex-col justify-between"
           >
             <div>

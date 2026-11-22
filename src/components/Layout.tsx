@@ -5,7 +5,6 @@ import {
   Users,
   Calendar,
   FileText,
-  BarChart3,
   BookOpen,
   Menu,
   X,
@@ -126,7 +125,6 @@ export default function Layout() {
       icon: Dumbbell,
     },
     ...(isGestor ? [{ name: 'Gestão', path: '/gestao', icon: Settings2 }] : []),
-    ...(isAdmin ? [{ name: 'Relatórios', path: '/relatorios', icon: BarChart3 }] : []),
     { name: 'Guia de Uso', path: '/guia', icon: BookOpen },
   ]
 

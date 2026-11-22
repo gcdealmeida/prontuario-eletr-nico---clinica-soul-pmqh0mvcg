@@ -176,8 +176,12 @@ const router = createBrowserRouter(
           <Route element={<GestorOnlyRoute />}>
             <Route path="/gestao" element={<Gestao />} />
           </Route>
+          {/* /relatorios: rota com ProtectedRoute apenas — a própria página é
+              uma fachada por papel (v0.0.137): gestor → /gestao?tab=relatorios
+              (painel completo movido para a aba Relatórios da Gestão);
+              profissional → relatório individual, sem perder acesso. */}
+          <Route path="/relatorios" element={<Relatorios />} />
           <Route element={<AdminOnlyRoute />}>
-            <Route path="/relatorios" element={<Relatorios />} />
             {/* /acessos saiu de circulação: redireciona (preservando ?tab=)
                 para o painel de Acessos & Governança embutido na aba Acesso
                 da Gestão da Clínica — /gestao?tab=acesso&sub=... */}
