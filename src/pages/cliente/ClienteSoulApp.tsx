@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react'
-import {
-  Activity,
-  Bell,
-  BookOpen,
-  ClipboardList,
-  Droplets,
-  Dumbbell,
-  Moon,
-  Plus,
-  Stethoscope,
-  Utensils,
-  X,
-} from 'lucide-react'
+import { Bell, BookOpen, Dumbbell, Plus, Stethoscope } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'

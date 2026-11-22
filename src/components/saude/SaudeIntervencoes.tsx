@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react'
-import {
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -32,7 +28,7 @@ import {
   listarSaudeOrientacoes,
   excluirSaudeOrientacao,
   excluirSaudeLembrete,
-  labelTipoRegistro,
+  atualizarSaudeOrientacao,
   type SaudeClienteRecord,
   type SaudeLembreteRecord,
   type SaudeOrientacaoRecord,
@@ -187,6 +183,26 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
     }
   }
 
+  const excluirConteudo = async (id: string) => {
+    try {
+      await excluirSaudeOrientacao(id)
+      await carregar()
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro ao excluir conteúdo.', variant: 'destructive' })
+    }
+  }
+
+  const excluirLembrete = async (id: string) => {
+    try {
+      await excluirSaudeLembrete(id)
+      await carregar()
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro ao excluir lembrete.', variant: 'destructive' })
+    }
+  }
+
   const alternarPublicacao = async (o: SaudeOrientacaoRecord) => {
     try {
       await atualizarSaudeOrientacao(o.id, { publicada: !o.publicada })
@@ -252,9 +268,7 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
                   {o.texto && (
                     <p className="text-sm text-[#73574A] mt-1 whitespace-pre-wrap">{o.texto}</p>
                   )}
-                  <p className="text-[11px] text-[#73574A]/60 mt-1">
-                    {formatDataHoraPTBR(o.data)}
-                  </p>
+                  <p className="text-[11px] text-[#73574A]/60 mt-1">{formatDataHoraPTBR(o.data)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
@@ -263,7 +277,11 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
                     onClick={() => alternarPublicacao(o)}
                     title={o.publicada ? 'Despublicar' : 'Publicar'}
                   >
-                    {o.publicada ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    {o.publicada ? (
+                      <EyeOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5" />
+                    )}
                   </Button>
                   <Button
                     size="icon"
@@ -271,7 +289,7 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
                     className="h-7 w-7 text-[#73574A]/50 hover:text-red-600"
                     onClick={() => excluirConteudo(o.id)}
                     title="Excluir"
-                  />
+                  >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { pb } from '@/lib/pocketbase/client'
+import pb from '@/lib/pocketbase/client'
 import { carregarMeuPainel, type MeuPerfilSaude } from '@/services/saudeBemEstar'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
