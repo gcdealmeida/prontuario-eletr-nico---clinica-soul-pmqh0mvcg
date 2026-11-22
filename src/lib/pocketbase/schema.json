@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T19:56:32.016Z",
+  "generatedAt": "2026-11-22T20:18:32.498Z",
   "collections": [
     {
       "name": "users",
@@ -3388,8 +3388,8 @@
         "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'profissional' || @request.auth.role = 'professional') && (@collection.vinculos_pacientes.paciente_id ?= cliente_id.paciente_id && @collection.vinculos_pacientes.profissional_id ?= @request.auth.id)) || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && cliente_id.user_id = @request.auth.id)",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'profissional' || @request.auth.role = 'professional') && (@collection.vinculos_pacientes.paciente_id ?= cliente_id.paciente_id && @collection.vinculos_pacientes.profissional_id ?= @request.auth.id)) || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && cliente_id.user_id = @request.auth.id)",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente'",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com')",
-        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com')"
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && cliente_id.user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && cliente_id.user_id = @request.auth.id)"
       },
       "fields": [
         {
@@ -3413,7 +3413,8 @@
             "sintoma",
             "medicacao",
             "refeicao",
-            "emocao"
+            "emocao",
+            "dieta"
           ]
         },
         {
