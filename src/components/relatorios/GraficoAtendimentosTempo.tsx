@@ -3,7 +3,8 @@
  * - Granularidade temporal: dia, semana, mês ou ano (com sugestão automática pelo período);
  * - Agrupamento: Profissional, Serviço ou Programa;
  * - Multi-seleção: várias séries (uma linha por profissional/serviço/programa) no mesmo gráfico.
- * Séries construídas por serieTemporalMulti() em src/lib/relatoriosAdmin.ts.
+ * Séries construídas por serieTemporalMulti() em src/lib/relatoriosAdmin.ts;
+ * cada série sai como coluna "s0", "s1", … das linhas planas (ver nota abaixo).
  */
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -32,11 +33,18 @@ import {
   listarProgramasDe,
   listarServicosDe,
   serieTemporalMulti,
+  serieDeLinha,
   LABELS_GRANULARIDADE,
 } from '@/lib/relatoriosAdmin'
 import type { Granularidade } from '@/lib/relatoriosAdmin'
 import type { PresencaRecord } from '@/types/database'
 
+/**
+ * Cada entidade selecionada vira uma COLUNA NUMERADA da linha plana da série
+ * ("s0", "s1", …): dataKey é sempre STRING — o caminho que o Recharts (incl. a
+ * v3 em uso) executa de forma estável. dataKey como função e data trocando de
+ * identidade a cada render são as causas conhecidas de linha vazia/zerada.
+ */
 const TOOLTIP_STYLE = {
   backgroundColor: '#FFF',
   borderRadius: '12px',
@@ -105,7 +113,20 @@ export function GraficoAtendimentosTempo({
   }, [opcoes])
 
   const idsValidos = useMemo(() => new Set(opcoes.map((o) => o.id)), [opcoes])
-  const entidadesSelecionadas = selecionadas.filter((s) => idsValidos.has(s))
+  const entidadesSelecionadas = useMemo(
+    () => selecionadas.filter((s) => idsValidos.has(s)),
+    [selecionadas, idsValidos],
+  )
+
+  // No agrupamento por profissional, `selecionadas` guarda IDs — as séries da
+  // resposta são chaveadas pelo NOME (o mesmo que os chips exibem).
+  const nomesSerie = useMemo(
+    () =>
+      entidadesSelecionadas.map((id) =>
+        agrupamento === 'profissional' ? nomesPorId.get(id) || id : id,
+      ),
+    [entidadesSelecionadas, agrupamento, nomesPorId],
+  )
 
   const serie = useMemo(
     () =>
@@ -128,9 +149,21 @@ export function GraficoAtendimentosTempo({
       nomesPorId,
     ],
   )
+  const temDados = serie.some((linha) => nomesSerie.some((n) => serieDeLinha(linha, n) !== 0))
 
-  const nomesSerie = entidadesSelecionadas
-  const temDados = serie.some((linha) => nomesSerie.some((n) => (linha[n] ?? 0) !== 0))
+  // Linhas PLANAS para o Recharts: { label, s0, s1, … } — um dataKey string
+  // simples por série, sem função nem caminho aninhado.
+  const dadosGrafico = useMemo(
+    () =>
+      serie.map((linha) => {
+        const plano: Record<string, string | number> = { label: linha.label }
+        nomesSerie.forEach((nome, i) => {
+          plano[`s${i}`] = linha.valores[nome] || 0
+        })
+        return plano
+      }),
+    [serie, nomesSerie],
+  )
 
   const toggle = (id: string) => {
     setSelecionadas((atual) =>
@@ -244,7 +277,7 @@ export function GraficoAtendimentosTempo({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={serie} margin={{ top: 8, right: 12, bottom: 0, left: -8 }}>
+            <LineChart data={dadosGrafico} margin={{ top: 8, right: 12, bottom: 0, left: -8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="#73574A" />
               <YAxis tick={{ fontSize: 11 }} stroke="#73574A" allowDecimals={false} />
@@ -254,11 +287,12 @@ export function GraficoAtendimentosTempo({
                 <Line
                   key={nome}
                   type="monotone"
-                  dataKey={nome}
+                  dataKey={`s${i}`}
                   name={nome}
                   stroke={corPorIndice(i)}
                   strokeWidth={2.5}
-                  dot={serie.length <= 45 ? { r: 3, fill: corPorIndice(i) } : false}
+                  isAnimationActive={false}
+                  dot={serie.length <= 45}
                 />
               ))}
             </LineChart>

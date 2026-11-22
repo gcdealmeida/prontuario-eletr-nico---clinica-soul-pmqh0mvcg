@@ -314,10 +314,24 @@ export function proximaChave(chave: string, g: Granularidade): string {
   return String(a + 1)
 }
 
+export interface LinhaSerieMulti {
+  chave: string
+  label: string
+  valores: Record<string, number>
+}
+
+/** Total da entidade `nome` numa linha da série (uso: dataKey do Recharts). */
+export function serieDeLinha(linha: LinhaSerieMulti, nome: string): number {
+  return linha.valores[nome] || 0
+}
+
 /**
  * Série temporal MULTI-SÉRIE do gráfico "Atendimentos no tempo": uma série por
  * entidade escolhida (profissional, serviço ou programa). Cada entrada da série
- * tem { chave, label, [nomeEntidade]: total }.
+ * tem { chave, label, valores: { [nomeEntidade]: total } }. O componente de
+ * gráfico achata isso em colunas "s0", "s1", … e usa dataKey string — nomes de
+ * entidade (ex.: "Dr. Guilherme (Admin)") contêm ponto, que dataKey solto
+ * interpreta como caminho aninhado e derruba a linha.
  */
 export function serieTemporalMulti(
   presencas: {
@@ -334,7 +348,7 @@ export function serieTemporalMulti(
   granularidade: Granularidade,
   entidades: string[],
   nomesPorId?: Map<string, string>,
-): { chave: string; label: string; [nome: string]: string | number }[] {
+): LinhaSerieMulti[] {
   // No agrupamento por profissional, `entidades` chega como IDs de usuário —
   // as chaves do mapa usam o NOME (mesmo rótulo que os chips exibem).
   const nomes = entidades.map((e) => (agrupamento === 'profissional' ? nomesPorId?.get(e) || e : e))
@@ -365,17 +379,18 @@ export function serieTemporalMulti(
   const primeira = chaveTempoDe(inicio, granularidade)
   const corte = granularidade === 'dia' ? fim : chaveTempoDe(fim, granularidade)
 
-  const serie: { chave: string; label: string; [nome: string]: string | number }[] = []
+  const serie: LinhaSerieMulti[] = []
   let cursor = primeira
   let guard = 0
   while (cursor <= corte && guard < 400) {
     guard++
-    const linha: { chave: string; label: string; [nome: string]: string | number } = {
+    const valores: Record<string, number> = {}
+    for (const nome of nomes) valores[nome] = conta.get(`${cursor}||${nome}`) || 0
+    serie.push({
       chave: cursor,
       label: rotuloChave(cursor, granularidade),
-    }
-    for (const nome of nomes) linha[nome] = conta.get(`${cursor}||${nome}`) || 0
-    serie.push(linha)
+      valores,
+    })
     cursor = proximaChave(cursor, granularidade)
   }
   return serie
