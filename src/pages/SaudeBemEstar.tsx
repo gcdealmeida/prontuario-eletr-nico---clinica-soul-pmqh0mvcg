@@ -13,6 +13,9 @@ import {
   Stethoscope,
   Lightbulb,
   Bell,
+  Pill,
+  Salad,
+  Smile,
   Sparkles,
   UserPlus,
 } from 'lucide-react'
@@ -69,7 +72,11 @@ const iconesTipo: Record<SaudeRegistroTipo, typeof Activity> = {
   bebida: Droplets,
   alimento: Utensils,
   exame: Stethoscope,
+  dieta: Salad,
   sintoma: ClipboardList,
+  medicacao: Pill,
+  refeicao: Utensils,
+  emocao: Smile,
 }
 
 const hojeYMD = () => {

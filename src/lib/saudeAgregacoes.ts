@@ -59,7 +59,8 @@ export interface DadosBebida {
 export const dadosSono = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosSono
 export const dadosRefeicao = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosRefeicao
 export const dadosMedicacao = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosMedicacao
-export const dadosEmocao = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosEmocao
+export const dadosEmocao = (r: SaudeRegistroRecord) =>
+  (r.dados_json || {}) as unknown as DadosEmocao
 export const dadosAtividade = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosAtividade
 export const dadosBebida = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosBebida
 
@@ -335,7 +336,7 @@ export function descreverRegistro(r: SaudeRegistroRecord): string {
       return `${a.duracao_min ? `${a.duracao_min} min` : 'Atividade'}${a.descricao ? `: ${a.descricao}` : ''}`
     }
     case 'emocao': {
-      const e = d as DadosEmocao
+      const e = d as unknown as DadosEmocao
       return `Humor: ${ROTULOS_HUMOR[e.humor] || e.humor}`
     }
     case 'sintoma':

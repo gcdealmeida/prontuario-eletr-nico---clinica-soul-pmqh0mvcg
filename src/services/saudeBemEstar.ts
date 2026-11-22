@@ -10,6 +10,7 @@ export type SaudeRegistroTipo =
   | 'bebida'
   | 'alimento'
   | 'exame'
+  | 'dieta'
   | 'sintoma'
   | 'medicacao'
   | 'refeicao'
@@ -21,6 +22,7 @@ export const TIPOS_REGISTRO: { value: SaudeRegistroTipo; label: string }[] = [
   { value: 'bebida', label: 'Bebidas' },
   { value: 'alimento', label: 'Alimentos' },
   { value: 'exame', label: 'Exames' },
+  { value: 'dieta', label: 'Dieta' },
   { value: 'sintoma', label: 'Sintomas' },
   { value: 'medicacao', label: 'Medicação' },
   { value: 'refeicao', label: 'Refeição' },
