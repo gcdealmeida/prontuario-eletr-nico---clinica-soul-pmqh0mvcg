@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T12:59:16.956Z",
+  "generatedAt": "2026-11-22T19:43:37.751Z",
   "collections": [
     {
       "name": "users",
@@ -3278,7 +3278,7 @@
         "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'profissional' || @request.auth.role = 'professional') && (@collection.vinculos_pacientes.paciente_id ?= paciente_id && @collection.vinculos_pacientes.profissional_id ?= @request.auth.id)) || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && user_id = @request.auth.id)",
         "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'profissional' || @request.auth.role = 'professional') && (@collection.vinculos_pacientes.paciente_id ?= paciente_id && @collection.vinculos_pacientes.profissional_id ?= @request.auth.id)) || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && user_id = @request.auth.id)",
         "create": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com')",
-        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'profissional' || @request.auth.role = 'professional')",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com') || @request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'profissional' || @request.auth.role = 'professional') || (@request.auth.id != '' && @request.auth.access_status = 'approved' && @request.auth.role = 'cliente' && user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved' && (@request.auth.role = 'adm' || @request.auth.role = 'admin' || @request.auth.role = 'secretaria' || @request.auth.email = 'gcdealmeida@gmail.com' || @request.auth.email = 'guivemax@hotmail.com')"
       },
       "fields": [
@@ -3352,6 +3352,31 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "altura_cm",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "peso_kg",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "genero",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["feminino", "masculino", "outro", "nao_informado"]
+        },
+        {
+          "name": "metas",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_saude_clientes_user ON saude_clientes (user_id)"]
@@ -3379,7 +3404,17 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["atividade_fisica", "sono", "bebida", "alimento", "exame", "sintoma"]
+          "selectValues": [
+            "atividade_fisica",
+            "sono",
+            "bebida",
+            "alimento",
+            "exame",
+            "sintoma",
+            "medicacao",
+            "refeicao",
+            "emocao"
+          ]
         },
         {
           "name": "data",

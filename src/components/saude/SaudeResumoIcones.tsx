@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Activity, ClipboardList, Droplets, Moon, Stethoscope, Utensils } from 'lucide-react'
+import {
+  Activity,
+  ClipboardList,
+  Droplets,
+  HeartPulse,
+  Moon,
+  Pill,
+  Smile,
+  Stethoscope,
+  Utensils,
+  Zap,
+} from 'lucide-react'
 import type { SaudeRegistroTipo } from '@/services/saudeBemEstar'
 
-/** Ícones por tipo de registro — compartilhado entre visão geral e individual. */
+/** Ícones por tipo de registro — compartilhado entre visão da clínica e app do cliente. */
 export const ICONES_TIPO: Record<SaudeRegistroTipo, typeof Activity> = {
   atividade_fisica: Activity,
   sono: Moon,
@@ -10,7 +20,11 @@ export const ICONES_TIPO: Record<SaudeRegistroTipo, typeof Activity> = {
   alimento: Utensils,
   exame: Stethoscope,
   sintoma: ClipboardList,
+  medicacao: Pill,
+  refeicao: Utensils,
+  emocao: Smile,
 }
+export { Zap as IcoEnergia, HeartPulse as IcoCardio }
 
 interface Props {
   porTipo: Partial<Record<SaudeRegistroTipo, number>>

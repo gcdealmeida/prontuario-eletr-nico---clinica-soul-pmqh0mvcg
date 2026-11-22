@@ -11,6 +11,9 @@ export type SaudeRegistroTipo =
   | 'alimento'
   | 'exame'
   | 'sintoma'
+  | 'medicacao'
+  | 'refeicao'
+  | 'emocao'
 
 export const TIPOS_REGISTRO: { value: SaudeRegistroTipo; label: string }[] = [
   { value: 'atividade_fisica', label: 'Atividade Física' },
@@ -19,10 +22,20 @@ export const TIPOS_REGISTRO: { value: SaudeRegistroTipo; label: string }[] = [
   { value: 'alimento', label: 'Alimentos' },
   { value: 'exame', label: 'Exames' },
   { value: 'sintoma', label: 'Sintomas' },
+  { value: 'medicacao', label: 'Medicação' },
+  { value: 'refeicao', label: 'Refeição' },
+  { value: 'emocao', label: 'Humor' },
 ]
 
 export const labelTipoRegistro = (t: SaudeRegistroTipo) =>
   TIPOS_REGISTRO.find((x) => x.value === t)?.label || t
+
+export interface MinhasMetasCliente {
+  agua_copos?: number
+  sono_horas?: number
+  calorias?: number
+  atividade_min?: number
+}
 
 export interface SaudeClienteRecord {
   id: string
@@ -33,6 +46,10 @@ export interface SaudeClienteRecord {
   data_nascimento?: string
   observacoes?: string
   ativo?: boolean
+  altura_cm?: number
+  peso_kg?: number
+  genero?: 'feminino' | 'masculino' | 'outro' | 'nao_informado'
+  metas?: MinhasMetasCliente | null
   ultima_visita_clinica?: string
   created?: string
   updated?: string
@@ -171,6 +188,19 @@ export async function listarSaudeRegistros(f: FiltroRegistros): Promise<SaudeReg
   })
 }
 
+/** Atualiza o perfil de SAÚDE do cliente logado (campos limitados pelo hook saude_clientes_perfil_guard.js). */
+export async function atualizarMeuPerfilSaude(
+  id: string,
+  data: Partial<{
+    altura_cm: number
+    peso_kg: number
+    genero: SaudeClienteRecord['genero']
+    metas: MinhasMetasCliente
+  }>,
+): Promise<SaudeClienteRecord> {
+  return pb.collection('saude_clientes').update<SaudeClienteRecord>(id, data)
+}
+
 export async function listarSaudeRegistrosTodosClientes(): Promise<SaudeRegistroRecord[]> {
   return pb.collection('saude_registros').getFullList<SaudeRegistroRecord>({
     sort: '-data,-created',
@@ -291,32 +321,20 @@ export interface MeuPerfilSaude {
   devPessoal: SaudeDevPessoalRecord[]
 }
 
-/** Carrega tudo do cliente logado (as API rules do backend já restringem ao dele). */
+/** Carrega tudo do cliente logado — num único request via hook saude_meu_painel.js. */
 export async function carregarMeuPainel(): Promise<MeuPerfilSaude> {
-  const clientes = await pb
-    .collection('saude_clientes')
-    .getFullList<SaudeClienteRecord>({ expand: 'paciente_id' })
-  const cliente = clientes[0]
-  if (!cliente) throw new Error('Nenhum cadastro de Cliente Soul vinculado a esta conta.')
-
-  const [registros, orientacoes, lembretes, devPessoal] = await Promise.all([
-    pb.collection('saude_registros').getFullList<SaudeRegistroRecord>({
-      filter: `cliente_id = "${cliente.id}"`,
-      sort: '-data,-created',
-    }),
-    pb.collection('saude_orientacoes').getFullList<SaudeOrientacaoRecord>({
-      filter: `publicada = true && (cliente_id = "${cliente.id}" || cliente_id = '')`,
-      sort: '-data,-created',
-    }),
-    pb.collection('saude_lembretes').getFullList<SaudeLembreteRecord>({
-      filter: `cliente_id = "${cliente.id}"`,
-      sort: 'data_hora',
-    }),
-    pb.collection('saude_dev_pessoal').getFullList<SaudeDevPessoalRecord>({
-      filter: `cliente_id = "${cliente.id}"`,
-      sort: '-created',
-    }),
-  ])
-
-  return { cliente, registros, orientacoes, lembretes, devPessoal }
+  const resp = await pb.send<{
+    cliente: SaudeClienteRecord
+    registros: SaudeRegistroRecord[]
+    orientacoes: SaudeOrientacaoRecord[]
+    lembretes: SaudeLembreteRecord[]
+    dev_pessoal: SaudeDevPessoalRecord[]
+  }>('/backend/v1/saude/cliente/meu-painel', { method: 'GET' })
+  return {
+    cliente: resp.cliente,
+    registros: resp.registros || [],
+    orientacoes: resp.orientacoes || [],
+    lembretes: resp.lembretes || [],
+    devPessoal: resp.dev_pessoal || [],
+  }
 }
