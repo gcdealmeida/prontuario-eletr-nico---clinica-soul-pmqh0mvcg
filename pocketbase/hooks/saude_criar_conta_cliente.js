@@ -94,7 +94,18 @@ routerAdd(
       if (!saudeCliente.getString('email')) {
         saudeCliente.set('email', email)
       }
-      $app.save(saudeCliente)
+      try {
+        $app.save(saudeCliente)
+      } catch (errVinculo) {
+        // Sem o vínculo user_id o painel do cliente recusaria o login com
+        // "Nenhum cadastro vinculado" — falha explícita, nunca silenciosa.
+        console.log('Erro ao vincular saude_clientes em criar-conta:', errVinculo)
+        return e.json(500, {
+          error:
+            'A conta foi criada, mas houve falha ao vinculá-la ao cadastro de cliente de saúde. Tente novamente ou refaça o vínculo pela clínica.',
+          user_id: novaConta.id,
+        })
+      }
 
       // Log de auditoria (mesmo padrão de admin_access_manage.js)
       try {

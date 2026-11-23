@@ -16,9 +16,13 @@ onRecordAuthRequest((e) => {
 
   const email = (user.getString('email') || '').toLowerCase().trim()
   const isMasterAdmin = email === 'gcdealmeida@gmail.com' || email === 'guivemax@hotmail.com'
+  // Conta de Cliente Soul (role 'cliente', criada pela clínica): nunca promovida
+  // a admin — só a conta REAL de admin da equipe é tratada como master.
+  const isContaCliente = user.getString('role') === 'cliente'
 
-  // Master admin é sempre aprovado
-  if (isMasterAdmin) {
+  // Master admin é sempre aprovado (mas nunca promove uma conta 'cliente' —
+  // mesmo que o e-mail coincida, a role explícita manda)
+  if (isMasterAdmin && !isContaCliente) {
     if (user.getString('access_status') !== 'approved' || user.getString('role') !== 'admin') {
       user.set('access_status', 'approved')
       user.set('role', 'admin')

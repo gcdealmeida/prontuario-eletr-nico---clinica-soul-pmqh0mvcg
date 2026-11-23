@@ -25,6 +25,27 @@ routerAdd('GET', '/backend/v1/saude/cliente/meu-painel', (e) => {
     cliente = null
   }
   if (!cliente) {
+    // Reparo idempotente: conta 'cliente' sem cadastro vinculado (ex.: gravação
+    // do vínculo falhou na criação). Casa pelo e-mail num cadastro ainda sem
+    // conta e vincula — se não houver, aí sim recusa com a mensagem clara.
+    const authEmail = (auth.getString('email') || '').toLowerCase().trim()
+    if (authEmail) {
+      try {
+        const candidato = $app.findFirstRecordByFilter(
+          'saude_clientes',
+          "user_id = '' && email = {:email}",
+          { email: authEmail },
+        )
+        candidato.set('user_id', auth.id)
+        $app.save(candidato)
+        cliente = candidato
+        console.log('saude_meu_painel: vínculo reparado por e-mail para', authEmail)
+      } catch (_) {
+        cliente = null
+      }
+    }
+  }
+  if (!cliente) {
     return e.json(404, { error: 'Nenhum cadastro de Cliente Soul vinculado a esta conta.' })
   }
 

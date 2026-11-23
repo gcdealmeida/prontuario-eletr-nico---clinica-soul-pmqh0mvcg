@@ -9,12 +9,25 @@
 
 onRecordCreate((e) => {
   const email = (e.record.getString('email') || '').toLowerCase().trim()
+  const isMasterAdmin = email === 'gcdealmeida@gmail.com' || email === 'guivemax@hotmail.com'
+  // Conta de Cliente Soul criada pela clínica (saude_criar_conta_cliente): role
+  // 'cliente' vem de propósito e NÃO pode ser promovida a admin — se fosse,
+  // o saude_meu_painel recusaria o login ("Nenhum cadastro vinculado").
+  const jaEhCliente = e.record.getString('role') === 'cliente'
 
-  if (email === 'gcdealmeida@gmail.com' || email === 'guivemax@hotmail.com') {
+  if (isMasterAdmin && !jaEhCliente) {
     e.record.set('access_status', 'approved')
     e.record.set('role', 'admin')
     e.record.set('approved_at', new Date().toISOString())
     e.record.set('approved_by', 'system_admin_rule')
+  } else if (jaEhCliente) {
+    // Acesso do app do cliente nasce aprovado (a clínica o criou).
+    if (e.record.getString('access_status') !== 'approved') {
+      e.record.set('access_status', 'approved')
+    }
+    if (!e.record.getString('requested_at')) {
+      e.record.set('requested_at', new Date().toISOString())
+    }
   } else if (e.record.getString('access_status') === 'approved') {
     // Se o registro já foi definido como aprovado (ex.: seed de migração pelo sistema)
     if (!e.record.getString('role')) {
