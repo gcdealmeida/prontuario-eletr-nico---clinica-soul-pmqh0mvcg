@@ -4,10 +4,10 @@ import { ClienteSoulLogin } from '@/pages/cliente/ClienteSoulLogin'
 import { ClienteSoulApp } from '@/pages/cliente/ClienteSoulApp'
 
 /**
- * Rota pública /cliente — app do Cliente Soul.
+ * Rota pública /cliente — SOUL Health Tracker (app do Cliente Soul).
  * Autenticação independente do painel da clínica: autentica direto na coleção
  * users (conta com role 'cliente' criada pela clínica) e guarda a sessão em
- * sessionStorage separada, para não tocar no auth do app da clínica.
+ * chave separada, para não tocar no auth do app da clínica.
  */
 const CHAVE_SESSAO = 'cliente_soul_auth'
 
@@ -38,17 +38,7 @@ export function ClienteSoulPage() {
   }
 
   if (!autenticado) return <ClienteSoulLogin onEntrou={aoEntrar} />
-  return (
-    <div className="relative">
-      <button
-        onClick={sair}
-        className="absolute top-4 right-4 z-50 rounded-full bg-white/20 px-3 py-1.5 text-xs text-white hover:bg-white/30"
-      >
-        Sair
-      </button>
-      <ClienteSoulApp />
-    </div>
-  )
+  return <ClienteSoulApp />
 }
 
 export default ClienteSoulPage

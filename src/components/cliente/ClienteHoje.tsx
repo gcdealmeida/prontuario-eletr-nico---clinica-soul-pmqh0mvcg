@@ -1,299 +1,522 @@
-import { useMemo } from 'react'
-import {
-  BookOpen,
-  CheckCircle2,
-  Circle,
-  Clock,
-  Droplet,
-  Flame,
-  Footprints,
-  Moon,
-  Plus,
-  Stethoscope,
-  Utensils,
-  Zap,
-} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Plus, ChevronLeft, ChevronRight, Bell, Trash2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatDataHoraPTBR } from '@/lib/constants'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
 import {
-  caloriasNoDia,
-  coposAguaNoDia,
-  descreverRegistro,
   hojeYMD,
-  minutosAtividadeNoDia,
-  horasSonoNoDia,
-  metasDoPerfil,
+  ymdDoRegistro,
   registrosDoDia,
+  horasSonoNoDia,
+  coposAguaNoDia,
+  caloriasNoDia,
+  minutosAtividadeNoDia,
+  dadosMedicacao,
+  descreverRegistro,
 } from '@/lib/saudeAgregacoes'
-import { ICONES_TIPO } from '@/components/saude/SaudeResumoIcones'
-import type { SaudeClienteRecord, SaudeRegistroRecord } from '@/services/saudeBemEstar'
+import type {
+  MeuPerfilSaude,
+  SaudeRegistroRecord,
+  SaudeRegistroTipo,
+} from '@/services/saudeBemEstar'
+import {
+  listarSaudeLembretes,
+  criarSaudeLembrete,
+  excluirSaudeLembrete,
+  atualizarSaudeRegistro,
+} from '@/services/saudeBemEstar'
 
 interface Props {
-  cliente: SaudeClienteRecord
-  registros: SaudeRegistroRecord[]
-  lembretes: {
-    id: string
-    titulo: string
-    descricao?: string
-    data_hora: string
-    repeticao?: string
-  }[]
-  devAtivos: { id: string; titulo: string; descricao?: string }[]
-  devConcluidos: { id: string; titulo: string }[]
-  onConcluirDev: (id: string, concluido: boolean) => void
-  onAbrirRegistro: (
-    tipo?:
-      | 'atividade_fisica'
-      | 'sono'
-      | 'bebida'
-      | 'refeicao'
-      | 'medicacao'
-      | 'emocao'
-      | 'sintoma'
-      | 'exame'
-      | 'alimento',
-  ) => void
-  onIrPara: (aba: string) => void
+  painel: MeuPerfilSaude
+  aoAbrirRegistro: (tipo?: SaudeRegistroTipo) => void
 }
 
-/** Painel "Hoje" do app do cliente (modelo Home.tsx da referência). */
-export function ClienteHoje({
-  cliente,
-  registros,
-  lembretes,
-  devAtivos,
-  devConcluidos,
-  onConcluirDev,
-  onAbrirRegistro,
-  onIrPara,
-}: Props) {
-  const dia = hojeYMD()
-  const deHoje = useMemo(() => registrosDoDia(registros, dia), [registros, dia])
+/** Paleta SOUL HTR (Clínica Soul): bege claro + marrons + dourado. */
+const C = {
+  fundo: '#F5EFE6',
+  card: '#FFFFFF',
+  borda: '#E4D8C6',
+  texto: '#5C3A21',
+  textoSuave: '#8A6A4F',
+  acento: '#C9A063',
+  acentoEscuro: '#A87E3F',
+}
 
-  const metas = metasDoPerfil(cliente as unknown as Record<string, unknown>)
-  const agua = coposAguaNoDia(registros, dia)
-  const calorias = caloriasNoDia(registros, dia)
-  const atividade = minutosAtividadeNoDia(registros, dia)
-  const sono = horasSonoNoDia(registros, dia)
+const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-  const anel = (atual: number, meta: number) =>
-    Math.min(100, Math.round((atual / Math.max(1, meta)) * 100))
+function somarDias(ymd: string, delta: number): string {
+  const d = new Date(`${ymd}T12:00:00`)
+  d.setDate(d.getDate() + delta)
+  return d.toISOString().slice(0, 10)
+}
+
+function rotuloDia(ymd: string): string {
+  const hoje = hojeYMD()
+  if (ymd === hoje) return 'HOJE'
+  if (ymd === somarDias(hoje, -1)) return 'ONTEM'
+  if (ymd === somarDias(hoje, 1)) return 'AMANHÃ'
+  return new Date(`${ymd}T12:00:00`)
+    .toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+    .toUpperCase()
+}
+
+const ICONES: Partial<Record<SaudeRegistroTipo, string>> = {
+  medicacao: '💊',
+  bebida: '💧',
+  refeicao: '🍽️',
+  alimento: '🍎',
+  sintoma: '🩺',
+  atividade_fisica: '⚡',
+  sono: '🌙',
+  emocao: '🙂',
+  exame: '🧪',
+  dieta: '🥗',
+}
+
+const ROTULO_CURTO: Partial<Record<SaudeRegistroTipo, string>> = {
+  medicacao: 'Meds',
+  bebida: 'Água',
+  sintoma: 'Sintomas',
+  alimento: 'Alimentos',
+  atividade_fisica: 'Energia',
+  sono: 'Sono',
+  emocao: 'Humor',
+}
+
+const TIPOS_PILULAS: SaudeRegistroTipo[] = [
+  'medicacao',
+  'bebida',
+  'sintoma',
+  'alimento',
+  'atividade_fisica',
+  'sono',
+  'emocao',
+]
+
+function fracDia(dt: string): number {
+  const hhmm = (dt || '').slice(11, 16)
+  const [h, m] = hhmm.split(':').map(Number)
+  if (isNaN(h)) return 0.5
+  return (h * 60 + (m || 0)) / (24 * 60)
+}
+
+interface LembreteForm {
+  titulo: string
+  data_hora: string
+}
+
+export function ClienteHoje({ painel, aoAbrirRegistro }: Props) {
+  const { toast } = useToast()
+  const [dia, setDia] = useState(hojeYMD())
+  const [lembretes, setLembretes] = useState(painel.lembretes || [])
+  const [modalLembretes, setModalLembretes] = useState(false)
+  const [formLembrete, setFormLembrete] = useState<LembreteForm>({ titulo: '', data_hora: '' })
+  const [salvandoLembrete, setSalvandoLembrete] = useState(false)
+
+  const registrosDia = useMemo(() => registrosDoDia(painel.registros, dia), [painel.registros, dia])
+
+  const lembretesDia = useMemo(
+    () =>
+      lembretes
+        .filter((l) => (l.data_hora || '').slice(0, 10) === dia)
+        .sort((a, b) => (a.data_hora || '').localeCompare(b.data_hora || '')),
+    [lembretes, dia],
+  )
 
   const cartoes = [
     {
-      chave: 'sono',
+      id: 'sono',
       titulo: 'Sono',
-      icone: Moon,
-      atual: sono ? `${sono}h` : '—',
-      meta: `meta ${metas.sono_horas}h`,
-      pct: sono ? anel(sono, metas.sono_horas || 8) : 0,
-      acao: () => onAbrirRegistro('sono'),
+      valor: (() => {
+        const h = horasSonoNoDia(painel.registros, dia)
+        if (h == null) return '—'
+        const hh = Math.floor(h)
+        const mm = Math.round((h - hh) * 60)
+        return mm ? `${hh}h ${mm}m` : `${hh}h`
+      })(),
+      quando: rotuloDia(dia).toLowerCase(),
+      icone: '🌙',
     },
     {
-      chave: 'agua',
-      titulo: 'Água',
-      icone: Droplet,
-      atual: `${agua} copos`,
-      meta: `meta ${metas.agua_copos}`,
-      pct: anel(agua, metas.agua_copos || 8),
-      acao: () => onAbrirRegistro('bebida'),
-    },
-    {
-      chave: 'calorias',
-      titulo: 'Calorias',
-      icone: Flame,
-      atual: `${calorias} kcal`,
-      meta: `meta ${metas.calorias}`,
-      pct: anel(calorias, metas.calorias || 2000),
-      acao: () => onAbrirRegistro('refeicao'),
-    },
-    {
-      chave: 'atividade',
+      id: 'atividade',
       titulo: 'Atividade',
-      icone: Footprints,
-      atual: `${atividade} min`,
-      meta: `meta ${metas.atividade_min} min`,
-      pct: anel(atividade, metas.atividade_min || 30),
-      acao: () => onAbrirRegistro('atividade_fisica'),
+      valor: `${minutosAtividadeNoDia(painel.registros, dia)} min`,
+      quando: rotuloDia(dia).toLowerCase(),
+      icone: '⚡',
+    },
+    {
+      id: 'agua',
+      titulo: 'Água',
+      valor: `${coposAguaNoDia(painel.registros, dia)} copos`,
+      quando: rotuloDia(dia).toLowerCase(),
+      icone: '💧',
+    },
+    {
+      id: 'calorias',
+      titulo: 'Calorias',
+      valor: `${caloriasNoDia(painel.registros, dia)} kcal`,
+      quando: rotuloDia(dia).toLowerCase(),
+      icone: '🍽️',
     },
   ]
 
+  // Tabela semanal de medicações (linhas = med, colunas = dias da semana)
+  const tabelaMed = useMemo(() => {
+    const base = new Date(`${dia}T12:00:00`)
+    const segunda = new Date(base.getTime() - ((base.getDay() + 6) % 7) * 86400000)
+    const diasSemana: string[] = []
+    for (let i = 0; i < 7; i++) {
+      diasSemana.push(new Date(segunda.getTime() + i * 86400000).toISOString().slice(0, 10))
+    }
+    const porNome = new Map<
+      string,
+      { dias: Set<string>; dose: string; horario: string; registroHoje?: SaudeRegistroRecord }
+    >()
+    for (const r of painel.registros) {
+      if (r.tipo !== 'medicacao') continue
+      const d = dadosMedicacao(r)
+      const nome = d.nome || 'Medicação'
+      if (!porNome.has(nome)) {
+        porNome.set(nome, { dias: new Set(), dose: d.dose || '', horario: d.horario || '' })
+      }
+      const item = porNome.get(nome)!
+      item.dias.add(ymdDoRegistro(r))
+      if (ymdDoRegistro(r) === dia) item.registroHoje = r
+    }
+    return { diasSemana, linhas: [...porNome.entries()] }
+  }, [painel.registros, dia])
+
+  const alternarIngerida = async (r: SaudeRegistroRecord) => {
+    const d = { ...(r.dados_json || {}) }
+    d.ingerida = d.ingerida === false
+    try {
+      await atualizarSaudeRegistro(r.id, { dados_json: d })
+      toast({ title: d.ingerida ? 'Dose marcada como tomada' : 'Dose desmarcada' })
+    } catch {
+      toast({ title: 'Não foi possível atualizar a dose', variant: 'destructive' })
+    }
+  }
+
+  const salvarLembrete = async () => {
+    if (!formLembrete.titulo.trim() || !formLembrete.data_hora) return
+    setSalvandoLembrete(true)
+    try {
+      const criado = await criarSaudeLembrete({
+        cliente_id: painel.cliente.id,
+        titulo: formLembrete.titulo.trim(),
+        data_hora: new Date(formLembrete.data_hora).toISOString(),
+      })
+      setLembretes((prev) =>
+        [...prev, criado].sort((a, b) => a.data_hora.localeCompare(b.data_hora)),
+      )
+      setFormLembrete({ titulo: '', data_hora: '' })
+      toast({ title: 'Lembrete criado' })
+    } catch {
+      toast({ title: 'Erro ao criar lembrete', variant: 'destructive' })
+    } finally {
+      setSalvandoLembrete(false)
+    }
+  }
+
+  const removerLembrete = async (id: string) => {
+    try {
+      await excluirSaudeLembrete(id)
+      setLembretes((prev) => prev.filter((l) => l.id !== id))
+    } catch {
+      toast({ title: 'Erro ao excluir lembrete', variant: 'destructive' })
+    }
+  }
+
   return (
     <div className="space-y-5">
-      {/* Ações rápidas do dia */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {cartoes.map((c) => {
-          const Icone = c.icone
-          return (
-            <Card key={c.chave} className="bg-white/85 border-[#3E7C59]/15">
+      {/* ===== Cabeçalho da data + lembretes ===== */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          aria-label="Dia anterior"
+          onClick={() => setDia((d) => somarDias(d, -1))}
+          className="rounded-full p-2 hover:bg-white/70"
+          style={{ color: C.texto }}
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <h2 className="text-sm font-semibold tracking-[0.2em]" style={{ color: C.texto }}>
+          {rotuloDia(dia)}
+        </h2>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Próximo dia"
+            onClick={() => setDia((d) => somarDias(d, 1))}
+            className="rounded-full p-2 hover:bg-white/70"
+            style={{ color: C.texto }}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalLembretes(true)}
+            className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-white/70"
+            style={{ borderColor: C.borda, color: C.texto, backgroundColor: C.card }}
+          >
+            <Bell className="mr-1 inline h-3.5 w-3.5" /> Lembretes
+          </button>
+        </div>
+      </div>
+
+      {/* ===== Linha do tempo 00:00–23:59 ===== */}
+      <Card style={{ backgroundColor: C.card, borderColor: C.borda }}>
+        <CardContent className="py-4">
+          <div className="relative h-10">
+            <div
+              className="absolute left-0 right-0 top-4 h-1 rounded-full"
+              style={{ backgroundColor: '#EFE6D8' }}
+            />
+            {registrosDia.map((r) => (
+              <span
+                key={r.id}
+                title={`${(r.data || '').slice(11, 16)} — ${descreverRegistro(r)}`}
+                className="absolute -translate-x-1/2 text-sm"
+                style={{ left: `${fracDia(r.data) * 100}%`, top: 2 }}
+              >
+                {ICONES[r.tipo] || '•'}
+              </span>
+            ))}
+            {lembretesDia.map((l) => (
+              <span
+                key={l.id}
+                title={`${(l.data_hora || '').slice(11, 16)} — ${l.titulo}`}
+                className="absolute -translate-x-1/2"
+                style={{ left: `${fracDia(l.data_hora) * 100}%`, top: 26 }}
+              >
+                <Bell className="h-3.5 w-3.5" style={{ color: C.acentoEscuro }} />
+              </span>
+            ))}
+          </div>
+          <div className="flex justify-between text-[10px]" style={{ color: C.textoSuave }}>
+            <span>00:00</span>
+            <span>06:00</span>
+            <span>12:00</span>
+            <span>18:00</span>
+            <span>23:59</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===== Pílulas de ação rápida ===== */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => aoAbrirRegistro()}
+          className="flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-[#F5EFE6]"
+          style={{ borderColor: C.borda, backgroundColor: C.card, color: C.texto }}
+        >
+          <Plus className="h-4 w-4" style={{ color: C.acentoEscuro }} /> Adicionar registro
+        </button>
+        {TIPOS_PILULAS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => aoAbrirRegistro(t)}
+            className="flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-[#F5EFE6]"
+            style={{ borderColor: C.borda, backgroundColor: C.card, color: C.texto }}
+          >
+            <span aria-hidden>{ICONES[t]}</span> {ROTULO_CURTO[t]}
+          </button>
+        ))}
+      </div>
+
+      {/* ===== Cartões de métricas ===== */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-base font-semibold" style={{ color: C.texto }}>
+            Métricas
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {cartoes.map((c) => (
+            <Card key={c.id} style={{ backgroundColor: C.card, borderColor: C.borda }}>
               <CardContent className="py-4">
                 <div className="flex items-start justify-between">
-                  <div className="rounded-full bg-[#3E7C59]/10 p-2">
-                    <Icone className="h-4 w-4 text-[#3E7C59]" />
+                  <div>
+                    <p className="text-xs" style={{ color: C.textoSuave }}>
+                      {c.titulo}
+                    </p>
+                    <p className="mt-1 text-xl font-semibold" style={{ color: C.texto }}>
+                      {c.valor}
+                    </p>
+                    <p className="text-[10px]" style={{ color: C.textoSuave }}>
+                      {c.quando}
+                    </p>
                   </div>
-                  <button
-                    onClick={c.acao}
-                    className="rounded-full bg-[#3E7C59] p-1.5 text-white hover:bg-[#33684A]"
-                    title={`Registrar ${c.titulo.toLowerCase()}`}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <p className="mt-2 text-xl font-bold text-[#2C4A3B] leading-none">{c.atual}</p>
-                <p className="text-xs text-[#5C7263] mt-1">
-                  {c.titulo} · {c.meta}
-                </p>
-                <div className="mt-2 h-1.5 rounded-full bg-[#3E7C59]/10">
-                  <div className="h-1.5 rounded-full bg-[#3E7C59]" style={{ width: `${c.pct}%` }} />
+                  <span className="text-xl" aria-hidden>
+                    {c.icone}
+                  </span>
                 </div>
               </CardContent>
             </Card>
-          )
-        })}
+          ))}
+        </div>
       </div>
 
-      {/* Lembretes da clínica */}
-      {lembretes.length > 0 && (
-        <Card className="border-[#C9A46A] bg-white/90">
-          <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-            <Stethoscope className="h-4 w-4 text-[#C9A46A]" />
-            <CardTitle className="text-sm">Lembretes da clínica</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {lembretes.slice(0, 3).map((l) => (
-              <div key={l.id} className="rounded-lg bg-[#FDF6E9] border border-[#C9A46A]/30 p-3">
-                <p className="text-sm font-medium text-[#33221C]">{l.titulo}</p>
-                {l.descricao && (
-                  <p className="text-xs text-[#73574A] mt-0.5 whitespace-pre-wrap">{l.descricao}</p>
-                )}
-                <p className="text-[10px] text-[#73574A]/60 mt-1">
-                  {formatDataHoraPTBR(l.data_hora)}
-                  {l.repeticao && l.repeticao !== 'nenhuma' ? ` • repete: ${l.repeticao}` : ''}
-                </p>
-              </div>
-            ))}
+      {/* ===== Medicamentos tomados — tabela semanal ===== */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-base font-semibold" style={{ color: C.texto }}>
+            Medicamentos tomados
+          </h3>
+        </div>
+        <Card style={{ backgroundColor: C.card, borderColor: C.borda }}>
+          <CardContent className="overflow-x-auto py-4">
+            {tabelaMed.linhas.length === 0 ? (
+              <p className="text-sm italic" style={{ color: C.textoSuave }}>
+                Nenhuma medicação registrada nesta semana.
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="py-1 text-left font-medium" style={{ color: C.textoSuave }} />
+                    {tabelaMed.diasSemana.map((d) => (
+                      <th
+                        key={d}
+                        className="py-1 text-center font-medium"
+                        style={{
+                          color: d === dia ? C.acentoEscuro : C.textoSuave,
+                          fontWeight: d === dia ? 700 : 500,
+                        }}
+                      >
+                        {DIAS_CURTOS[new Date(`${d}T12:00:00`).getDay()]}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tabelaMed.linhas.map(([nome, info]) => (
+                    <tr key={nome} className="border-t" style={{ borderColor: '#EFE6D8' }}>
+                      <td className="py-2 pr-2" style={{ color: C.texto }}>
+                        {nome}
+                        {info.dose ? (
+                          <span className="ml-1 text-[10px]" style={{ color: C.textoSuave }}>
+                            {info.dose}
+                          </span>
+                        ) : null}
+                      </td>
+                      {tabelaMed.diasSemana.map((d) => {
+                        const tomou = info.dias.has(d)
+                        const ehDiaSelecionado = d === dia
+                        return (
+                          <td key={d} className="py-2 text-center">
+                            {tomou ? (
+                              <span style={{ color: C.acentoEscuro, fontWeight: 700 }}>1×</span>
+                            ) : (
+                              <span style={{ color: '#D8C9B4' }}>•</span>
+                            )}
+                            {ehDiaSelecionado && info.registroHoje ? (
+                              <button
+                                type="button"
+                                onClick={() => void alternarIngerida(info.registroHoje!)}
+                                className="ml-1 text-[10px] underline"
+                                style={{ color: C.textoSuave }}
+                              >
+                                desmarcar
+                              </button>
+                            ) : null}
+                            {!tomou && ehDiaSelecionado ? (
+                              <button
+                                type="button"
+                                onClick={() => aoAbrirRegistro('medicacao')}
+                                className="ml-1 text-[10px] underline"
+                                style={{ color: C.acentoEscuro }}
+                              >
+                                + Tomei
+                              </button>
+                            ) : null}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Linha do tempo do dia */}
-      <Card className="bg-white/85 border-[#3E7C59]/15">
-        <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-          <Clock className="h-4 w-4 text-[#3E7C59]" />
-          <CardTitle className="text-sm">Linha do tempo de hoje</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {deHoje.length === 0 ? (
-            <p className="text-sm text-[#5C7263] italic">
-              Nada registrado hoje ainda. Use os botões + acima ou "Registrar meu dia".
-            </p>
-          ) : (
-            deHoje.map((r) => {
-              const Icone = ICONES_TIPO[r.tipo]
-              const hora = (r.data || '').slice(11, 16)
-              return (
-                <div key={r.id} className="flex items-start gap-3">
-                  <div className="rounded-full bg-[#3E7C59]/10 p-2 shrink-0">
-                    <Icone className="h-3.5 w-3.5 text-[#3E7C59]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-[#2C4A3B]">{descreverRegistro(r)}</p>
-                    <p className="text-[10px] text-[#5C7263]/70">
-                      {hora ? `${hora} · ` : ''}
-                      {formatDataHoraPTBR(r.data)}
-                    </p>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Atalhos para as outras áreas */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <button onClick={() => onIrPara('refeicoes')} className="text-left">
-          <Card className="bg-white/70 hover:bg-white transition-colors h-full">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Utensils className="h-5 w-5 text-[#3E7C59]" />
-              <p className="text-sm font-medium text-[#2C4A3B]">Refeições</p>
-            </CardContent>
-          </Card>
-        </button>
-        <button onClick={() => onIrPara('medicacoes')} className="text-left">
-          <Card className="bg-white/70 hover:bg-white transition-colors h-full">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Zap className="h-5 w-5 text-[#3E7C59]" />
-              <p className="text-sm font-medium text-[#2C4A3B]">Medicações</p>
-            </CardContent>
-          </Card>
-        </button>
-        <button onClick={() => onIrPara('diario')} className="text-left">
-          <Card className="bg-white/70 hover:bg-white transition-colors h-full">
-            <CardContent className="flex items-center gap-3 py-4">
-              <BookOpen className="h-5 w-5 text-[#3E7C59]" />
-              <p className="text-sm font-medium text-[#2C4A3B]">Diário emocional</p>
-            </CardContent>
-          </Card>
-        </button>
-        <button onClick={() => onIrPara('exames')} className="text-left">
-          <Card className="bg-white/70 hover:bg-white transition-colors h-full">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Stethoscope className="h-5 w-5 text-[#3E7C59]" />
-              <p className="text-sm font-medium text-[#2C4A3B]">Exames & Dietas</p>
-            </CardContent>
-          </Card>
-        </button>
       </div>
 
-      {/* Desenvolvimento pessoal */}
-      <Card className="bg-white/85 border-[#3E7C59]/15">
-        <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-          <BookOpen className="h-4 w-4 text-[#3E7C59]" />
-          <CardTitle className="text-sm">Meu desenvolvimento pessoal</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {devAtivos.length === 0 && devConcluidos.length === 0 ? (
-            <p className="text-sm text-[#5C7263] italic">Nenhum desafio ou meta no momento.</p>
-          ) : (
-            <>
-              {devAtivos.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => onConcluirDev(d.id, true)}
-                  className="flex w-full items-start gap-3 rounded-lg bg-[#F0F5F0] p-3 text-left hover:bg-[#E4EEE6]"
-                >
-                  <Circle className="h-4 w-4 mt-0.5 text-[#3E7C59] shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-[#2C4A3B]">{d.titulo}</p>
-                    {d.descricao && (
-                      <p className="text-xs text-[#5C7263] whitespace-pre-wrap">{d.descricao}</p>
-                    )}
+      {/* ===== Modal de lembretes ===== */}
+      <Dialog open={modalLembretes} onOpenChange={setModalLembretes}>
+        <DialogContent className="max-w-md rounded-3xl border-[#E4D8C6] bg-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#5C3A21]">Lembretes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="lembrete-titulo" className="text-[#5C3A21]">
+                Novo lembrete
+              </Label>
+              <Input
+                id="lembrete-titulo"
+                value={formLembrete.titulo}
+                onChange={(e) => setFormLembrete((f) => ({ ...f, titulo: e.target.value }))}
+                placeholder="Ex.: Tomar remédio"
+                className="border-[#E4D8C6] bg-[#F5EFE6]/50 text-[#5C3A21] focus-visible:ring-[#C9A063]"
+              />
+              <Input
+                type="datetime-local"
+                value={formLembrete.data_hora}
+                onChange={(e) => setFormLembrete((f) => ({ ...f, data_hora: e.target.value }))}
+                className="border-[#E4D8C6] bg-[#F5EFE6]/50 text-[#5C3A21] focus-visible:ring-[#C9A063]"
+              />
+              <Button
+                type="button"
+                onClick={() => void salvarLembrete()}
+                disabled={
+                  salvandoLembrete || !formLembrete.titulo.trim() || !formLembrete.data_hora
+                }
+                className="w-full rounded-full bg-[#7B4B2A] text-white hover:bg-[#5C3A21]"
+              >
+                Criar lembrete
+              </Button>
+            </div>
+            <div className="max-h-56 space-y-2 overflow-y-auto">
+              {lembretes.length === 0 ? (
+                <p className="text-sm italic text-[#8A6A4F]">Nenhum lembrete criado.</p>
+              ) : (
+                lembretes.map((l) => (
+                  <div
+                    key={l.id}
+                    className="flex items-center justify-between rounded-xl border border-[#E4D8C6] bg-[#F5EFE6]/60 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-[#5C3A21]">{l.titulo}</p>
+                      <p className="text-[11px] text-[#8A6A4F]">
+                        {new Date(l.data_hora).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Excluir lembrete"
+                      onClick={() => void removerLembrete(l.id)}
+                      className="rounded-full p-1.5 text-[#B0714F] hover:bg-[#B0714F]/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                </button>
-              ))}
-              {devConcluidos.slice(0, 3).map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => onConcluirDev(d.id, false)}
-                  className="flex w-full items-start gap-3 rounded-lg bg-white p-3 text-left opacity-70 hover:opacity-100"
-                >
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-[#3E7C59] shrink-0" />
-                  <p className="text-sm text-[#2C4A3B] line-through">{d.titulo}</p>
-                </button>
-              ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Button
-        onClick={() => onAbrirRegistro()}
-        className="w-full h-12 rounded-xl bg-[#3E7C59] hover:bg-[#33684A] text-white"
-      >
-        <Plus className="h-5 w-5 mr-2" /> Registrar meu dia
-      </Button>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

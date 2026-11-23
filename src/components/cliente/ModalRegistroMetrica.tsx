@@ -217,14 +217,16 @@ export function ModalRegistroMetrica({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl border-[#E4D8C6]">
         <DialogHeader>
-          <DialogTitle>{registro ? 'Editar registro' : 'Registrar'}</DialogTitle>
+          <DialogTitle className="text-[#5C3A21]">
+            {registro ? 'Editar registro' : 'Registrar'}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <div>
-            <Label className="text-[#2C4A3B]">O que você quer registrar?</Label>
+            <Label className="text-[#5C3A21]">O que você quer registrar?</Label>
             <div className="mt-1.5 grid grid-cols-3 gap-2">
               {TIPOS_MODAL.map((t) => {
                 const Icone = ICONES_TIPO[t]
@@ -236,8 +238,8 @@ export function ModalRegistroMetrica({
                     onClick={() => setTipo(t)}
                     className={`flex flex-col items-center gap-1 rounded-xl border p-2.5 text-xs transition-colors ${
                       ativo
-                        ? 'border-[#3E7C59] bg-[#3E7C59]/10 text-[#2C4A3B]'
-                        : 'border-[#3E7C59]/15 text-[#5C7263] hover:border-[#3E7C59]/40'
+                        ? 'border-[#A87E3F] bg-[#C9A063]/15 text-[#5C3A21] font-medium'
+                        : 'border-[#C9A063]/25 text-[#8A6A4F] hover:border-[#C9A063]/60'
                     }`}
                   >
                     <Icone className="h-5 w-5" />
@@ -250,31 +252,31 @@ export function ModalRegistroMetrica({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-[#2C4A3B]">Data</Label>
+              <Label className="text-[#5C3A21]">Data</Label>
               <Input
                 type="date"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#C9A063]/40"
               />
             </div>
             <div>
-              <Label className="text-[#2C4A3B]">Hora</Label>
+              <Label className="text-[#5C3A21]">Hora</Label>
               <Input
                 type="time"
                 value={hora}
                 onChange={(e) => setHora(e.target.value)}
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#C9A063]/40"
               />
             </div>
           </div>
 
           {/* Campos por tipo */}
           {tipo === 'sono' && (
-            <div className="space-y-2 rounded-xl bg-[#F0F5F0] p-3">
+            <div className="space-y-2 rounded-xl bg-[#F5EFE6] p-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Deitou-se</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Deitou-se</Label>
                   <Input
                     type="time"
                     value={sonoDeitar}
@@ -283,7 +285,7 @@ export function ModalRegistroMetrica({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Acordou</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Acordou</Label>
                   <Input
                     type="time"
                     value={sonoAcordar}
@@ -293,19 +295,19 @@ export function ModalRegistroMetrica({
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-[#5C7263]">Qualidade ({sonoQualidade}/5)</Label>
+                <Label className="text-xs text-[#8A6A4F]">Qualidade ({sonoQualidade}/5)</Label>
                 <input
                   type="range"
                   min={1}
                   max={5}
                   value={sonoQualidade}
                   onChange={(e) => setSonoQualidade(Number(e.target.value))}
-                  className="w-full accent-[#3E7C59]"
+                  className="w-full accent-[#A87E3F]"
                 />
               </div>
               <div>
-                <Label className="text-xs text-[#5C7263]">Fases (horas — opcional)</Label>
-                <div className="grid grid-cols-4 gap-2 mt-1">
+                <Label className="text-xs text-[#8A6A4F]">Fases (horas — opcional)</Label>
+                <div className="mt-1 grid grid-cols-4 gap-2">
                   <Input
                     placeholder="Deep"
                     value={fasesSono.deep}
@@ -340,13 +342,13 @@ export function ModalRegistroMetrica({
           )}
 
           {tipo === 'bebida' && (
-            <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#F0F5F0] p-3">
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#F5EFE6] p-3">
               <div>
-                <Label className="text-xs text-[#5C7263]">Bebida</Label>
+                <Label className="text-xs text-[#8A6A4F]">Bebida</Label>
                 <select
                   value={bebida}
                   onChange={(e) => setBebida(e.target.value)}
-                  className="w-full rounded-lg border border-[#3E7C59]/20 bg-white p-2 text-sm"
+                  className="w-full rounded-lg border border-[#C9A063]/40 bg-white p-2 text-sm"
                 >
                   {BEBIDAS.map((b) => (
                     <option key={b.v} value={b.v}>
@@ -356,7 +358,7 @@ export function ModalRegistroMetrica({
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-[#5C7263]">Copos</Label>
+                <Label className="text-xs text-[#8A6A4F]">Copos</Label>
                 <Input
                   type="number"
                   min={1}
@@ -369,14 +371,14 @@ export function ModalRegistroMetrica({
           )}
 
           {(tipo === 'refeicao' || tipo === 'alimento') && (
-            <div className="space-y-2 rounded-xl bg-[#F0F5F0] p-3">
+            <div className="space-y-2 rounded-xl bg-[#F5EFE6] p-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Refeição</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Refeição</Label>
                   <select
                     value={refeicao}
                     onChange={(e) => setRefeicao(e.target.value)}
-                    className="w-full rounded-lg border border-[#3E7C59]/20 bg-white p-2 text-sm"
+                    className="w-full rounded-lg border border-[#C9A063]/40 bg-white p-2 text-sm"
                   >
                     {Object.entries(REF_LABEL).map(([v, l]) => (
                       <option key={v} value={v}>
@@ -386,7 +388,7 @@ export function ModalRegistroMetrica({
                   </select>
                 </div>
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Calorias (kcal)</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Calorias (kcal)</Label>
                   <Input
                     value={calorias}
                     onChange={(e) => setCalorias(e.target.value)}
@@ -397,7 +399,7 @@ export function ModalRegistroMetrica({
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-[#5C7263]">O que comeu</Label>
+                <Label className="text-xs text-[#8A6A4F]">O que comeu</Label>
                 <Textarea
                   rows={2}
                   value={itens}
@@ -410,9 +412,9 @@ export function ModalRegistroMetrica({
           )}
 
           {tipo === 'medicacao' && (
-            <div className="space-y-2 rounded-xl bg-[#F0F5F0] p-3">
+            <div className="space-y-2 rounded-xl bg-[#F5EFE6] p-3">
               <div>
-                <Label className="text-xs text-[#5C7263]">Medicação / rotina</Label>
+                <Label className="text-xs text-[#8A6A4F]">Medicação / rotina</Label>
                 <Input
                   value={medNome}
                   onChange={(e) => setMedNome(e.target.value)}
@@ -422,7 +424,7 @@ export function ModalRegistroMetrica({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Dose</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Dose</Label>
                   <Input
                     value={medDose}
                     onChange={(e) => setMedDose(e.target.value)}
@@ -431,7 +433,7 @@ export function ModalRegistroMetrica({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Horário</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Horário</Label>
                   <Input
                     type="time"
                     value={medHorario}
@@ -440,7 +442,7 @@ export function ModalRegistroMetrica({
                   />
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm text-[#2C4A3B]">
+              <label className="flex items-center gap-2 text-sm text-[#5C3A21]">
                 <input
                   type="checkbox"
                   checked={medIngerida}
@@ -452,7 +454,7 @@ export function ModalRegistroMetrica({
           )}
 
           {tipo === 'emocao' && (
-            <div className="space-y-2 rounded-xl bg-[#F0F5F0] p-3">
+            <div className="space-y-2 rounded-xl bg-[#F5EFE6] p-3">
               <div className="grid grid-cols-5 gap-1">
                 {HUMORES.map((h) => (
                   <button
@@ -461,8 +463,8 @@ export function ModalRegistroMetrica({
                     onClick={() => setHumor(h.v)}
                     className={`rounded-lg border px-1 py-2 text-xs transition-colors ${
                       humor === h.v
-                        ? 'border-[#3E7C59] bg-[#3E7C59]/10 text-[#2C4A3B] font-medium'
-                        : 'border-[#3E7C59]/15 text-[#5C7263]'
+                        ? 'border-[#A87E3F] bg-[#C9A063]/15 text-[#5C3A21] font-medium'
+                        : 'border-[#C9A063]/25 text-[#8A6A4F]'
                     }`}
                   >
                     {h.l}
@@ -480,9 +482,9 @@ export function ModalRegistroMetrica({
           )}
 
           {tipo === 'atividade_fisica' && (
-            <div className="space-y-2 rounded-xl bg-[#F0F5F0] p-3">
+            <div className="space-y-2 rounded-xl bg-[#F5EFE6] p-3">
               <div>
-                <Label className="text-xs text-[#5C7263]">O que fez</Label>
+                <Label className="text-xs text-[#8A6A4F]">O que fez</Label>
                 <Input
                   value={atvDescricao}
                   onChange={(e) => setAtvDescricao(e.target.value)}
@@ -492,7 +494,7 @@ export function ModalRegistroMetrica({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Duração (min)</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Duração (min)</Label>
                   <Input
                     value={atvDuracao}
                     onChange={(e) => setAtvDuracao(e.target.value)}
@@ -502,11 +504,11 @@ export function ModalRegistroMetrica({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-[#5C7263]">Intensidade</Label>
+                  <Label className="text-xs text-[#8A6A4F]">Intensidade</Label>
                   <select
                     value={atvIntensidade}
                     onChange={(e) => setAtvIntensidade(e.target.value)}
-                    className="w-full rounded-lg border border-[#3E7C59]/20 bg-white p-2 text-sm"
+                    className="w-full rounded-lg border border-[#C9A063]/40 bg-white p-2 text-sm"
                   >
                     <option value="leve">Leve</option>
                     <option value="moderada">Moderada</option>
@@ -518,8 +520,8 @@ export function ModalRegistroMetrica({
           )}
 
           {tipo === 'sintoma' && (
-            <div className="rounded-xl bg-[#F0F5F0] p-3">
-              <Label className="text-xs text-[#5C7263]">Como você está se sentindo?</Label>
+            <div className="rounded-xl bg-[#F5EFE6] p-3">
+              <Label className="text-xs text-[#8A6A4F]">Como você está se sentindo?</Label>
               <Textarea
                 rows={2}
                 value={sintomaDescricao}
@@ -531,12 +533,12 @@ export function ModalRegistroMetrica({
           )}
 
           <div>
-            <Label className="text-[#2C4A3B]">Observação geral (opcional)</Label>
+            <Label className="text-[#5C3A21]">Observação geral (opcional)</Label>
             <Textarea
               rows={2}
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              className="rounded-xl border-[#3E7C59]/20"
+              className="rounded-xl border-[#C9A063]/40"
             />
           </div>
         </div>
@@ -548,7 +550,7 @@ export function ModalRegistroMetrica({
           <Button
             onClick={salvar}
             disabled={salvando}
-            className="bg-[#3E7C59] hover:bg-[#33684A] text-white"
+            className="bg-[#7B4B2A] text-white hover:bg-[#5C3A21]"
           >
             {salvando ? 'Salvando...' : 'Salvar registro'}
           </Button>

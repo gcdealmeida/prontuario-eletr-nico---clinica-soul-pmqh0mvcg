@@ -1,100 +1,103 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { Loader2, Lock, Mail } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
-import { carregarMeuPainel, type MeuPerfilSaude } from '@/services/saudeBemEstar'
-import { useToast } from '@/hooks/use-toast'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Heart, Leaf, Loader2, Lock } from 'lucide-react'
+import { LogoSoulHtr } from '@/components/cliente/LogoSoulHtr'
+import { NOME_APP_CLIENTE } from '@/lib/soulHtrTheme'
+
+interface Props {
+  onEntrou: () => void
+}
 
 /**
- * Login do Cliente Soul (rota pública /cliente).
- * Layout EXCLUSIVO — visual diferente do painel da clínica (verde/creme, sem
- * topbar administrativa). Conta criada pela clínica (usuário users com role
- * 'cliente'); autentica na coleção users e verifica o cadastro saude_clientes.
+ * Tela de login do app do Cliente Soul (/cliente) — autentica na coleção users
+ * (conta com role 'cliente' criada pela clínica). Mesma lógica de antes, apenas
+ * re-estilizada na paleta SOUL (bege claro + marrons + dourado).
  */
-export function ClienteSoulLogin({ onEntrou }: { onEntrou: () => void }) {
-  const { toast } = useToast()
+export function ClienteSoulLogin({ onEntrou }: Props) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
 
   const entrar = async (e: React.FormEvent) => {
     e.preventDefault()
+    setErro('')
     setCarregando(true)
     try {
       await pb.collection('users').authWithPassword(email.trim(), senha)
       onEntrou()
-    } catch (err) {
-      console.error(err)
-      toast({
-        title: 'Não foi possível entrar',
-        description: 'Verifique seu e-mail e senha. Se ainda não tem acesso, fale com a clínica.',
-        variant: 'destructive',
-      })
+    } catch {
+      setErro('E-mail ou senha incorretos. Verifique e tente novamente.')
     } finally {
       setCarregando(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF3EC] via-[#F6F1E7] to-[#FDFBF6] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-[#3E7C59] mb-4">
-            <Leaf className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-[#2C4A3B]">Cliente Soul</h1>
-          <p className="text-sm text-[#5C7263] mt-1">Seu espaço de saúde e bem-estar</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#F5EFE6] px-4 py-10">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center">
+          <LogoSoulHtr />
+          <p className="mt-4 text-center text-sm text-[#8A6F58]">{NOME_APP_CLIENTE}</p>
         </div>
 
         <form
           onSubmit={entrar}
-          className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6 space-y-4 border border-[#3E7C59]/10"
+          className="space-y-4 rounded-3xl border border-[#E2D4BF] bg-white p-6 shadow-sm"
         >
-          <div className="space-y-1.5">
-            <Label htmlFor="cliente-email" className="text-[#2C4A3B]">
+          <div>
+            <label htmlFor="cliente-email" className="mb-1 block text-sm text-[#5C3A21]">
               E-mail
-            </Label>
-            <Input
-              id="cliente-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              className="h-11 rounded-xl border-[#3E7C59]/20 focus-visible:ring-[#3E7C59]"
-            />
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#C9A063]" />
+              <input
+                id="cliente-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="w-full rounded-xl border border-[#E2D4BF] bg-[#F5EFE6]/50 py-2.5 pl-9 pr-3 text-sm text-[#5C3A21] placeholder:text-[#C9B79E] focus:border-[#C9A063] focus:outline-none"
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cliente-senha" className="text-[#2C4A3B]">
+
+          <div>
+            <label htmlFor="cliente-senha" className="mb-1 block text-sm text-[#5C3A21]">
               Senha
-            </Label>
-            <Input
-              id="cliente-senha"
-              type="password"
-              required
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="••••••••"
-              className="h-11 rounded-xl border-[#3E7C59]/20 focus-visible:ring-[#3E7C59]"
-            />
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#C9A063]" />
+              <input
+                id="cliente-senha"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-[#E2D4BF] bg-[#F5EFE6]/50 py-2.5 pl-9 pr-3 text-sm text-[#5C3A21] placeholder:text-[#C9B79E] focus:border-[#C9A063] focus:outline-none"
+              />
+            </div>
           </div>
-          <Button
+
+          {erro && (
+            <p className="rounded-xl bg-[#B0714F]/10 px-3 py-2 text-sm text-[#B0714F]">{erro}</p>
+          )}
+
+          <button
             type="submit"
             disabled={carregando}
-            className="w-full h-11 rounded-xl bg-[#3E7C59] hover:bg-[#33684A] text-white font-medium"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#7B4B2A] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#5C3A21] disabled:opacity-60"
           >
-            {carregando ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Heart className="h-4 w-4 mr-2" />
-            )}
+            {carregando && <Loader2 className="h-4 w-4 animate-spin" />}
             Entrar
-          </Button>
-          <p className="text-[11px] text-center text-[#5C7263] flex items-center justify-center gap-1">
-            <Lock className="h-3 w-3" />
-            Acesso criado pela Clínica Soul. Dúvidas? Fale com a recepção.
+          </button>
+
+          <p className="text-center text-xs text-[#A98D74]">
+            Acesso exclusivo de clientes da Clínica Soul. Em caso de dúvida, fale com a clínica.
           </p>
         </form>
       </div>
