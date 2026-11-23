@@ -15,6 +15,8 @@ export type SaudeRegistroTipo =
   | 'medicacao'
   | 'refeicao'
   | 'emocao'
+  | 'treino'
+  | 'reabilitacao'
 
 export const TIPOS_REGISTRO: { value: SaudeRegistroTipo; label: string }[] = [
   { value: 'atividade_fisica', label: 'Atividade Física' },
@@ -27,6 +29,8 @@ export const TIPOS_REGISTRO: { value: SaudeRegistroTipo; label: string }[] = [
   { value: 'medicacao', label: 'Medicação' },
   { value: 'refeicao', label: 'Refeição' },
   { value: 'emocao', label: 'Humor' },
+  { value: 'treino', label: 'Treino Físico' },
+  { value: 'reabilitacao', label: 'Reabilitação' },
 ]
 
 export const labelTipoRegistro = (t: SaudeRegistroTipo) =>
@@ -59,6 +63,21 @@ export interface SaudeClienteRecord {
     user_id?: { id: string; email: string; name?: string }
     paciente_id?: { id: string; nome: string }
   }
+}
+
+export interface ItemTreino {
+  nome: string
+  series?: string
+  repeticoes?: string
+  carga?: string
+  observacao?: string
+}
+
+export interface DadosTreinoClinico {
+  titulo?: string
+  descricao?: string
+  exercicios?: ItemTreino[]
+  resultado?: string
 }
 
 export interface SaudeRegistroRecord {
@@ -219,6 +238,53 @@ export async function criarSaudeRegistro(payload: {
   return pb.collection('saude_registros').create<SaudeRegistroRecord>(payload)
 }
 
+/* -------------------------------------------------------------- */
+/* Prescrição clínica (treinos / reabilitação / exames)            */
+/* -------------------------------------------------------------- */
+
+/** Monta o dados_json de um treino/reabilitação prescrito pela clínica. */
+export function dadosTreinoClinico(dados: DadosTreinoClinico): Record<string, unknown> {
+  return {
+    ...dados,
+    _origem: 'clinica',
+  }
+}
+
+export async function criarTreinoClinico(payload: {
+  cliente_id: string
+  tipo: 'treino' | 'reabilitacao'
+  observacao: string
+  dados: DadosTreinoClinico
+}): Promise<SaudeRegistroRecord> {
+  // registrado_por é preenchido pelo hook saude_registros_staff.
+  return criarSaudeRegistro({
+    cliente_id: payload.cliente_id,
+    tipo: payload.tipo,
+    data: `${hojeYMD()} 12:00:00.000Z`,
+    observacao: payload.observacao,
+    dados_json: dadosTreinoClinico(payload.dados),
+  })
+}
+
+export async function criarExameClinico(payload: {
+  cliente_id: string
+  titulo: string
+  descricao?: string
+  resultado?: string
+}): Promise<SaudeRegistroRecord> {
+  return criarSaudeRegistro({
+    cliente_id: payload.cliente_id,
+    tipo: 'exame',
+    data: `${hojeYMD()} 12:00:00.000Z`,
+    observacao: payload.titulo,
+    dados_json: dadosTreinoClinico({
+      titulo: payload.titulo,
+      descricao: payload.descricao,
+      resultado: payload.resultado,
+    }),
+  })
+}
+
 export async function atualizarSaudeRegistro(
   id: string,
   data: Partial<{
@@ -238,6 +304,12 @@ export async function excluirSaudeRegistro(id: string): Promise<void> {
 /* ------------------------------------------------------------------ */
 /* Intervenção da clínica (orientações / dicas / lembretes / dev)      */
 /* ------------------------------------------------------------------ */
+
+const hojeYMD = () => {
+  const d = new Date()
+  const off = d.getTimezoneOffset()
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10)
+}
 
 export async function listarSaudeOrientacoes(filtro?: {
   clienteId?: string

@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatDataHoraPTBR } from '@/lib/constants'
-import { descreverRegistro, hojeYMD } from '@/lib/saudeAgregacoes'
+import { dadosPrescricao, descreverRegistro, hojeYMD } from '@/lib/saudeAgregacoes'
 import type { SaudeRegistroRecord } from '@/services/saudeBemEstar'
+import { ClienteTreinosReabilitacao } from './ClienteTreinosReabilitacao'
 
 interface Props {
   registros: SaudeRegistroRecord[]
@@ -21,7 +22,10 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
   const [salvando, setSalvando] = useState(false)
   const [tipoNovo, setTipoNovo] = useState<'exame' | 'dieta'>('exame')
 
-  const exames = useMemo(() => registros.filter((r) => r.tipo === 'exame'), [registros])
+  const exames = useMemo(
+    () => registros.filter((r) => r.tipo === 'exame' && dadosPrescricao(r)._origem !== 'clinica'),
+    [registros],
+  )
   const dietas = useMemo(() => registros.filter((r) => r.tipo === 'dieta'), [registros])
 
   const salvar = async () => {
@@ -38,6 +42,7 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
 
   return (
     <div className="space-y-4">
+      <ClienteTreinosReabilitacao registros={registros} />
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-white border-[#E2D4BF] shadow-sm">
           <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">

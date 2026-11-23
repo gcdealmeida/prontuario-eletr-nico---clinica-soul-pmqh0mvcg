@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T09:34:35.540Z",
+  "generatedAt": "2026-11-23T10:03:06.466Z",
   "collections": [
     {
       "name": "users",
@@ -3414,7 +3414,9 @@
             "medicacao",
             "refeicao",
             "emocao",
-            "dieta"
+            "dieta",
+            "treino",
+            "reabilitacao"
           ]
         },
         {

@@ -1,6 +1,7 @@
 import {
   Activity,
   ClipboardList,
+  Dumbbell,
   Droplets,
   HeartPulse,
   Moon,
@@ -25,6 +26,8 @@ export const ICONES_TIPO: Record<SaudeRegistroTipo, typeof Activity> = {
   medicacao: Pill,
   refeicao: Utensils,
   emocao: Smile,
+  treino: Dumbbell,
+  reabilitacao: HeartPulse,
 }
 export { Zap as IcoEnergia, HeartPulse as IcoCardio }
 

@@ -56,6 +56,32 @@ export interface DadosBebida {
   copos?: number
 }
 
+/** Item de exercício dentro de um treino/reabilitação prescrito pela clínica. */
+export interface ItemExercicioTreino {
+  nome: string
+  series?: string
+  repeticoes?: string
+  carga?: string
+  observacao?: string
+}
+
+/** dados_json de um treino/reabilitação/exame prescrito pela clínica. */
+export interface DadosPrescricaoClinica {
+  titulo?: string
+  descricao?: string
+  exercicios?: ItemExercicioTreino[]
+  resultado?: string
+  /** Marcador interno: presença indica que a clínica criou o registro. */
+  _origem?: string
+}
+
+export const dadosPrescricao = (r: SaudeRegistroRecord) =>
+  (r.dados_json || {}) as DadosPrescricaoClinica
+
+/** 'clinica' quando o registro foi prescrito pela clínica (treino/reab/exame). */
+export const origemPrescricao = (r: SaudeRegistroRecord): string | undefined =>
+  (r.dados_json as Record<string, unknown> | null | undefined)?._origem as string | undefined
+
 export const dadosSono = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosSono
 export const dadosRefeicao = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosRefeicao
 export const dadosMedicacao = (r: SaudeRegistroRecord) => (r.dados_json || {}) as DadosMedicacao
@@ -338,6 +364,12 @@ export function descreverRegistro(r: SaudeRegistroRecord): string {
     case 'emocao': {
       const e = d as unknown as DadosEmocao
       return `Humor: ${ROTULOS_HUMOR[e.humor] || e.humor}`
+    }
+    case 'treino':
+    case 'reabilitacao': {
+      const p = d as DadosPrescricaoClinica
+      const n = Array.isArray(p.exercicios) ? p.exercicios.length : 0
+      return p.descricao || (n > 0 ? `${n} exercício(s)` : 'Prescrição da clínica')
     }
     case 'sintoma':
     case 'exame':

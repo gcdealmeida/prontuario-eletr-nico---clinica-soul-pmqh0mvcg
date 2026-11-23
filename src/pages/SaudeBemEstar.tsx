@@ -18,6 +18,8 @@ import {
   Smile,
   Sparkles,
   UserPlus,
+  Dumbbell,
+  HeartPulse,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,6 +66,7 @@ import { getAllPacientes } from '@/services/pacientes'
 import { SaudeResumoIcones } from '@/components/saude/SaudeResumoIcones'
 import { SaudeTimelineClinica } from '@/components/saude/SaudeTimelineClinica'
 import { SaudeIntervencoes } from '@/components/saude/SaudeIntervencoes'
+import { SaudePrescricaoTreinos } from '@/components/saude/SaudePrescricaoTreinos'
 import type { PacienteRecord } from '@/types/database'
 
 const iconesTipo: Record<SaudeRegistroTipo, typeof Activity> = {
@@ -77,6 +80,8 @@ const iconesTipo: Record<SaudeRegistroTipo, typeof Activity> = {
   medicacao: Pill,
   refeicao: Utensils,
   emocao: Smile,
+  treino: Dumbbell,
+  reabilitacao: HeartPulse,
 }
 
 const hojeYMD = () => {
@@ -249,6 +254,12 @@ export default function SaudeBemEstar() {
             {isProfissional ? ' • visão de profissional (somente seus designados)' : ''}
           </p>
         </div>
+
+        <SaudePrescricaoTreinos
+          cliente={clienteSelecionado}
+          registros={registros}
+          onAtualizado={carregar}
+        />
 
         <SaudeTimelineClinica clienteId={clienteSelecionado.id} />
 
