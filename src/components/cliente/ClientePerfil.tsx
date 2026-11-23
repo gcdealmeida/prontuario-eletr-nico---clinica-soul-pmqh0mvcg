@@ -71,39 +71,39 @@ export function ClientePerfil({ cliente, onAtualizado }: Props) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white/85 border-[#3E7C59]/15">
+      <Card className="bg-white border-[#E2D4BF] shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Meus dados</CardTitle>
+          <CardTitle className="text-sm text-[#5C3A21]">Meus dados</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#5C7263]">Peso (kg)</Label>
+              <Label className="text-xs text-[#8A6F58]">Peso (kg)</Label>
               <Input
                 value={peso}
                 onChange={(e) => setPeso(e.target.value)}
                 inputMode="decimal"
                 placeholder="ex.: 70,5"
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#5C7263]">Altura (cm)</Label>
+              <Label className="text-xs text-[#8A6F58]">Altura (cm)</Label>
               <Input
                 value={altura}
                 onChange={(e) => setAltura(e.target.value)}
                 inputMode="decimal"
                 placeholder="ex.: 170"
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
           </div>
           <div>
-            <Label className="text-xs text-[#5C7263]">Gênero</Label>
+            <Label className="text-xs text-[#8A6F58]">Gênero</Label>
             <select
               value={genero}
               onChange={(e) => setGenero(e.target.value)}
-              className="w-full rounded-xl border border-[#3E7C59]/20 bg-white p-2 text-sm"
+              className="w-full rounded-xl border border-[#E2D4BF] bg-white p-2 text-sm text-[#5C3A21]"
             >
               {GENEROS.map((g) => (
                 <option key={g.v} value={g.v}>
@@ -115,56 +115,56 @@ export function ClientePerfil({ cliente, onAtualizado }: Props) {
         </CardContent>
       </Card>
 
-      <Card className="bg-white/85 border-[#3E7C59]/15">
+      <Card className="bg-white border-[#E2D4BF] shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Minhas metas diárias</CardTitle>
+          <CardTitle className="text-sm text-[#5C3A21]">Minhas metas diárias</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-[#5C7263]">Água (copos/dia)</Label>
+              <Label className="text-xs text-[#8A6F58]">Água (copos/dia)</Label>
               <Input
                 value={metas.agua_copos}
                 onChange={(e) => setMetas({ ...metas, agua_copos: e.target.value })}
                 inputMode="numeric"
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#5C7263]">Sono (horas/noite)</Label>
+              <Label className="text-xs text-[#8A6F58]">Sono (horas/noite)</Label>
               <Input
                 value={metas.sono_horas}
                 onChange={(e) => setMetas({ ...metas, sono_horas: e.target.value })}
                 inputMode="decimal"
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#5C7263]">Calorias (kcal/dia)</Label>
+              <Label className="text-xs text-[#8A6F58]">Calorias (kcal/dia)</Label>
               <Input
                 value={metas.calorias}
                 onChange={(e) => setMetas({ ...metas, calorias: e.target.value })}
                 inputMode="numeric"
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#5C7263]">Atividade (min/dia)</Label>
+              <Label className="text-xs text-[#8A6F58]">Atividade (min/dia)</Label>
               <Input
                 value={metas.atividade_min}
                 onChange={(e) => setMetas({ ...metas, atividade_min: e.target.value })}
                 inputMode="numeric"
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
           </div>
-          <p className="text-[10px] text-[#5C7263]/70">
+          <p className="text-[10px] text-[#8A6F58]/80">
             As metas aparecem nos cartões da aba Hoje e nos seus Insights.
           </p>
           <Button
             onClick={salvar}
             disabled={salvando}
-            className="w-full h-11 rounded-xl bg-[#3E7C59] hover:bg-[#33684A] text-white"
+            className="w-full h-11 rounded-xl bg-[#7B4B2A] hover:bg-[#5C3A21] text-white"
           >
             {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {salvando ? 'Salvando...' : 'Salvar perfil'}

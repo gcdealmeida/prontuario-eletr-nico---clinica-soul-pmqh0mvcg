@@ -10,7 +10,16 @@ import {
   Utensils,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
-import { carregarMeuPainel, type MeuPerfilSaude } from '@/services/saudeBemEstar'
+import {
+  carregarMeuPainel,
+  criarSaudeRegistro,
+  atualizarSaudeRegistro,
+  excluirSaudeRegistro,
+  type MeuPerfilSaude,
+  type SaudeRegistroRecord,
+} from '@/services/saudeBemEstar'
+import { hojeYMD } from '@/lib/saudeAgregacoes'
+import { useToast } from '@/hooks/use-toast'
 import { ClienteDiarioEmocional } from '@/components/cliente/ClienteDiarioEmocional'
 import { ClienteExamesDietas } from '@/components/cliente/ClienteExamesDietas'
 import { ClienteHoje } from '@/components/cliente/ClienteHoje'
@@ -23,7 +32,6 @@ import {
   type ValoresRegistro,
 } from '@/components/cliente/ModalRegistroMetrica'
 import { LogoSoulHtr } from '@/components/cliente/LogoSoulHtr'
-import { criarSaudeRegistro } from '@/services/saudeBemEstar'
 import { NOME_APP_CLIENTE, NOME_APP_CLIENTE_CURTO } from '@/lib/soulHtrTheme'
 import type { TipoModalRegistro } from '@/lib/soulHtrTheme'
 import { cn } from '@/lib/utils'
@@ -61,9 +69,8 @@ export function ClienteSoulApp() {
   const [erro, setErro] = useState('')
   const [modalAberto, setModalAberto] = useState(false)
   const [tipoModal, setTipoModal] = useState<TipoModalRegistro>('bebida')
-  const [registroEdit, setRegistroEdit] = useState<ValoresRegistro | null>(null)
-  const [salvando, setSalvando] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const { toast } = useToast()
 
   const recarregar = useCallback(async () => {
     try {
@@ -82,19 +89,14 @@ export function ClienteSoulApp() {
   }, [recarregar, reloadKey])
 
   const abrirRegistro = useCallback((tipo?: TipoModalRegistro) => {
-    setRegistroEdit(null)
-    setTipoModal(tipo)
+    if (tipo) setTipoModal(tipo)
     setModalAberto(true)
   }, [])
 
   const salvarRegistro = useCallback(
     async (valores: ValoresRegistro) => {
       if (!painel) return
-      setSalvando(true)
       try {
-        if (registroEdit) {
-          // edição não usada ainda no fluxo do Hoje (apenas criar)
-        }
         await criarSaudeRegistro({
           cliente_id: painel.cliente.id,
           tipo: valores.tipo,
@@ -103,13 +105,85 @@ export function ClienteSoulApp() {
           dados_json: valores.dados,
         })
         setModalAberto(false)
-        setRegistroEdit(null)
         setReloadKey((k) => k + 1)
-      } finally {
-        setSalvando(false)
+      } catch (err) {
+        console.error(err)
+        toast({ title: 'Erro ao salvar registro.', variant: 'destructive' })
       }
     },
-    [painel, registroEdit],
+    [painel, toast],
+  )
+
+  const excluirRegistro = useCallback(
+    async (id: string) => {
+      try {
+        await excluirSaudeRegistro(id)
+        setReloadKey((k) => k + 1)
+      } catch (err) {
+        console.error(err)
+        toast({ title: 'Erro ao excluir registro.', variant: 'destructive' })
+      }
+    },
+    [toast],
+  )
+
+  const alternarIngerida = useCallback(
+    async (r: SaudeRegistroRecord) => {
+      const d = { ...(r.dados_json || {}) }
+      d.ingerida = d.ingerida === false
+      try {
+        await atualizarSaudeRegistro(r.id, { dados_json: d })
+        setReloadKey((k) => k + 1)
+      } catch (err) {
+        console.error(err)
+        toast({ title: 'Não foi possível atualizar a dose', variant: 'destructive' })
+      }
+    },
+    [toast],
+  )
+
+  const salvarEmocao = useCallback(
+    async (humor: string, notas: string) => {
+      if (!painel) return
+      try {
+        await criarSaudeRegistro({
+          cliente_id: painel.cliente.id,
+          tipo: 'emocao',
+          data: `${hojeYMD()} ${new Date().toTimeString().slice(0, 8)}.000Z`,
+          dados_json: { humor, notas },
+        })
+        setReloadKey((k) => k + 1)
+      } catch (err) {
+        console.error(err)
+        toast({ title: 'Erro ao salvar no diário.', variant: 'destructive' })
+      }
+    },
+    [painel, toast],
+  )
+
+  const criarRegistroExameDieta = useCallback(
+    async (tipo: 'exame' | 'dieta', titulo?: string) => {
+      if (!painel) return
+      // Chamado sem título = abrir o modal rápido; com título = salvar direto (form da aba).
+      if (titulo === undefined) {
+        abrirRegistro(tipo)
+        return
+      }
+      try {
+        await criarSaudeRegistro({
+          cliente_id: painel.cliente.id,
+          tipo,
+          data: `${hojeYMD()} ${new Date().toTimeString().slice(0, 8)}.000Z`,
+          observacao: titulo,
+          dados_json: { titulo },
+        })
+        setReloadKey((k) => k + 1)
+      } catch (err) {
+        console.error(err)
+        toast({ title: `Erro ao registrar ${tipo}.`, variant: 'destructive' })
+      }
+    },
+    [painel, abrirRegistro, toast],
   )
 
   return (

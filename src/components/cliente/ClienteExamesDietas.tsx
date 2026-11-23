@@ -39,33 +39,33 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-white/85 border-[#3E7C59]/15">
+        <Card className="bg-white border-[#E2D4BF] shadow-sm">
           <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Stethoscope className="h-4 w-4 text-[#3E7C59]" /> Exames
+              <Stethoscope className="h-4 w-4 text-[#7B4B2A]" /> Exames
             </CardTitle>
             <Button
               size="sm"
               variant="outline"
               onClick={() => onRegistrar('exame')}
-              className="border-[#3E7C59]/30 text-[#2C4A3B]"
+              className="border-[#7B4B2A]/30 text-[#5C3A21] hover:border-[#C9A063]"
             >
               <Plus className="h-4 w-4 mr-1" /> Novo
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
             {exames.length === 0 ? (
-              <p className="text-sm text-[#5C7263] italic">Nenhum exame registrado.</p>
+              <p className="text-sm text-[#8A6F58] italic">Nenhum exame registrado.</p>
             ) : (
               exames.slice(0, 15).map((r) => (
-                <div key={r.id} className="rounded-lg bg-[#F0F5F0] p-3">
-                  <p className="text-sm text-[#2C4A3B]">{descreverRegistro(r)}</p>
-                  <p className="text-[10px] text-[#5C7263]/60 mt-0.5">
+                <div key={r.id} className="rounded-xl bg-[#F5EFE6] border border-[#E2D4BF] p-3">
+                  <p className="text-sm text-[#5C3A21]">{descreverRegistro(r)}</p>
+                  <p className="text-[10px] text-[#8A6F58]/70 mt-0.5">
                     {formatDataHoraPTBR(r.data)}
                   </p>
                   <button
                     onClick={() => onExcluir(r.id)}
-                    className="mt-1 text-[10px] text-[#5C7263]/50 hover:text-red-500"
+                    className="mt-1 text-[10px] text-[#8A6F58]/60 hover:text-red-500"
                   >
                     excluir
                   </button>
@@ -75,33 +75,33 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
           </CardContent>
         </Card>
 
-        <Card className="bg-white/85 border-[#3E7C59]/15">
+        <Card className="bg-white border-[#E2D4BF] shadow-sm">
           <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Salad className="h-4 w-4 text-[#3E7C59]" /> Dietas
+              <Salad className="h-4 w-4 text-[#7B4B2A]" /> Dietas
             </CardTitle>
             <Button
               size="sm"
               variant="outline"
               onClick={() => onRegistrar('dieta')}
-              className="border-[#3E7C59]/30 text-[#2C4A3B]"
+              className="border-[#7B4B2A]/30 text-[#5C3A21] hover:border-[#C9A063]"
             >
               <Plus className="h-4 w-4 mr-1" /> Nova
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
             {dietas.length === 0 ? (
-              <p className="text-sm text-[#5C7263] italic">Nenhuma dieta registrada.</p>
+              <p className="text-sm text-[#8A6F58] italic">Nenhuma dieta registrada.</p>
             ) : (
               dietas.slice(0, 15).map((r) => (
-                <div key={r.id} className="rounded-lg bg-[#FDF6E9] border border-[#C9A46A]/30 p-3">
-                  <p className="text-sm text-[#33221C]">{descreverRegistro(r)}</p>
-                  <p className="text-[10px] text-[#73574A]/60 mt-0.5">
+                <div key={r.id} className="rounded-xl bg-[#F5EFE6] border border-[#E2D4BF] p-3">
+                  <p className="text-sm text-[#5C3A21]">{descreverRegistro(r)}</p>
+                  <p className="text-[10px] text-[#8A6F58]/70 mt-0.5">
                     {formatDataHoraPTBR(r.data)}
                   </p>
                   <button
                     onClick={() => onExcluir(r.id)}
-                    className="mt-1 text-[10px] text-[#73574A]/50 hover:text-red-500"
+                    className="mt-1 text-[10px] text-[#8A6F58]/60 hover:text-red-500"
                   >
                     excluir
                   </button>
@@ -113,23 +113,23 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
       </div>
 
       {aberto && (
-        <Card className="border-[#C9A46A] bg-white/90">
+        <Card className="border-[#C9A063] bg-white shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-[#C9A46A]" /> Registrar{' '}
+              <ClipboardList className="h-4 w-4 text-[#C9A063]" /> Registrar{' '}
               {tipoNovo === 'exame' ? 'exame' : 'dieta'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <Label className="text-[#2C4A3B]">Título</Label>
+              <Label className="text-[#5C3A21]">Título</Label>
               <Input
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder={
                   tipoNovo === 'exame' ? 'ex.: Hemograma completo' : 'ex.: Dieta low carb'
                 }
-                className="rounded-xl border-[#3E7C59]/20"
+                className="rounded-xl border-[#E2D4BF] focus-visible:ring-[#C9A063]"
               />
             </div>
             <div className="flex gap-2">
@@ -139,7 +139,7 @@ export function ClienteExamesDietas({ registros, onRegistrar, onExcluir }: Props
               <Button
                 onClick={salvar}
                 disabled={salvando || !titulo.trim()}
-                className="bg-[#3E7C59] hover:bg-[#33684A] text-white"
+                className="bg-[#7B4B2A] hover:bg-[#5C3A21] text-white"
               >
                 {salvando ? 'Salvando...' : 'Salvar'}
               </Button>

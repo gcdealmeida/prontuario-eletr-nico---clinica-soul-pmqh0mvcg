@@ -29,6 +29,7 @@ const TIPOS_MODAL: SaudeRegistroTipo[] = [
   'sintoma',
   'alimento',
   'exame',
+  'dieta',
 ]
 
 export interface ValoresRegistro {

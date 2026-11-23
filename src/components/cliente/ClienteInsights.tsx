@@ -12,35 +12,35 @@ export function ClienteInsights({ registros }: { registros: SaudeRegistroRecord[
   return (
     <div className="space-y-4">
       {vazio ? (
-        <Card className="bg-white/85 border-dashed border-[#3E7C59]/30">
+        <Card className="bg-white border-dashed border-[#C9A063]/50 shadow-sm">
           <CardContent className="py-10 text-center">
-            <BarChart3 className="mx-auto h-10 w-10 text-[#3E7C59]/40" />
-            <p className="mt-3 text-base font-semibold text-[#2C4A3B]">Comece registrando 🌱</p>
-            <p className="mt-1 text-sm text-[#5C7263]">
+            <BarChart3 className="mx-auto h-10 w-10 text-[#C9A063]/70" />
+            <p className="mt-3 text-base font-semibold text-[#5C3A21]">Comece registrando 🌱</p>
+            <p className="mt-1 text-sm text-[#8A6F58]">
               Registre sono, alimentação, atividades e humor para ver seus insights aqui.
             </p>
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="flex items-center gap-2 text-[#5C7263]">
+          <div className="flex items-center gap-2 text-[#8A6F58]">
             <Info className="h-4 w-4" />
             <p className="text-xs">Últimos 7 dias, calculados a partir dos seus registros.</p>
           </div>
           {insights.map((i) => (
             <Card
               key={i.titulo}
-              className={`bg-white/85 border ${
+              className={`bg-white border shadow-sm ${
                 i.tom === 'positivo'
-                  ? 'border-[#3E7C59]/30'
+                  ? 'border-[#7B4B2A]/25'
                   : i.tom === 'atencao'
-                    ? 'border-[#C9A46A]/40'
-                    : 'border-[#3E7C59]/15'
+                    ? 'border-[#C9A063]/50'
+                    : 'border-[#E2D4BF]'
               }`}
             >
               <CardContent className="py-4">
-                <p className="text-sm font-semibold text-[#2C4A3B]">{i.titulo}</p>
-                <p className="mt-1 text-sm text-[#5C7263]">{i.texto}</p>
+                <p className="text-sm font-semibold text-[#5C3A21]">{i.titulo}</p>
+                <p className="mt-1 text-sm text-[#8A6F58]">{i.texto}</p>
               </CardContent>
             </Card>
           ))}

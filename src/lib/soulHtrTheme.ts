@@ -28,6 +28,7 @@ export type TipoModalRegistro =
   | 'emocao'
   | 'sintoma'
   | 'exame'
+  | 'dieta'
   | 'alimento'
 
 export interface PilulaAcao {

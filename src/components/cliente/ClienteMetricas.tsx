@@ -34,10 +34,10 @@ const SUB_ABAS: { v: SubAba; l: string }[] = [
 ]
 
 const CORES_FASES: Record<string, string> = {
-  deep: '#2C4A3B',
-  rem: '#3E7C59',
-  light: '#7FA98F',
-  awake: '#C9A46A',
+  deep: '#5C3A21',
+  rem: '#7B4B2A',
+  light: '#C9A063',
+  awake: '#E7CFA0',
 }
 
 /** Métricas do cliente — Sono (fases Deep/REM/Light/Awake), Atividade, Bebidas, Emoções, Sintomas. */
@@ -103,8 +103,8 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
               onClick={() => setSub(s.v)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 sub === s.v
-                  ? 'bg-[#3E7C59] text-white'
-                  : 'bg-white text-[#5C7263] border border-[#3E7C59]/20 hover:border-[#3E7C59]/50'
+                  ? 'bg-[#7B4B2A] text-white'
+                  : 'bg-white text-[#7B4B2A] border border-[#7B4B2A]/20 hover:border-[#C9A063]'
               }`}
             >
               {s.l}
@@ -124,7 +124,7 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
                     : (sub as 'sono' | 'atividade_fisica'),
             )
           }
-          className="bg-[#3E7C59] hover:bg-[#33684A] text-white"
+          className="bg-[#7B4B2A] hover:bg-[#5C3A21] text-white"
         >
           <Plus className="h-4 w-4 mr-1" /> Registrar
         </Button>
@@ -133,16 +133,18 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
       {/* ===== Sono ===== */}
       {sub === 'sono' && (
         <div className="space-y-4">
-          <Card className="bg-white/85 border-[#3E7C59]/15">
+          <Card className="bg-white border-[#E2D4BF] shadow-sm">
             <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <Moon className="h-4 w-4 text-[#3E7C59]" />
-              <CardTitle className="text-sm">Últimas noites (horas dormidas)</CardTitle>
+              <Moon className="h-4 w-4 text-[#7B4B2A]" />
+              <CardTitle className="text-sm text-[#5C3A21]">
+                Últimas noites (horas dormidas)
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={serieSono}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#3E7C5922" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#C9A06333" />
                     <XAxis
                       dataKey="dia"
                       tick={{ fontSize: 10 }}
@@ -150,7 +152,7 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
                     />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip formatter={(v) => [`${v}h`, 'Sono']} />
-                    <Bar dataKey="horas" fill="#3E7C59" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="horas" fill="#C9A063" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -158,10 +160,10 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
           </Card>
 
           {sonoDetalhe && (
-            <Card className="bg-white/85 border-[#3E7C59]/15">
+            <Card className="bg-white border-[#E2D4BF] shadow-sm">
               <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Moon className="h-4 w-4 text-[#3E7C59]" /> Detalhe da noite
+                <CardTitle className="text-sm flex items-center gap-2 text-[#5C3A21]">
+                  <Moon className="h-4 w-4 text-[#7B4B2A]" /> Detalhe da noite
                 </CardTitle>
                 {sonoHoje && (
                   <Button variant="ghost" size="sm" onClick={() => onAbrirRegistro('sono')}>
@@ -175,9 +177,9 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
             </Card>
           )}
 
-          <Card className="bg-white/85 border-[#3E7C59]/15">
+          <Card className="bg-white border-[#E2D4BF] shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Histórico de sono</CardTitle>
+              <CardTitle className="text-sm text-[#5C3A21]">Histórico de sono</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {registros.filter((r) => r.tipo === 'sono').length === 0 && (
@@ -190,14 +192,16 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
                   <button
                     key={r.id}
                     onClick={() => setDetalheSono(r.id)}
-                    className={`flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-colors ${
-                      detalheSono === r.id ? 'bg-[#3E7C59]/10' : 'bg-[#F0F5F0] hover:bg-[#E4EEE6]'
+                    className={`flex w-full items-center justify-between rounded-xl p-2.5 text-left transition-colors ${
+                      detalheSono === r.id
+                        ? 'bg-[#C9A063]/20 ring-1 ring-[#C9A063]'
+                        : 'bg-[#F5EFE6] hover:bg-[#EFE6D8]'
                     }`}
                   >
-                    <span className="text-sm text-[#2C4A3B]">
+                    <span className="text-sm text-[#5C3A21]">
                       {formatDataHoraPTBR(r.data)} · {horasSonoDeRegistro(r)}
                     </span>
-                    <span className="text-xs text-[#5C7263]">ver detalhe</span>
+                    <span className="text-xs text-[#8A6F58]">ver detalhe</span>
                   </button>
                 ))}
             </CardContent>
@@ -208,10 +212,12 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
       {/* ===== Atividade ===== */}
       {sub === 'atividade' && (
         <div className="space-y-4">
-          <Card className="bg-white/85 border-[#3E7C59]/15">
+          <Card className="bg-white border-[#E2D4BF] shadow-sm">
             <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <Activity className="h-4 w-4 text-[#3E7C59]" />
-              <CardTitle className="text-sm">Minutos de atividade (14 dias)</CardTitle>
+              <Activity className="h-4 w-4 text-[#7B4B2A]" />
+              <CardTitle className="text-sm text-[#5C3A21]">
+                Minutos de atividade (14 dias)
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-48">
@@ -219,7 +225,7 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
                   <BarChart
                     data={serie.map((d) => ({ dia: d.dia, minutos: d.atividade_min || 0 }))}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#3E7C5922" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#C9A06333" />
                     <XAxis
                       dataKey="dia"
                       tick={{ fontSize: 10 }}
@@ -227,7 +233,7 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
                     />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip formatter={(v) => [`${v} min`, 'Atividade']} />
-                    <Bar dataKey="minutos" fill="#3E7C59" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="minutos" fill="#C9A063" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -240,30 +246,30 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
       {/* ===== Bebidas ===== */}
       {sub === 'bebidas' && (
         <div className="space-y-4">
-          <Card className="bg-white/85 border-[#3E7C59]/15">
+          <Card className="bg-white border-[#E2D4BF] shadow-sm">
             <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <Droplet className="h-4 w-4 text-[#3E7C59]" />
-              <CardTitle className="text-sm">Copos por bebida (histórico)</CardTitle>
+              <Droplet className="h-4 w-4 text-[#7B4B2A]" />
+              <CardTitle className="text-sm text-[#5C3A21]">Copos por bebida (histórico)</CardTitle>
             </CardHeader>
             <CardContent>
               {porBebida.length === 0 ? (
-                <p className="text-sm text-[#5C7263] italic">Nenhuma bebida registrada.</p>
+                <p className="text-sm text-[#8A6F58] italic">Nenhuma bebida registrada.</p>
               ) : (
                 <div className="space-y-2">
                   {porBebida.map(([b, n]) => (
                     <div key={b} className="flex items-center gap-2">
-                      <span className="w-28 text-xs capitalize text-[#2C4A3B]">
+                      <span className="w-28 text-xs capitalize text-[#5C3A21]">
                         {rotuloBebida(b)}
                       </span>
-                      <div className="h-2.5 flex-1 rounded-full bg-[#3E7C59]/10">
+                      <div className="h-2.5 flex-1 rounded-full bg-[#EFE6D8]">
                         <div
-                          className="h-2.5 rounded-full bg-[#3E7C59]"
+                          className="h-2.5 rounded-full bg-[#C9A063]"
                           style={{
                             width: `${Math.min(100, (n / Math.max(...porBebida.map((x) => x[1]))) * 100)}%`,
                           }}
                         />
                       </div>
-                      <span className="text-xs text-[#5C7263] w-12 text-right">{n}x</span>
+                      <span className="text-xs text-[#8A6F58] w-12 text-right">{n}x</span>
                     </div>
                   ))}
                 </div>
@@ -277,26 +283,26 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
       {/* ===== Emoções ===== */}
       {sub === 'emocoes' && (
         <div className="space-y-4">
-          <Card className="bg-white/85 border-[#3E7C59]/15">
+          <Card className="bg-white border-[#E2D4BF] shadow-sm">
             <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <Smile className="h-4 w-4 text-[#3E7C59]" />
-              <CardTitle className="text-sm">Como você tem se sentido</CardTitle>
+              <Smile className="h-4 w-4 text-[#7B4B2A]" />
+              <CardTitle className="text-sm text-[#5C3A21]">Como você tem se sentido</CardTitle>
             </CardHeader>
             <CardContent>
               {distribuicaoHumor.length === 0 ? (
-                <p className="text-sm text-[#5C7263] italic">Nenhum humor registrado ainda.</p>
+                <p className="text-sm text-[#8A6F58] italic">Nenhum humor registrado ainda.</p>
               ) : (
                 <div className="space-y-2">
                   {distribuicaoHumor.map(({ humor, pct }) => (
                     <div key={humor} className="flex items-center gap-2">
-                      <span className="w-20 text-xs text-[#2C4A3B]">{rotuloHumor(humor)}</span>
-                      <div className="h-2.5 flex-1 rounded-full bg-[#3E7C59]/10">
+                      <span className="w-20 text-xs text-[#5C3A21]">{rotuloHumor(humor)}</span>
+                      <div className="h-2.5 flex-1 rounded-full bg-[#EFE6D8]">
                         <div
-                          className="h-2.5 rounded-full bg-[#3E7C59]"
+                          className="h-2.5 rounded-full bg-[#7B4B2A]"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-xs text-[#5C7263] w-10 text-right">{pct}%</span>
+                      <span className="text-xs text-[#8A6F58] w-10 text-right">{pct}%</span>
                     </div>
                   ))}
                 </div>
@@ -310,23 +316,20 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
       {/* ===== Sintomas ===== */}
       {sub === 'sintomas' && (
         <div className="space-y-4">
-          <Card className="bg-white/85 border-[#3E7C59]/15">
+          <Card className="bg-white border-[#E2D4BF] shadow-sm">
             <CardHeader className="pb-2 flex-row items-center gap-2 space-y-0">
-              <HeartPulse className="h-4 w-4 text-[#3E7C59]" />
-              <CardTitle className="text-sm">Sintomas recentes</CardTitle>
+              <HeartPulse className="h-4 w-4 text-[#7B4B2A]" />
+              <CardTitle className="text-sm text-[#5C3A21]">Sintomas recentes</CardTitle>
             </CardHeader>
             <CardContent>
               {registrosSub.length === 0 ? (
-                <p className="text-sm text-[#5C7263] italic">Nenhum sintoma registrado.</p>
+                <p className="text-sm text-[#8A6F58] italic">Nenhum sintoma registrado.</p>
               ) : (
                 <div className="space-y-2">
                   {registrosSub.slice(0, 15).map((r) => (
-                    <div
-                      key={r.id}
-                      className="rounded-lg bg-[#FDF6E9] border border-[#C9A46A]/30 p-3"
-                    >
-                      <p className="text-sm text-[#33221C]">{descreverRegistro(r)}</p>
-                      <p className="text-[10px] text-[#73574A]/70 mt-1">
+                    <div key={r.id} className="rounded-xl bg-[#F5EFE6] border border-[#E2D4BF] p-3">
+                      <p className="text-sm text-[#5C3A21]">{descreverRegistro(r)}</p>
+                      <p className="text-[10px] text-[#8A6F58]/80 mt-1">
                         {formatDataHoraPTBR(r.data)}
                       </p>
                     </div>
@@ -342,7 +345,7 @@ export function ClienteMetricas({ registros, onAbrirRegistro, onExcluir }: Props
       {/* FAB */}
       <Button
         onClick={() => onAbrirRegistro()}
-        className="fixed bottom-20 right-4 h-12 w-12 rounded-full bg-[#3E7C59] hover:bg-[#33684A] text-white shadow-lg md:bottom-8"
+        className="fixed bottom-20 right-4 h-12 w-12 rounded-full bg-[#7B4B2A] hover:bg-[#5C3A21] text-white shadow-lg md:bottom-8"
         title="Registrar métrica"
       >
         <Plus className="h-5 w-5" />
@@ -359,24 +362,27 @@ function ListaRegistros({
   onExcluir: (id: string) => void
 }) {
   if (registros.length === 0) {
-    return <p className="text-sm text-[#5C7263] italic">Nada registrado ainda.</p>
+    return <p className="text-sm text-[#8A6F58] italic">Nada registrado ainda.</p>
   }
   return (
     <div className="space-y-2">
       {registros.slice(0, 30).map((r) => {
         const Icone = ICONES_TIPO[r.tipo]
         return (
-          <div key={r.id} className="flex items-start gap-3 rounded-lg bg-white/80 p-3">
-            <div className="rounded-full bg-[#3E7C59]/10 p-2 shrink-0">
-              <Icone className="h-3.5 w-3.5 text-[#3E7C59]" />
+          <div
+            key={r.id}
+            className="flex items-start gap-3 rounded-xl border border-[#E2D4BF] bg-white p-3 shadow-sm"
+          >
+            <div className="rounded-full bg-[#C9A063]/15 p-2 shrink-0">
+              <Icone className="h-3.5 w-3.5 text-[#7B4B2A]" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-[#2C4A3B]">{descreverRegistro(r)}</p>
-              <p className="text-[10px] text-[#5C7263]/70">{formatDataHoraPTBR(r.data)}</p>
+              <p className="text-sm text-[#5C3A21]">{descreverRegistro(r)}</p>
+              <p className="text-[10px] text-[#8A6F58]/80">{formatDataHoraPTBR(r.data)}</p>
             </div>
             <button
               onClick={() => onExcluir(r.id)}
-              className="text-[#5C7263]/60 hover:text-red-500"
+              className="text-[#8A6F58]/70 hover:text-red-500"
               title="Excluir"
             >
               <Trash2 className="h-4 w-4" />
@@ -415,21 +421,21 @@ function SonoFasesVisual({ dados }: { dados: SaudeRegistroRecord }) {
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#5C7263]">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#8A6F58]">
         <span>
-          Deitou-se: <strong className="text-[#2C4A3B]">{deitar || '—'}</strong>
+          Deitou-se: <strong className="text-[#5C3A21]">{deitar || '—'}</strong>
         </span>
         <span>
-          Acordou: <strong className="text-[#2C4A3B]">{acordar || '—'}</strong>
+          Acordou: <strong className="text-[#5C3A21]">{acordar || '—'}</strong>
         </span>
         <span>
-          Qualidade: <strong className="text-[#2C4A3B]">{String(d.qualidade || '—')}/5</strong>
+          Qualidade: <strong className="text-[#5C3A21]">{String(d.qualidade || '—')}/5</strong>
         </span>
         <span>
-          Total: <strong className="text-[#2C4A3B]">{horasSonoDeRegistro(dados)}</strong>
+          Total: <strong className="text-[#5C3A21]">{horasSonoDeRegistro(dados)}</strong>
         </span>
       </div>
-      <p className="text-[10px] text-[#5C7263]/60">
+      <p className="text-[10px] text-[#8A6F58]/70">
         Bedtime {deitar || '—'} · Wakeup {acordar || '—'}
       </p>
     </div>
