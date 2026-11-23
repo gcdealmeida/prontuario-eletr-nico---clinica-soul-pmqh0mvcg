@@ -18,19 +18,22 @@ export const SOUL_HTR = {
 export const NOME_APP_CLIENTE = 'SOUL Health Tracker'
 export const NOME_APP_CLIENTE_CURTO = 'SOUL HTR'
 
+/** Tipos de registro aceitos no modal do app do cliente — espelha SaudeRegistroTipo. */
+export type TipoModalRegistro =
+  | 'atividade_fisica'
+  | 'sono'
+  | 'bebida'
+  | 'refeicao'
+  | 'medicacao'
+  | 'emocao'
+  | 'sintoma'
+  | 'exame'
+  | 'alimento'
+
 export interface PilulaAcao {
   chave: string
   rotulo: string
-  tipo:
-    | 'atividade_fisica'
-    | 'sono'
-    | 'bebida'
-    | 'refeicao'
-    | 'medicacao'
-    | 'emocao'
-    | 'sintoma'
-    | 'exame'
-    | 'alimento'
+  tipo: TipoModalRegistro
   icone: string
 }
 

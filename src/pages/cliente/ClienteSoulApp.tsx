@@ -25,6 +25,7 @@ import {
 import { LogoSoulHtr } from '@/components/cliente/LogoSoulHtr'
 import { criarSaudeRegistro } from '@/services/saudeBemEstar'
 import { NOME_APP_CLIENTE, NOME_APP_CLIENTE_CURTO } from '@/lib/soulHtrTheme'
+import type { TipoModalRegistro } from '@/lib/soulHtrTheme'
 import { cn } from '@/lib/utils'
 
 export type AbaCliente =
@@ -59,17 +60,7 @@ export function ClienteSoulApp() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [modalAberto, setModalAberto] = useState(false)
-  const [tipoModal, setTipoModal] = useState<
-    | 'atividade_fisica'
-    | 'sono'
-    | 'bebida'
-    | 'refeicao'
-    | 'medicacao'
-    | 'emocao'
-    | 'sintoma'
-    | 'exame'
-    | 'alimento'
-  >('bebida')
+  const [tipoModal, setTipoModal] = useState<TipoModalRegistro>('bebida')
   const [registroEdit, setRegistroEdit] = useState<ValoresRegistro | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -90,7 +81,7 @@ export function ClienteSoulApp() {
     void recarregar()
   }, [recarregar, reloadKey])
 
-  const abrirRegistro = useCallback((tipo: Parameters<typeof setTipoModal>[0]) => {
+  const abrirRegistro = useCallback((tipo?: TipoModalRegistro) => {
     setRegistroEdit(null)
     setTipoModal(tipo)
     setModalAberto(true)
@@ -120,8 +111,6 @@ export function ClienteSoulApp() {
     },
     [painel, registroEdit],
   )
-
-  void pb
 
   return (
     <div className="min-h-screen bg-[#F5EFE6]">
@@ -228,28 +217,46 @@ export function ClienteSoulApp() {
         )}
         {!carregando && !erro && painel && (
           <>
-            {aba === 'hoje' && (
-              <ClienteHoje
-                painel={painel}
-                aoAbrirRegistro={abrirRegistro}
-                registroEdit={registroEdit}
-                setRegistroEdit={setRegistroEdit}
+            {aba === 'hoje' && <ClienteHoje painel={painel} aoAbrirRegistro={abrirRegistro} />}
+            {aba === 'metricas' && (
+              <ClienteMetricas
+                registros={painel.registros}
+                onAbrirRegistro={abrirRegistro}
+                onExcluir={excluirRegistro}
               />
             )}
-            {aba === 'metricas' && (
-              <ClienteMetricas painel={painel} aoAbrirRegistro={abrirRegistro} />
-            )}
             {aba === 'refeicoes' && (
-              <ClienteRefeicoesMedicacoes painel={painel} aoAbrirRegistro={abrirRegistro} />
+              <ClienteRefeicoesMedicacoes
+                registros={painel.registros}
+                onRegistrarRefeicao={() => abrirRegistro('refeicao')}
+                onRegistrarMedicacao={() => abrirRegistro('medicacao')}
+                onExcluir={excluirRegistro}
+                onAlternarIngerida={alternarIngerida}
+              />
             )}
             {aba === 'diario' && (
-              <ClienteDiarioEmocional painel={painel} aoAbrirRegistro={abrirRegistro} />
+              <ClienteDiarioEmocional
+                registros={painel.registros}
+                onSalvar={salvarEmocao}
+                onExcluir={excluirRegistro}
+              />
             )}
             {aba === 'exames' && (
-              <ClienteExamesDietas painel={painel} aoAbrirRegistro={abrirRegistro} />
+              <ClienteExamesDietas
+                registros={painel.registros}
+                onRegistrar={criarRegistroExameDieta}
+                onExcluir={excluirRegistro}
+              />
             )}
-            {aba === 'insights' && <ClienteInsights painel={painel} />}
-            {aba === 'perfil' && <ClientePerfil painel={painel} aoRecarregar={recarregar} />}
+            {aba === 'insights' && <ClienteInsights registros={painel.registros} />}
+            {aba === 'perfil' && (
+              <ClientePerfil
+                cliente={painel.cliente}
+                onAtualizado={async () => {
+                  await recarregar()
+                }}
+              />
+            )}
           </>
         )}
       </main>
@@ -258,7 +265,6 @@ export function ClienteSoulApp() {
         open={modalAberto}
         onOpenChange={setModalAberto}
         tipoInicial={tipoModal}
-        registro={null}
         onSalvar={salvarRegistro}
       />
     </div>
