@@ -49,6 +49,38 @@ interface Props {
  * (Fase B), publicar orientações/dicas, criar lembretes — tudo o que o app do
  * Cliente Soul exibe.
  */
+const EMAIL_JA_CADASTRADO = /already exists|já existe|unique|duplicate/i
+
+/**
+ * Converte o erro do backend numa mensagem específica para a clínica.
+ * O hook responde { error: "..." } em e-mail duplicado / dados faltando, mas o
+ * SDK do PocketBase lança ClientResponseError e o texto real fica em
+ * err.response (o corpo JSON da resposta). Sem isso, a clínica vê só o
+ * genérico "Erro ao criar conta".
+ */
+function extrairMensagemErroConta(err: unknown): string {
+  if (err instanceof Error && err.message && !/failed to fetch|network/i.test(err.message)) {
+    return err.message
+  }
+  const resp = (err as { response?: unknown })?.response
+  if (typeof resp === 'string' && resp.trim()) {
+    try {
+      const body = JSON.parse(resp) as { error?: string; message?: string }
+      if (body.error) return body.error
+    } catch {
+      if (!EMAIL_JA_CADASTRADO.test(resp)) return resp
+    }
+  } else if (resp && typeof resp === 'object') {
+    const body = resp as { error?: string; message?: string }
+    if (body.error) return body.error
+    if (body.message) return body.message
+  }
+  if (EMAIL_JA_CADASTRADO.test(String((err as Error)?.message || ''))) {
+    return 'Já existe uma conta com este e-mail.'
+  }
+  return 'Não foi possível criar a conta. Verifique o e-mail e a senha (mín. 8 caracteres) e tente novamente.'
+}
+
 export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
   const { toast } = useToast()
   const [orientacoes, setOrientacoes] = useState<SaudeOrientacaoRecord[]>([])
@@ -122,7 +154,7 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
       console.error(err)
       toast({
         title: 'Erro ao criar conta',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
+        description: extrairMensagemErroConta(err),
         variant: 'destructive',
       })
     } finally {

@@ -77,7 +77,18 @@ routerAdd(
       novaConta.set('requested_at', new Date().toISOString())
       novaConta.set('approved_at', new Date().toISOString())
       novaConta.set('approved_by', authEmail)
-      $app.save(novaConta)
+      try {
+        $app.save(novaConta)
+      } catch (errSave) {
+        // Falha de validação do PocketBase (ex.: e-mail já em uso numa corrida
+        // entre a checagem acima e o save, senha fraca, formato inválido).
+        // Traduzimos para uma mensagem específica em vez do 500 genérico.
+        console.log('Erro ao gravar users em saude/cliente/criar-conta:', errSave)
+        return e.json(400, {
+          error:
+            'Não foi possível criar a conta: verifique se o e-mail já não está cadastrado e se a senha tem ao menos 8 caracteres.',
+        })
+      }
 
       saudeCliente.set('user_id', novaConta.id)
       if (!saudeCliente.getString('email')) {
