@@ -67,6 +67,7 @@ import { SaudeResumoIcones } from '@/components/saude/SaudeResumoIcones'
 import { SaudeTimelineClinica } from '@/components/saude/SaudeTimelineClinica'
 import { SaudeIntervencoes } from '@/components/saude/SaudeIntervencoes'
 import { SaudePrescricaoTreinos } from '@/components/saude/SaudePrescricaoTreinos'
+import { SaudeHealthTrackerSection } from '@/components/saude/SaudeHealthTrackerSection'
 import type { PacienteRecord } from '@/types/database'
 
 const iconesTipo: Record<SaudeRegistroTipo, typeof Activity> = {
@@ -264,6 +265,11 @@ export default function SaudeBemEstar() {
         <SaudeTimelineClinica clienteId={clienteSelecionado.id} />
 
         <SaudeIntervencoes cliente={clienteSelecionado} onContaCriada={carregar} />
+
+        <SaudeHealthTrackerSection
+          clienteId={clienteSelecionado.id}
+          emailCliente={clienteSelecionado.email || ''}
+        />
       </div>
     )
   }

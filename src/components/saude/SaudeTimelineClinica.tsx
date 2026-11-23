@@ -13,7 +13,9 @@ import {
 } from '@/services/saudeBemEstar'
 import { ICONES_TIPO } from '@/components/saude/SaudeResumoIcones'
 import { formatDataHoraPTBR } from '@/lib/constants'
-import { Plus, Trash2, X } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { enviarRegistroHealthTracker, mensagemErroHealthTracker } from '@/services/healthTracker'
+import { Plus, Trash2, X, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -41,6 +43,8 @@ interface Props {
 /** Timeline de registros do cliente na visão da clínica, com filtros e lançamento manual. */
 export function SaudeTimelineClinica({ clienteId }: Props) {
   const { toast } = useToast()
+  const { user } = useAuth()
+  const [avisoHt, setAvisoHt] = useState('')
   const [registros, setRegistros] = useState<SaudeRegistroRecord[]>([])
   const [carregando, setCarregando] = useState(true)
   const [tipos, setTipos] = useState<SaudeRegistroTipo[]>([])
@@ -92,6 +96,22 @@ export function SaudeTimelineClinica({ clienteId }: Props) {
       setModalNovo(false)
       setNovaObs('')
       await carregar()
+
+      // Best effort: espelha no Health Tracker com o nome do profissional
+      // logado. Falha aqui NÃO desfaz o registro local — só avisa.
+      try {
+        await enviarRegistroHealthTracker({
+          cliente_id: clienteId,
+          collection: 'registros',
+          tipo: novoTipo,
+          payload: { observacao: novaObs.trim() || undefined, data: novaData },
+          professional_name: user?.name || '',
+        })
+        setAvisoHt('')
+      } catch (errHt) {
+        console.error('Falha ao enviar registro ao Health Tracker:', errHt)
+        setAvisoHt(mensagemErroHealthTracker(errHt))
+      }
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro ao lançar registro.', variant: 'destructive' })
@@ -178,7 +198,23 @@ export function SaudeTimelineClinica({ clienteId }: Props) {
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
+        {avisoHt && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50/70 px-3 py-2 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0">
+              Registro gravado na clínica, mas o envio ao Health Tracker falhou: {avisoHt}
+            </span>
+            <button
+              type="button"
+              className="ml-auto shrink-0 text-amber-800/70 hover:text-amber-900"
+              onClick={() => setAvisoHt('')}
+              aria-label="Fechar aviso"
+            >
+              ×
+            </button>
+          </div>
+        )}
         {carregando ? (
           <p className="text-sm text-[#73574A]">Carregando registros...</p>
         ) : agrupados.length === 0 ? (

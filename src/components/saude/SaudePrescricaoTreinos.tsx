@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Dumbbell, HeartPulse, Plus, Stethoscope, Trash2 } from 'lucide-react'
+import { AlertTriangle, Dumbbell, HeartPulse, Plus, Stethoscope, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatDataHoraPTBR } from '@/lib/constants'
 import {
   criarExameClinico,
@@ -15,6 +16,7 @@ import {
   type SaudeClienteRecord,
   type SaudeRegistroRecord,
 } from '@/services/saudeBemEstar'
+import { enviarRegistroHealthTracker, mensagemErroHealthTracker } from '@/services/healthTracker'
 
 interface Props {
   cliente: SaudeClienteRecord
@@ -43,6 +45,38 @@ export function resumoExercicios(items: ItemTreino[] | undefined): string {
     .join('\n')
 }
 
+const COLECAO_HTR_POR_TIPO: Record<string, string> = {
+  treino: 'treinos',
+  reabilitacao: 'reabilitacao',
+  exame: 'exames',
+}
+
+/**
+ * Envio "best effort" ao Health Tracker (outro projeto Skip): chamado APÓS
+ * o registro local já ter sido gravado — uma falha aqui NÃO desfaz nada,
+ * apenas gera um aviso discreto para o usuário.
+ */
+async function sincronizarHealthTracker(
+  clienteId: string,
+  tipo: 'treino' | 'reabilitacao' | 'exame',
+  payload: Record<string, unknown>,
+  nomeProfissional: string,
+): Promise<string> {
+  try {
+    await enviarRegistroHealthTracker({
+      cliente_id: clienteId,
+      collection: COLECAO_HTR_POR_TIPO[tipo] || tipo,
+      tipo: tipo,
+      payload: payload,
+      professional_name: nomeProfissional,
+    })
+    return ''
+  } catch (err) {
+    console.error('Falha ao enviar registro ao Health Tracker:', err)
+    return mensagemErroHealthTracker(err)
+  }
+}
+
 /**
  * Painel de PRESCRIÇÃO da clínica na visão individual do cliente:
  * treinos físicos, exercícios de reabilitação e exames que o profissional
@@ -50,6 +84,8 @@ export function resumoExercicios(items: ItemTreino[] | undefined): string {
  */
 export function SaudePrescricaoTreinos({ cliente, registros, onAtualizado }: Props) {
   const { toast } = useToast()
+  const { user } = useAuth()
+  const [avisoHealthTracker, setAvisoHealthTracker] = useState('')
   const [modalAberto, setModalAberto] = useState(false)
   const [modalTipo, setModalTipo] = useState<'treino' | 'reabilitacao' | 'exame'>('treino')
   const [salvando, setSalvando] = useState(false)
@@ -78,7 +114,9 @@ export function SaudePrescricaoTreinos({ cliente, registros, onAtualizado }: Pro
       return
     }
     setSalvando(true)
+    let aviso = ''
     try {
+      // 1) Grava localmente (fonte da verdade desta clínica).
       if (modalTipo === 'exame') {
         await criarExameClinico({
           cliente_id: cliente.id,
@@ -102,6 +140,21 @@ export function SaudePrescricaoTreinos({ cliente, registros, onAtualizado }: Pro
       toast({ title: 'Prescrição enviada!', description: 'Já aparece no app do cliente.' })
       setModalAberto(false)
       onAtualizado?.()
+
+      // 2) Best effort: espelha no Health Tracker com o nome do profissional
+      //    logado. Falha aqui NÃO desfaz o registro local — só avisa.
+      aviso = await sincronizarHealthTracker(
+        cliente.id,
+        modalTipo,
+        {
+          titulo: titulo.trim(),
+          descricao: descricao.trim() || undefined,
+          exercicios: exercicios.filter((e) => e.nome.trim()),
+          resultado: resultado.trim() || undefined,
+        },
+        user?.name || '',
+      )
+      if (aviso) setAvisoHealthTracker(aviso)
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro ao salvar prescrição.', variant: 'destructive' })
@@ -146,8 +199,25 @@ export function SaudePrescricaoTreinos({ cliente, registros, onAtualizado }: Pro
       <CardContent className="space-y-2">
         <p className="text-xs text-[#73574A]/80">
           O que você prescrever aqui aparece automaticamente no app do cliente (aba Exames & Dietas
-          e seção Treinos & Reabilitação).
+          e seção Treinos & Reabilitação) e também é enviado ao Health Tracker.
         </p>
+        {avisoHealthTracker && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50/70 px-3 py-2 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0">
+              Registro gravado na clínica, mas o envio ao Health Tracker falhou:{' '}
+              {avisoHealthTracker}
+            </span>
+            <button
+              type="button"
+              className="ml-auto shrink-0 text-amber-800/70 hover:text-amber-900"
+              onClick={() => setAvisoHealthTracker('')}
+              aria-label="Fechar aviso"
+            >
+              ×
+            </button>
+          </div>
+        )}
         {prescritos.length === 0 ? (
           <p className="text-sm text-[#73574A] italic">
             Nenhuma prescrição enviada a este cliente ainda.
