@@ -36,6 +36,7 @@ import {
   CalendarCheck2,
   Zap,
   GitMerge,
+  HeartPulse,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -312,6 +313,13 @@ export default function GuiaUso() {
             11. Pré-Cadastro → Ativação → Prontuário
           </TabsTrigger>
 
+          <TabsTrigger
+            value="saude-bem-estar"
+            className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
+          >
+            <HeartPulse className="h-4 w-4 text-emerald-400" />
+            12. Saúde & Bem-Estar (App do Cliente)
+          </TabsTrigger>
           <TabsTrigger
             value="faq"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#4A322A] data-[state=checked]:text-[#FAF4EA] transition-all py-2.5 px-4 flex items-center gap-2"
@@ -2198,6 +2206,346 @@ export default function GuiaUso() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 12: SAÚDE & BEM-ESTAR — APP DO CLIENTE SOUL */}
+        <TabsContent value="saude-bem-estar" className="space-y-6 pt-2">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9E1D2] shadow-sm space-y-8">
+            {/* Cabeçalho */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF4EA] border border-[#E3C89A] text-[#8C6527] text-xs font-semibold mb-2">
+                <HeartPulse className="h-3.5 w-3.5" />
+                <span>Módulo Saúde & Bem-Estar</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-[#4A322A]">
+                App do Cliente Soul — acesso, cadastro e acompanhamento
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Neste módulo o cliente registra o dia a dia dele (sono, água, alimentação, atividade
+                física, exames e humor) no app próprio, e a clínica acompanha tudo e envia
+                orientações, dicas, lembretes e prescrições. A área da clínica fica no menu{' '}
+                <strong>"Saúde & Bem-Estar"</strong> (rota{' '}
+                <code className="text-[11px] bg-[#FAF7F1] px-1.5 py-0.5 rounded border border-[#E9E1D2] text-[#8C6527]">
+                  /saude-bem-estar
+                </code>
+                ) e o app do cliente na rota pública{' '}
+                <code className="text-[11px] bg-[#FAF7F1] px-1.5 py-0.5 rounded border border-[#E9E1D2] text-[#8C6527]">
+                  /cliente
+                </code>
+                .
+              </p>
+            </div>
+
+            {/* 12.1 Acessando o app do Cliente Soul */}
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                12.1 Acessando o app do Cliente Soul
+              </h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                O cliente <strong>não se cadastra sozinho</strong>: quem cria o acesso dele é a
+                clínica. Depois disso, o cliente entra pelo próprio login, que é{' '}
+                <strong>separado do login da equipe</strong> (a tela do cliente é verde/creme, com o
+                título "Cliente Soul").
+              </p>
+
+              <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-3">
+                <p className="text-xs font-bold text-[#8C6527]">
+                  A) A clínica cria o acesso do cliente (uma vez, por cliente):
+                </p>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Logado no sistema da clínica, clique no menu lateral em{' '}
+                    <strong>"Saúde & Bem-Estar"</strong>.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Clique no botão <strong>"Novo Cliente de Saúde"</strong> (canto superior
+                    direito), preencha o cadastro e clique em <strong>"Criar cliente"</strong>{' '}
+                    (detalhes na seção 12.2).
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Na visão geral, clique no <strong>card do cliente</strong> recém-criado para
+                    abrir a visão individual dele.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    4
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    No bloco <strong>"Acesso ao app Cliente Soul"</strong>, clique em{' '}
+                    <strong>"Criar acesso"</strong>.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    5
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Na janela <strong>"Criar acesso do Cliente Soul"</strong>, preencha{' '}
+                    <strong>E-mail de acesso</strong> (um e-mail que ainda não exista no sistema) e{' '}
+                    <strong>Senha (mín. 8 caracteres)</strong>, e clique em{' '}
+                    <strong>"Criar conta"</strong>.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    6
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Aparece a confirmação <em>"Conta criada!"</em>. Passe o e-mail e a senha ao
+                    cliente — são eles que ele usará para entrar.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F2F6F1] border border-[#C1D7C4] space-y-3">
+                <p className="text-xs font-bold text-[#477A53]">
+                  B) O cliente entra no app dele (no celular ou computador):
+                </p>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#3E7C59] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Abra o endereço da clínica seguido de{' '}
+                    <code className="text-[11px] bg-white px-1.5 py-0.5 rounded border border-[#C1D7C4] text-[#477A53]">
+                      /cliente
+                    </code>{' '}
+                    (ex.: <em>nomedaclinica.goskip.app/cliente</em>).
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#3E7C59] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Na tela verde <strong>"Cliente Soul — Seu espaço de saúde e bem-estar"</strong>,
+                    digite o <strong>e-mail</strong> e a <strong>senha</strong> recebidos da clínica
+                    e toque em <strong>"Entrar"</strong>.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#3E7C59] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    O app abre na aba <strong>Hoje</strong>, com os cartões Sono, Água, Calorias e
+                    Atividade — cada um com a meta do dia e um botão <strong>"+"</strong> para
+                    registrar na hora.
+                  </p>
+                </div>
+                <p className="text-[11px] text-[#477A53] flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  Importante: o login do cliente é independente do login da equipe. A mesma pessoa
+                  pode ter os dois, mas em telas/abas separadas.
+                </p>
+              </div>
+            </div>
+
+            {/* 12.2 Cadastrando / criando o acesso do cliente */}
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                12.2 Cadastrando o cliente e criando o acesso dele
+              </h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                O cadastro acontece em duas partes: primeiro o <strong>cliente de saúde</strong>{' '}
+                (ficha com os dados dele), depois a <strong>conta de acesso</strong> (e-mail + senha
+                para o app).
+              </p>
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Em <strong>"Novo Cliente de Saúde"</strong>, preencha: <strong>Nome</strong>{' '}
+                    (obrigatório), <strong>E-mail</strong> (para o acesso do cliente),{' '}
+                    <strong>Data de nascimento</strong>,{' '}
+                    <strong>"Vincular a paciente cadastrado"</strong> (opcional — conecta o cliente
+                    a um paciente do prontuário e permite designar profissionais) e{' '}
+                    <strong>Observações</strong>. Clique em <strong>"Criar cliente"</strong>.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Depois, abra o cliente e use o botão <strong>"Criar acesso"</strong> (seção
+                    12.1). Clientes sem conta de acesso aparecem na visão geral com a etiqueta{' '}
+                    <em>"conta de acesso ainda não criada"</em>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#FDF2EE] border border-[#E7BFB0] space-y-2">
+                <p className="text-xs font-bold text-[#B87355]">Erros comuns e o que significam:</p>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  • <strong>"Erro ao criar conta"</strong> — na maioria das vezes o{' '}
+                  <strong>e-mail já existe</strong> no sistema (foi usado em outro acesso ou
+                  usuário). Use um e-mail diferente e crie de novo.
+                  <br />• <strong>
+                    "Nenhum cadastro de Cliente Soul vinculado a esta conta"
+                  </strong>{' '}
+                  — a conta existe, mas não está vinculada a um cliente de saúde. O cliente deve
+                  falar com a clínica; em muitos casos o próprio sistema religa o cadastro
+                  automaticamente ao tentar entrar de novo.
+                  <br />• <strong>"Não foi possível entrar"</strong> (no login do cliente) — confira
+                  e-mail e senha; se o acesso ainda não foi criado, fale com a clínica.
+                </p>
+              </div>
+            </div>
+
+            {/* 12.3 Como o profissional acompanha o cliente */}
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                12.3 Como o profissional acompanha o que o cliente registrou
+              </h4>
+              <div className="p-4 rounded-2xl bg-[#FAF4EA] border border-[#E3C89A] flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 text-[#8C6527] shrink-0 mt-0.5" />
+                <div className="text-xs text-gray-700 leading-relaxed">
+                  <strong className="text-[#8C6527]">Requisito (apenas para Profissional):</strong>{' '}
+                  o paciente precisa estar <strong>designado a você</strong> em{' '}
+                  <strong>Gestão da Clínica → aba "Pacientes designados"</strong>. Sem essa
+                  designação, o cliente não aparece na sua lista (gestores e secretária veem todos
+                  os clientes).
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Entre no sistema da clínica normalmente (seu login de equipe).
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    No menu lateral, abra <strong>"Saúde & Bem-Estar"</strong>. A visão geral mostra
+                    um card por cliente, com ícones do que ele registrou (atividade, sono, bebidas,
+                    alimentos, exames, dieta, sintomas, medicação, refeição e humor), a data do
+                    último registro e um selo dourado <em>"X novo(s)"</em> quando há registros novos
+                    desde a última visita à tela.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Clique no card do cliente para abrir a visão individual dele.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    4
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    No bloco <strong>"Registros do cliente"</strong> está a linha do tempo de tudo
+                    que ele registrou no app, agrupada por dia. Use os{' '}
+                    <strong>chips de tipo</strong> (Sono, Bebidas, Alimentos…) e os campos{' '}
+                    <strong>de/até</strong> para filtrar o período desejado (botão{' '}
+                    <strong>"Limpar"</strong> remove os filtros).
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-[#C9A46A] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    5
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Para inserir um dado no lugar do cliente (ex.: ele esqueceu de registrar),
+                    clique em <strong>"Lançar registro"</strong>, escolha a{' '}
+                    <strong>Categoria</strong> e a <strong>Data</strong>, escreva a{' '}
+                    <strong>Descrição</strong> e clique em <strong>"Lançar"</strong>. O registro
+                    aparece na linha do tempo como qualquer outro.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 12.4 Inserindo dados, informações e prescrições */}
+            <div className="pt-4 border-t border-[#E9E1D2] space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[#4A322A]">
+                12.4 Como o profissional insere dados, informações e prescrições
+              </h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Na visão individual do cliente (abrindo o card dele), logo abaixo da linha do tempo,
+                ficam as áreas de <strong>intervenção da clínica</strong>. É por ali que a equipe
+                envia conteúdo — e tudo chega direto no app do cliente.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                  <p className="text-xs font-bold text-[#8C6527]">Orientações & Dicas</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Clique em <strong>"Novo conteúdo"</strong>, escolha o <strong>Tipo</strong>{' '}
+                    (Orientação, Dica ou Desenvolvimento pessoal), escreva o <strong>Título</strong>{' '}
+                    e o <strong>Texto</strong>, marque{' '}
+                    <strong>"Publicar agora (visível no app do cliente)"</strong> e clique em{' '}
+                    <strong>"Publicar"</strong>. O ícone de olho publica/despublica depois; a
+                    lixeira exclui.
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                  <p className="text-xs font-bold text-[#8C6527]">
+                    Lembretes (prescrições e rotinas)
+                  </p>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Clique em <strong>"Novo lembrete"</strong>, preencha <strong>Título</strong> e{' '}
+                    <strong>Descrição</strong> (ex.: medicação, dose, exame, rotina), informe{' '}
+                    <strong>Data e hora</strong> e a <strong>Repetição</strong> (Não repete, Diária,
+                    Semanal ou Mensal) e clique em <strong>"Criar lembrete"</strong>. É o formato
+                    ideal para prescrições com horário.
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#FAF7F1] border border-[#E9E1D2] space-y-2">
+                  <p className="text-xs font-bold text-[#8C6527]">Dados na linha do tempo</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Além de orientações e lembretes, use o botão <strong>"Lançar registro"</strong>{' '}
+                    (bloco "Registros do cliente", seção 12.3) para inserir dados concretos —
+                    atividade, exame, medicação, sintoma etc. — diretamente no histórico do cliente.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F2F6F1] border border-[#C1D7C4] flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-[#477A53] shrink-0 mt-0.5" />
+                <div className="text-xs text-gray-700 leading-relaxed">
+                  <strong className="text-[#477A53]">Como o cliente recebe:</strong> os{' '}
+                  <strong>lembretes</strong> aparecem na aba <strong>Hoje</strong> do app dele
+                  (bloco "Lembretes da clínica"), as <strong>orientações e dicas</strong> publicadas
+                  aparecem nas telas do app e os <strong>registros lançados pela clínica</strong>{' '}
+                  entram na linha do tempo dele. Ao salvar qualquer registro no app, o cliente vê a
+                  confirmação <em>"Registro salvo! Sua clínica já pode vê-lo."</em> — ou seja, a
+                  clínica acompanha em tempo real o que está sendo registrado.
+                </div>
+              </div>
+
+              <Button
+                onClick={() => navigate('/saude-bem-estar')}
+                className="bg-[#3E7C59] hover:bg-[#33684A] text-white font-semibold text-xs rounded-xl h-9 px-4"
+              >
+                <HeartPulse className="h-4 w-4 mr-1" /> Abrir Saúde & Bem-Estar
+              </Button>
             </div>
           </div>
         </TabsContent>
