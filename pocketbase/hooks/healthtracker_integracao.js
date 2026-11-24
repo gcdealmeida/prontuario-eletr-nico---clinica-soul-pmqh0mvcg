@@ -22,6 +22,12 @@
  *   (R5) Cada tela do profissional manda o E-MAIL do cliente na URL e o NOME
  *        do profissional no corpo (professional_name) — é o que identifica a
  *        origem como "via app institucional" no Health Tracker.
+ *   (R6) Todo registro enviado leva os campos obrigatórios do outro projeto
+ *        DENTRO de data (nível do registro, não aninhado em payload):
+ *        category (classificação do registro) e date_time (ISO 8601, na data
+ *        do lançamento quando houver, não a data do envio). O hook é quem
+ *        garante isso — centralizado, para todas as telas de envio.
+ *        category/date_time explícitos no payload do frontend têm prioridade.
  *
  * API de confiança do outro projeto:
  *   (1) POST /backend/v1/trust/token  {email, ts, sig} → token de sessão;
@@ -472,6 +478,69 @@ routerAdd(
         nomeProf,
     )
 
+    // ----- Campos obrigatórios do outro projeto (regra R6) -----
+    // O Health Tracker valida category e date_time em TODAS as coleções
+    // graváveis; sem eles responde "category: cannot be blank; date_time:
+    // cannot be blank". Montados AQUI, centralizados, valendo para todas as
+    // telas (prescrições de treino/reabilitação/exame e lançamentos da linha
+    // do tempo). Valores explícitos no payload do frontend têm prioridade.
+    const CATEGORIA_POR_TIPO = {
+      treino: 'workout',
+      reabilitacao: 'rehabilitation',
+      exame: 'exam',
+      sintoma: 'symptom',
+      atividade_fisica: 'activity',
+      sono: 'sleep',
+      bebida: 'water',
+      energia: 'energy',
+      alimento: 'nutrition',
+      refeicao: 'diet',
+      dieta: 'diet',
+      medicacao: 'medication',
+      emocao: 'emotion',
+      humor: 'emotion',
+    }
+
+    // Corpo do registro: campos do payload SOBEM para o nível do registro
+    // (título, descrição, exercícios, resultado, observação…), e os
+    // obrigatórios são garantidos. O shape antigo (tipo/payload) é mantido
+    // dentro para não quebrar nada que ainda o leia.
+    const montarDadosRegistro = () => {
+      const dados = {}
+      if (payload && typeof payload === 'object') {
+        for (const k in payload) {
+          const v = payload[k]
+          if (v === undefined || v === null || v === '') continue
+          dados[k] = v
+        }
+      }
+      // category/date_time do payload (explícitos) têm prioridade; sem eles,
+      // derivados do tipo e da data do lançamento.
+      dados.category = String(dados.category || CATEGORIA_POR_TIPO[tipo] || tipo || 'general')
+      if (!dados.date_time) {
+        const d = typeof dados.data === 'string' ? dados.data : ''
+        // data própria do lançamento ("YYYY-MM-DD") vira ISO 8601 ao meio-dia
+        // (mesmo padrão da gravação local); sem data própria, a data/hora do envio.
+        dados.date_time = /^\d{4}-\d{2}-\d{2}$/.test(d)
+          ? d + ' 12:00:00.000Z'
+          : new Date().toISOString()
+      }
+      dados.tipo = tipo
+      dados.payload = payload
+      return dados
+    }
+    const dadosRegistro = montarDadosRegistro()
+    console.log(
+      '[HealthTracker] record: corpo do registro — collection=' +
+        collection +
+        ' category=' +
+        dadosRegistro.category +
+        ' date_time=' +
+        dadosRegistro.date_time +
+        ' data=' +
+        truncar(dadosRegistro),
+    )
+
     // ----- Handshake de confiança (regras R1 e R2) -----
     const nomeCanonico = 'INSTITUTIONAL_TRUST_SECRET'
     const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome já visto no painel (sem o "I")
@@ -572,7 +641,10 @@ routerAdd(
         body: JSON.stringify({
           collection: collection,
           professional_name: nomeProf, // regra R5: nome no corpo
-          data: { tipo: tipo, payload: payload },
+          // Regra R6: data no nível do registro — os obrigatórios category e
+          // date_time sempre preenchidos, com o restante dos campos do payload
+          // (título, descrição, exercícios…) também no nível do registro.
+          data: dadosRegistro,
         }),
       })
       const st = resp.statusCode || resp.status || 0

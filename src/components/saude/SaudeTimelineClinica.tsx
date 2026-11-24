@@ -110,6 +110,8 @@ export function SaudeTimelineClinica({ clienteId }: Props) {
           tipo: novoTipo,
           payload: { observacao: novaObs.trim() || undefined, data: novaData },
           professional_name: user?.name || '',
+          // date_time usa a DATA DO LANÇAMENTO escolhida no modal, não a do envio.
+          data_lancamento: novaData,
         })
         setAvisoHt('')
       } catch (errHt) {

@@ -59,6 +59,7 @@ async function sincronizarHealthTracker(
   tipo: 'treino' | 'reabilitacao' | 'exame',
   payload: Record<string, unknown>,
   nomeProfissional: string,
+  dataLancamento?: string,
 ): Promise<string> {
   try {
     await enviarRegistroHealthTracker({
@@ -67,6 +68,7 @@ async function sincronizarHealthTracker(
       tipo: tipo,
       payload: payload,
       professional_name: nomeProfissional,
+      data_lancamento: dataLancamento,
     })
     return ''
   } catch (err) {
@@ -151,6 +153,9 @@ export function SaudePrescricaoTreinos({ cliente, registros, onAtualizado }: Pro
           resultado: resultado.trim() || undefined,
         },
         user?.name || '',
+        // Data do lançamento (não do envio): a gravação local usa hoje ao
+        // meio-dia (mesmo padrão de criarTreinoClinico/criarExameClinico).
+        new Date().toISOString(),
       )
       if (aviso) setAvisoHealthTracker(aviso)
     } catch (err) {
