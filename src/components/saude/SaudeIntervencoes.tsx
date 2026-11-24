@@ -36,6 +36,7 @@ import {
 import { formatDataHoraPTBR } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
 import { enviarRegistroHealthTracker, mensagemErroHealthTracker } from '@/services/healthTracker'
+import { repeatHtr } from '@/lib/saudeHtrVocab'
 import { Bell, Eye, EyeOff, Lightbulb, Plus, Trash2, UserPlus } from 'lucide-react'
 
 const hojeYMD = () => new Date().toISOString().slice(0, 10)
@@ -228,10 +229,14 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
           tipo: 'lembrete',
           payload: {
             category: 'reminder',
+            // Enum "type" da coleção reminders do Health Tracker: valor já
+            // traduzido (o hook re-garanta como última linha de defesa).
+            type: 'reminder',
             title: tituloEnviado,
             description: descricaoEnviada,
             date_time: dataHoraIso,
-            repeat: repeticaoEnviada,
+            // Enum "repeat" do HTR espera inglês ('none'/'daily'…), não PT.
+            repeat: repeatHtr(repeticaoEnviada) || repeticaoEnviada,
           },
           professional_name: user?.name || '',
           data_lancamento: dataHoraIso.slice(0, 10),

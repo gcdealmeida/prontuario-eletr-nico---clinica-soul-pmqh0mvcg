@@ -21,6 +21,7 @@ import {
   enviarRegistroHealthTracker,
   mensagemErroHealthTracker,
 } from '@/services/healthTracker'
+import { typeHtrParaTipo, categoriaHtrParaTipo } from '@/lib/saudeHtrVocab'
 
 interface Props {
   cliente: SaudeClienteRecord
@@ -66,7 +67,14 @@ async function sincronizarHealthTracker(
       cliente_id: clienteId,
       collection: colecaoHtrParaTipo(tipo),
       tipo: tipo,
-      payload: payload,
+      payload: {
+        // Vocabulário do Health Tracker já no envio (espelha o hook): type é
+        // enum na coleção — valor cru ("treino") é recusado com "Invalid
+        // value". O hook re-garanta como última linha de defesa.
+        type: typeHtrParaTipo(tipo),
+        category: categoriaHtrParaTipo(tipo),
+        ...payload,
+      },
       professional_name: nomeProfissional,
       data_lancamento: dataLancamento,
     })

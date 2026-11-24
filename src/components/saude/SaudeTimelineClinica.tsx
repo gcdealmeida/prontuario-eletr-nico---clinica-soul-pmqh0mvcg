@@ -19,6 +19,7 @@ import {
   enviarRegistroHealthTracker,
   mensagemErroHealthTracker,
 } from '@/services/healthTracker'
+import { typeHtrParaTipo, categoriaHtrParaTipo } from '@/lib/saudeHtrVocab'
 import { Plus, Trash2, X, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
@@ -109,6 +110,11 @@ export function SaudeTimelineClinica({ clienteId }: Props) {
           collection: colecaoHtrParaTipo(novoTipo),
           tipo: novoTipo,
           payload: {
+            // Vocabulário do Health Tracker já no envio (espelha o hook): type
+            // é enum na coleção — valor cru ("treino") é recusado com
+            // "Invalid value". O hook re-garanta como última linha de defesa.
+            type: typeHtrParaTipo(novoTipo),
+            category: categoriaHtrParaTipo(novoTipo),
             title: TIPOS_REGISTRO.find((t) => t.value === novoTipo)?.label || novoTipo,
             observacao: novaObs.trim() || undefined,
             data: novaData,

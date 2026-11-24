@@ -1,4 +1,10 @@
 import pb from '@/lib/pocketbase/client'
+import {
+  colecaoHtrParaTipo,
+  categoriaHtrParaTipo,
+  typeHtrParaTipo,
+  prepararPayloadHtr,
+} from '@/lib/saudeHtrVocab'
 
 /* ------------------------------------------------------------------ */
 /* Integração com o app Health Tracker da clínica (outro projeto Skip)  */
@@ -50,6 +56,9 @@ export async function buscarHealthTrackerSummary(
 /**
  * Envia um registro para o Health Tracker (best effort — chamado APÓS o
  * registro local já ter sido gravado; uma falha aqui NÃO desfaz nada).
+ * O payload vai com type/category/date_time JÁ traduzidos ao vocabulário
+ * aceito pelo Health Tracker (src/lib/saudeHtrVocab.ts — mesma tradução do
+ * hook no servidor, que re-garante como última linha de defesa).
  * professionalName = nome do profissional logado, exibido no outro app como
  * "via app institucional".
  */
@@ -62,17 +71,12 @@ export async function enviarRegistroHealthTracker(payload: {
   /** Data própria do lançamento (ISO ou "YYYY-MM-DD") — vai como date_time no HTR. */
   data_lancamento?: string
 }): Promise<{ success: boolean }> {
-  // O Health Tracker exige category e date_time em TODAS as coleções
-  // ("cannot be blank" sem eles). Preenchidos aqui por padrão — o hook no
-  // servidor re-garante como última linha de defesa.
-  const dados = { ...(payload.payload || {}) }
-  if (!dados.category) dados.category = categoriaHtrParaTipo(payload.tipo || '')
-  if (!dados.date_time) {
-    const d = payload.data_lancamento || ''
-    dados.date_time = /^\d{4}-\d{2}-\d{2}$/.test(d)
-      ? d + ' 12:00:00.000Z'
-      : new Date().toISOString()
-  }
+  const tipo = payload.tipo || ''
+  const dados = prepararPayloadHtr({
+    tipo,
+    payload: payload.payload || {},
+    dataLancamento: payload.data_lancamento,
+  })
   const corpo = { ...payload, payload: dados }
   delete corpo.data_lancamento
   return pb
@@ -101,64 +105,14 @@ export function eh404HealthTracker(err: unknown): boolean {
   return Boolean(dados && typeof dados === 'object' && (dados as HealthTrackerErro).not_found)
 }
 
-/**
- * Mapa tipo de registro (saude_registros) → coleção do Health Tracker.
- * Usa SOMENTE coleções da whitelist do dono (ver topo do hook
- * pocketbase/hooks/healthtracker_integracao.js): health_metrics,
- * medical_records, emotional_logs, diets, reminders, medications,
- * profile_biomarkers, conditions, allergies, vaccines, events, genetics,
- * professionals, lifestyle. "exams" é somente leitura no Health Tracker —
- * exames prescritos pela clínica vão em medical_records.
- */
-const COLECAO_HTR_POR_TIPO: Record<string, string> = {
-  atividade_fisica: 'health_metrics',
-  sono: 'health_metrics',
-  bebida: 'health_metrics',
-  energia: 'health_metrics',
-  alimento: 'diets',
-  refeicao: 'diets',
-  dieta: 'diets',
-  medicacao: 'medications',
-  emocao: 'emotional_logs',
-  humor: 'emotional_logs',
-  sintoma: 'medical_records',
-  exame: 'medical_records',
-  treino: 'medical_records',
-  reabilitacao: 'medical_records',
-}
-
-/** Coleção do Health Tracker permitida para gravar um tipo de registro. */
-export function colecaoHtrParaTipo(tipo: string): string {
-  return COLECAO_HTR_POR_TIPO[tipo] || 'medical_records'
-}
+export { colecaoHtrParaTipo, typeHtrParaTipo, prepararPayloadHtr }
 
 /**
  * Mapa tipo de registro (saude_registros) → category exigida pelo Health
- * Tracker em TODAS as coleções graváveis (campo obrigatório, junto com
- * date_time — sem eles o outro projeto responde "cannot be blank").
- * Mesmas chaves de COLECAO_HTR_POR_TIPO; mantidas lado a lado de propósito.
+ * Tracker em TODAS as coleções graváveis. Reexportado do módulo compartilhado
+ * para não quebrar importadores existentes.
  */
-const CATEGORIA_HTR_POR_TIPO: Record<string, string> = {
-  treino: 'workout',
-  reabilitacao: 'rehabilitation',
-  exame: 'exam',
-  sintoma: 'symptom',
-  atividade_fisica: 'activity',
-  sono: 'sleep',
-  bebida: 'water',
-  energia: 'energy',
-  alimento: 'nutrition',
-  refeicao: 'diet',
-  dieta: 'diet',
-  medicacao: 'medication',
-  emocao: 'emotion',
-  humor: 'emotion',
-}
-
-/** Categoria do Health Tracker correspondente a um tipo de registro. */
-export function categoriaHtrParaTipo(tipo: string): string {
-  return CATEGORIA_HTR_POR_TIPO[tipo] || tipo || 'general'
-}
+export { categoriaHtrParaTipo }
 
 /** Extrai a mensagem amigável de um erro devolvido pelo hook/Health Tracker. */
 export function mensagemErroHealthTracker(err: unknown): string {
