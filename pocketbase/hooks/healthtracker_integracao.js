@@ -501,11 +501,56 @@ routerAdd(
       humor: 'emotion',
     }
 
+    // Candidatos para o campo ENUM "type" de cada coleção, por tipo de
+    // lançamento. O Health Tracker recusa valores fora da lista de opções
+    // (erro real: "type: Invalid value treino"); ao receber essa recusa o hook
+    // avança para o próximo candidato e registra nos logs qual valor foi
+    // ACEITO — ajuste futuro: trazer o valor aceito para a primeira posição.
+    const CANDIDATOS_TYPE_POR_TIPO = {
+      treino: ['workout', 'exercise', 'treino_fisico', 'training', 'other', 'general'],
+      reabilitacao: ['rehabilitation', 'therapy', 'treatment', 'other', 'general'],
+      exame: ['exam', 'examination', 'other', 'general'],
+      sintoma: ['symptom', 'other', 'general'],
+      atividade_fisica: ['activity', 'exercise', 'other', 'general'],
+      sono: ['sleep', 'other', 'general'],
+      bebida: ['water', 'hydration', 'other', 'general'],
+      energia: ['energy', 'activity', 'other', 'general'],
+      alimento: ['food', 'nutrition', 'meal', 'other', 'general'],
+      refeicao: ['meal', 'food', 'diet', 'other', 'general'],
+      dieta: ['diet', 'nutrition', 'other', 'general'],
+      medicacao: ['medication', 'medicine', 'other', 'general'],
+      emocao: ['emotion', 'mood', 'other', 'general'],
+      humor: ['emotion', 'mood', 'other', 'general'],
+      lembrete: ['reminder', 'task', 'other', 'general'],
+    }
+    const CANDIDATOS_TYPE_PADRAO = ['other', 'general']
+
+    // Candidatos análogos para o campo "category" (obrigatório em todas as
+    // coleções e também suscetível de ser enum no outro projeto).
+    const CANDIDATOS_CATEGORY_POR_TIPO = {
+      treino: ['workout', 'exercise', 'training', 'activity', 'general'],
+      reabilitacao: ['rehabilitation', 'therapy', 'treatment', 'general'],
+      exame: ['exam', 'examination', 'medical', 'general'],
+      sintoma: ['symptom', 'medical', 'general'],
+      atividade_fisica: ['activity', 'exercise', 'general'],
+      sono: ['sleep', 'general'],
+      bebida: ['water', 'hydration', 'general'],
+      energia: ['energy', 'activity', 'general'],
+      alimento: ['nutrition', 'food', 'meal', 'diet', 'general'],
+      refeicao: ['diet', 'meal', 'nutrition', 'general'],
+      dieta: ['diet', 'nutrition', 'general'],
+      medicacao: ['medication', 'medicine', 'general'],
+      emocao: ['emotion', 'mood', 'general'],
+      humor: ['emotion', 'mood', 'general'],
+      lembrete: ['reminder', 'task', 'event', 'general'],
+    }
+    const CANDIDATOS_CATEGORY_PADRAO = ['general', 'other']
+
     // Corpo do registro: campos do payload SOBEM para o nível do registro
     // (título, descrição, exercícios, resultado, observação…), e os
     // obrigatórios são garantidos. O shape antigo (tipo/payload) é mantido
     // dentro para não quebrar nada que ainda o leia.
-    const montarDadosRegistro = () => {
+    const montarDadosRegistro = (idxType, idxCategory, semRepeat) => {
       const dados = {}
       if (payload && typeof payload === 'object') {
         for (const k in payload) {
@@ -515,8 +560,19 @@ routerAdd(
         }
       }
       // category/date_time do payload (explícitos) têm prioridade; sem eles,
-      // derivados do tipo e da data do lançamento.
-      dados.category = String(dados.category || CATEGORIA_POR_TIPO[tipo] || tipo || 'general')
+      // derivados do tipo e da data do lançamento. category também pode ser
+      // enum no outro projeto: em reenvio (idxCategory>0) vai o candidato.
+      const candidatosCategory = CANDIDATOS_CATEGORY_POR_TIPO[tipo] || CANDIDATOS_CATEGORY_PADRAO
+      if (idxCategory > 0) {
+        dados.category = String(
+          candidatosCategory[Math.min(idxCategory, candidatosCategory.length - 1)] ||
+            CATEGORIA_POR_TIPO[tipo] ||
+            tipo ||
+            'general',
+        )
+      } else {
+        dados.category = String(dados.category || CATEGORIA_POR_TIPO[tipo] || tipo || 'general')
+      }
       if (!dados.date_time) {
         const d = typeof dados.data === 'string' ? dados.data : ''
         // data própria do lançamento ("YYYY-MM-DD") vira ISO 8601 ao meio-dia
@@ -525,25 +581,52 @@ routerAdd(
           ? d + ' 12:00:00.000Z'
           : new Date().toISOString()
       }
+      // repeat (lembretes): a clínica envia em português ('nenhuma', 'diaria'…);
+      // o Health Tracker espera o valor do enum em inglês. Se ainda assim for
+      // recusado ("repeat: Invalid value …"), o reenvio descarta o campo
+      // (semRepeat=true) para não bloquear o registro.
+      if (semRepeat) {
+        delete dados.repeat
+      } else if (dados.repeat) {
+        const mapaRepeat = {
+          nenhuma: 'none',
+          diaria: 'daily',
+          semanal: 'weekly',
+          mensal: 'monthly',
+        }
+        const rep = mapaRepeat[String(dados.repeat).toLowerCase()]
+        if (rep) dados.repeat = rep
+      }
       // Campos que o Health Tracker exige no nível do registro (log de 400:
-      // "Envie os campos obrigatórios: type"). type = tipo do lançamento ou a
-      // própria coleção; title = título informado ou rótulo do tipo.
-      dados.type = String(dados.type || tipo || collection)
+      // "Envie os campos obrigatórios: type"). type tem de ser um valor do ENUM
+      // da coleção (erro real: "type: Invalid value treino"): vai o candidato da
+      // posição idxType — avançado pelo reenvio quando recusado. Valor
+      // explícito do frontend tem prioridade apenas na 1ª tentativa.
+      const candidatosType = CANDIDATOS_TYPE_POR_TIPO[tipo] || CANDIDATOS_TYPE_PADRAO
+      if (idxType > 0) {
+        dados.type = String(
+          candidatosType[Math.min(idxType, candidatosType.length - 1)] || tipo || collection,
+        )
+      } else {
+        dados.type = String(dados.type || candidatosType[0] || tipo || collection)
+      }
       dados.title = String(dados.title || dados.titulo || tipo || collection)
       dados.tipo = tipo
       dados.payload = payload
       return dados
     }
-    const dadosRegistro = montarDadosRegistro()
+    const dadosPrimeiraTentativa = montarDadosRegistro(0)
     console.log(
       '[HealthTracker] record: corpo do registro — collection=' +
         collection +
+        ' type=' +
+        dadosPrimeiraTentativa.type +
         ' category=' +
-        dadosRegistro.category +
+        dadosPrimeiraTentativa.category +
         ' date_time=' +
-        dadosRegistro.date_time +
+        dadosPrimeiraTentativa.date_time +
         ' data=' +
-        truncar(dadosRegistro),
+        truncar(dadosPrimeiraTentativa),
     )
 
     // ----- Handshake de confiança (regras R1 e R2) -----
@@ -637,7 +720,18 @@ routerAdd(
     }
 
     // ----- Gravação do registro (regras R1, R3 e R5) -----
-    const chamarRecord = () => {
+    const chamarRecord = (idxType, idxCategory, semRepeat) => {
+      const dados = montarDadosRegistro(idxType, idxCategory, semRepeat)
+      console.log(
+        '[HealthTracker] record: POST records — collection=' +
+          collection +
+          ' type="' +
+          dados.type +
+          '" category="' +
+          dados.category +
+          '"' +
+          (dados.repeat ? ' repeat="' + dados.repeat + '"' : ''),
+      )
       const resp = $http.send({
         url: HT_BASE + '/backend/v1/trust/patients/' + encodeURIComponent(email) + '/records',
         method: 'POST', // sempre POST de registro novo — nunca PATCH/PUT (regra R3)
@@ -649,19 +743,24 @@ routerAdd(
           // Regra R6: data no nível do registro — os obrigatórios category e
           // date_time sempre preenchidos, com o restante dos campos do payload
           // (título, descrição, exercícios…) também no nível do registro.
-          data: dadosRegistro,
+          data: dados,
         }),
       })
       const st = resp.statusCode || resp.status || 0
-      let dados = resp.json
-      if (typeof dados === 'string') {
+      let resposta = resp.json
+      if (typeof resposta === 'string') {
         try {
-          dados = JSON.parse(dados)
+          resposta = JSON.parse(resposta)
         } catch (_) {
-          dados = null
+          resposta = null
         }
       }
-      return { status: st, dados: dados }
+      return {
+        status: st,
+        dados: resposta,
+        typeEnviado: String(dados.type || ''),
+        categoryEnviada: String(dados.category || ''),
+      }
     }
 
     const renovarToken = () => {
@@ -674,7 +773,12 @@ routerAdd(
     }
 
     try {
-      let r = chamarRecord()
+      const candidatosType = CANDIDATOS_TYPE_POR_TIPO[tipo] || CANDIDATOS_TYPE_PADRAO
+      const candidatosCategory = CANDIDATOS_CATEGORY_POR_TIPO[tipo] || CANDIDATOS_CATEGORY_PADRAO
+      let idxType = 0
+      let idxCategory = 0
+      let semRepeat = false
+      let r = chamarRecord(idxType, idxCategory, semRepeat)
       if (r.status === 401 || r.status === 403) {
         console.log(
           '[HealthTracker] record: records recusou (HTTP ' +
@@ -687,8 +791,96 @@ routerAdd(
         HT_TOKEN_CACHE.expiraEm = 0
         token = ''
         if (renovarToken()) {
-          r = chamarRecord()
+          r = chamarRecord(idxType, idxCategory, semRepeat)
         }
+      }
+
+      // Recusa por ENUM ("campo: Invalid value <valor>"): o Health Tracker
+      // valida type/category/repeat contra listas de opções. Em "type" e
+      // "category" avança para o próximo candidato da coleção; em "repeat"
+      // descarta o campo — e reenvia. Cada tentativa é logada; quando uma é
+      // ACEITA, o log mostra o valor que passou (ajuste futuro: trazê-lo para
+      // a 1ª posição da lista).
+      // Detecção do campo recusado: o corpo de erro do PocketBase lista os
+      // campos ("type: Invalid value treino.") e o texto genérico pode citar
+      // "category" — por isso o campo é extraído do PAR "campo: Invalid value",
+      // não por indexOf solto.
+      const campoRecusado = (texto) => {
+        const t = String(texto)
+        // Formato achatado do Health Tracker: "type: Invalid value treino".
+        let m = t.match(/([a-zA-Z_]+)\s*:\s*Invalid value/i)
+        if (!m) {
+          // Formato nativo do PocketBase: "type":{"code":…,"message":"Invalid value treino"}.
+          m = t.match(/"([a-zA-Z_]+)"\s*:\s*\{[^{}]*"Invalid value/i)
+        }
+        return m ? String(m[1]).toLowerCase() : ''
+      }
+      let tentativasEnum = 0
+      while (r.status === 400 && tentativasEnum < 10) {
+        const textoErro = truncar(r.dados)
+        const recusaEnum = textoErro.indexOf('Invalid value') !== -1
+        const campo = recusaEnum ? campoRecusado(textoErro) : ''
+        if (campo === 'type' && idxType + 1 < candidatosType.length) {
+          console.log(
+            '[HealthTracker] record: type="' +
+              r.typeEnviado +
+              '" RECUSADO pelo enum da coleção ' +
+              collection +
+              ' — tentando candidato seguinte (' +
+              candidatosType[idxType + 1] +
+              ')…',
+          )
+          idxType++
+          r = chamarRecord(idxType, idxCategory, semRepeat)
+        } else if (campo === 'category' && idxCategory + 1 < candidatosCategory.length) {
+          console.log(
+            '[HealthTracker] record: category="' +
+              r.categoryEnviada +
+              '" RECUSADO pelo enum da coleção ' +
+              collection +
+              ' — tentando candidato seguinte (' +
+              candidatosCategory[idxCategory + 1] +
+              ')…',
+          )
+          idxCategory++
+          r = chamarRecord(idxType, idxCategory, semRepeat)
+        } else if (campo === 'repeat' && !semRepeat) {
+          console.log(
+            '[HealthTracker] record: repeat="' +
+              (dadosPrimeiraTentativa.repeat || '') +
+              '" RECUSADO pelo enum da coleção ' +
+              collection +
+              ' — reenviando sem repeat…',
+          )
+          semRepeat = true
+          r = chamarRecord(idxType, idxCategory, semRepeat)
+        } else {
+          break
+        }
+        if (r.status === 401 || r.status === 403) {
+          HT_TOKEN_CACHE.token = ''
+          HT_TOKEN_CACHE.expiraEm = 0
+          token = ''
+          if (renovarToken()) {
+            r = chamarRecord(idxType, idxCategory, semRepeat)
+          }
+        }
+        tentativasEnum++
+      }
+      if (r.status >= 200 && r.status < 300 && (idxType > 0 || idxCategory > 0)) {
+        console.log(
+          '[HealthTracker] record: VALOR ACEITO — collection=' +
+            collection +
+            ' type="' +
+            r.typeEnviado +
+            '" category="' +
+            r.categoryEnviada +
+            '" (listas: type=' +
+            candidatosType.join('/') +
+            ' | category=' +
+            candidatosCategory.join('/') +
+            ') — considere trazer o valor aceito para a 1ª posição.',
+        )
       }
 
       if (r.status === 404) {
