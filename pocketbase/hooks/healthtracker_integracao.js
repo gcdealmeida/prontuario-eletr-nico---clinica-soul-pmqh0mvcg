@@ -521,9 +521,54 @@ routerAdd(
       medicacao: ['medication', 'medicine', 'other', 'general'],
       emocao: ['emotion', 'mood', 'other', 'general'],
       humor: ['emotion', 'mood', 'other', 'general'],
-      lembrete: ['reminder', 'task', 'other', 'general'],
+      // Log real (24/11): reminder, task, other E general foram TODOS recusados
+      // pelo enum da coleção reminders do Health Tracker — a lista antiga se
+      // esgotou sem achar valor válido. A lista abaixo cobre os vocabulários
+      // plausíveis do outro app (tipos de lembrete de um health tracker +
+      // valores genéricos); quando o log [HealthTracker] VALOR ACEITO mostrar
+      // qual passou, trazê-lo para a 1ª posição.
+      lembrete: [
+        'reminder',
+        'task',
+        'other',
+        'general',
+        'custom',
+        'appointment',
+        'medication',
+        'activity',
+        'water',
+        'note',
+        'event',
+        'info',
+        'alert',
+        'personal',
+        'clinic',
+        'measurement',
+        'sleep',
+        'diet',
+        'nutrition',
+        'exercise',
+        'workout',
+        'exam',
+        'symptom',
+        'emotion',
+        'mood',
+      ],
     }
-    const CANDIDATOS_TYPE_PADRAO = ['other', 'general']
+    const CANDIDATOS_TYPE_PADRAO = [
+      'other',
+      'general',
+      'custom',
+      'note',
+      'info',
+      'task',
+      'reminder',
+      'appointment',
+      'personal',
+      'clinic',
+      'event',
+      'activity',
+    ]
 
     // Candidatos análogos para o campo "category" (obrigatório em todas as
     // coleções e também suscetível de ser enum no outro projeto).
@@ -542,9 +587,18 @@ routerAdd(
       medicacao: ['medication', 'medicine', 'general'],
       emocao: ['emotion', 'mood', 'general'],
       humor: ['emotion', 'mood', 'general'],
-      lembrete: ['reminder', 'task', 'event', 'general'],
+      lembrete: [
+        'reminder',
+        'task',
+        'event',
+        'general',
+        'custom',
+        'appointment',
+        'medication',
+        'activity',
+      ],
     }
-    const CANDIDATOS_CATEGORY_PADRAO = ['general', 'other']
+    const CANDIDATOS_CATEGORY_PADRAO = ['general', 'other', 'custom', 'note', 'info']
 
     // Corpo do registro: campos do payload SOBEM para o nível do registro
     // (título, descrição, exercícios, resultado, observação…), e os
@@ -816,7 +870,7 @@ routerAdd(
         return m ? String(m[1]).toLowerCase() : ''
       }
       let tentativasEnum = 0
-      while (r.status === 400 && tentativasEnum < 10) {
+      while (r.status === 400 && tentativasEnum < 30) {
         const textoErro = truncar(r.dados)
         const recusaEnum = textoErro.indexOf('Invalid value') !== -1
         const campo = recusaEnum ? campoRecusado(textoErro) : ''
@@ -866,6 +920,19 @@ routerAdd(
           }
         }
         tentativasEnum++
+      }
+      // Listas esgotadas e ainda 400: loga com destaque — o enum real não
+      // contém NENHUM dos candidatos; a mensagem de erro completa (com o
+      // último valor recusado) orienta o ajuste das listas.
+      if (r.status === 400 && idxType + 1 >= candidatosType.length) {
+        console.log(
+          '[HealthTracker] record: LISTA DE TYPE ESGOTADA para collection=' +
+            collection +
+            ' (tentados: ' +
+            candidatosType.join(', ') +
+            ') — nenhum valor foi aceito. Último erro: ' +
+            truncar(r.dados, 300),
+        )
       }
       if (r.status >= 200 && r.status < 300 && (idxType > 0 || idxCategory > 0)) {
         console.log(

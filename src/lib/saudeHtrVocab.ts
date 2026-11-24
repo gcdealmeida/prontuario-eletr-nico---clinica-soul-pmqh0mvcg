@@ -80,11 +80,55 @@ export const CANDIDATOS_TYPE_POR_TIPO: Record<string, string[]> = {
   medicacao: ['medication', 'medicine', 'other', 'general'],
   emocao: ['emotion', 'mood', 'other', 'general'],
   humor: ['emotion', 'mood', 'other', 'general'],
-  lembrete: ['reminder', 'task', 'other', 'general'],
+  // Log real (24/11): reminder, task, other E general foram TODOS recusados
+  // pelo enum da coleção reminders do Health Tracker — a lista se esgotou sem
+  // achar valor válido (mesma lição do hook). Lista ampliada cobre os
+  // vocabulários plausíveis do outro app; o valor aceito no log VALOR ACEITO
+  // vira a 1ª posição.
+  lembrete: [
+    'reminder',
+    'task',
+    'other',
+    'general',
+    'custom',
+    'appointment',
+    'medication',
+    'activity',
+    'water',
+    'note',
+    'event',
+    'info',
+    'alert',
+    'personal',
+    'clinic',
+    'measurement',
+    'sleep',
+    'diet',
+    'nutrition',
+    'exercise',
+    'workout',
+    'exam',
+    'symptom',
+    'emotion',
+    'mood',
+  ],
 }
 
 /** Candidatos de fallback quando o tipo não está no mapa. */
-export const CANDIDATOS_TYPE_PADRAO: string[] = ['other', 'general']
+export const CANDIDATOS_TYPE_PADRAO: string[] = [
+  'other',
+  'general',
+  'custom',
+  'note',
+  'info',
+  'task',
+  'reminder',
+  'appointment',
+  'personal',
+  'clinic',
+  'event',
+  'activity',
+]
 
 /**
  * Candidatos análogos para o campo "category" (obrigatório em todas as
@@ -106,7 +150,16 @@ export const CANDIDATOS_CATEGORY_POR_TIPO: Record<string, string[]> = {
   medicacao: ['medication', 'medicine', 'general'],
   emocao: ['emotion', 'mood', 'general'],
   humor: ['emotion', 'mood', 'general'],
-  lembrete: ['reminder', 'task', 'event', 'general'],
+  lembrete: [
+    'reminder',
+    'task',
+    'event',
+    'general',
+    'custom',
+    'appointment',
+    'medication',
+    'activity',
+  ],
 }
 
 /** Candidatos de category para tipos fora do mapa. */
