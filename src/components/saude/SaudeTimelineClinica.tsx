@@ -14,7 +14,11 @@ import {
 import { ICONES_TIPO } from '@/components/saude/SaudeResumoIcones'
 import { formatDataHoraPTBR } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
-import { enviarRegistroHealthTracker, mensagemErroHealthTracker } from '@/services/healthTracker'
+import {
+  colecaoHtrParaTipo,
+  enviarRegistroHealthTracker,
+  mensagemErroHealthTracker,
+} from '@/services/healthTracker'
 import { Plus, Trash2, X, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
@@ -102,7 +106,7 @@ export function SaudeTimelineClinica({ clienteId }: Props) {
       try {
         await enviarRegistroHealthTracker({
           cliente_id: clienteId,
-          collection: 'registros',
+          collection: colecaoHtrParaTipo(novoTipo),
           tipo: novoTipo,
           payload: { observacao: novaObs.trim() || undefined, data: novaData },
           professional_name: user?.name || '',

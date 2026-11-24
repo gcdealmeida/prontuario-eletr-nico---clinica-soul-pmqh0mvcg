@@ -2,52 +2,85 @@
  * Hook — Integração de confiança com o app Health Tracker da clínica
  * (outro projeto Skip).
  *
- * O Health Tracker expõe uma API de confiança:
- *   (1) assinatura HMAC-SHA256 de "email|ts" (ts = epoch ms, tolerância 5 min)
- *       com a env var INSTITUTIONAL_TRUST_SECRET;
- *   (2) POST /backend/v1/trust/token  {email, ts, sig} → token de sessão;
- *   (3) GET  /backend/v1/trust/patients/{email}/summary, header
- *       "Authorization: <token>" (sem Bearer) → resumo das áreas do cliente;
- *   (4) POST /backend/v1/trust/patients/{email}/records
- *       {collection, professional_name, data} → grava registro no cliente,
- *       identificado como "via app institucional".
+ * REGRAS DO DONO (contrato do Health Tracker — auditado item a item):
+ *   (R1) O header de autenticação é "Authorization: <token>" — SEM a palavra
+ *        "Bearer". Nenhum envio aqui usa prefixo.
+ *   (R2) A assinatura é sempre sobre "email|ts" (barra vertical), com ts em
+ *        MILISSEGUNDOs enviado como STRING (ex.: "1732345600000"). O HMAC é
+ *        SHA-256 em HEXADECIMAL minúsculo ($security.hs256 → fmt.Sprintf("%x")
+ *        na fonte Go do PocketBase). Tolerância do outro lado: 5 minutos — o
+ *        token de sessão é renovado a cada 4 min e o ts é sempre fresco.
+ *   (R3) Toda gravação cria REGISTRO NOVO — nunca PATCH/PUT/sobrescrita do que
+ *        o cliente já lançou. A única chamada de gravação é POST .../records.
+ *   (R4) Coleções graváveis (whitelist): health_metrics, medical_records,
+ *        emotional_logs, diets, reminders, medications, profile_biomarkers e
+ *        as de condições/alergias/vacinas/eventos/genética/profissionais/estilo
+ *        de vida (conditions, allergies, vaccines, events, genetics,
+ *        professionals, lifestyle). "exams" é SOMENTE LEITURA: tentativa de
+ *        gravar nele (ou em qualquer coleção fora da lista) é RECUSADA aqui,
+ *        com mensagem clara, SEM chamar o Health Tracker.
+ *   (R5) Cada tela do profissional manda o E-MAIL do cliente na URL e o NOME
+ *        do profissional no corpo (professional_name) — é o que identifica a
+ *        origem como "via app institucional" no Health Tracker.
+ *
+ * API de confiança do outro projeto:
+ *   (1) POST /backend/v1/trust/token  {email, ts, sig} → token de sessão;
+ *   (2) GET  /backend/v1/trust/patients/{email}/summary → resumo do cliente;
+ *   (3) POST /backend/v1/trust/patients/{email}/records
+ *       {collection, professional_name, data} → cria registro novo.
  *
  * O SEGREDO NUNCA vai ao frontend: este hook assina, troca o token e repassa
  * os dados. O frontend chama apenas as rotas internas deste projeto:
  *   GET  /backend/v1/healthtracker/summary?cliente=<saude_clientes.id>
- *   POST /backend/v1/healthtracker/record  {cliente_id, collection, tipo, payload}
+ *   POST /backend/v1/healthtracker/record  {cliente_id, collection, tipo, payload, professional_name}
  *
  * Segurança de acesso (não pode regredir): o profissional só acessa clientes
  * designados a ele em vinculos_pacientes (paciente_id do saude_clientes —
  * mesmo padrão da migration 0064); ADM/Secretária acessam todos.
  *
- * Formato da assinatura: $security.hs256(texto, segredo) devolve o HMAC-SHA256
- * em HEXADECIMAL minúsculo (fonte: Go tools/security/crypto.go —
- * fmt.Sprintf("%x", h.Sum(nil))), exatamente o formato do
- * `openssl dgst -sha256 -hmac "$SECRET" -hex` que o Health Tracker compara.
- * A string assinada é exatamente `${email}|${ts}` (sem espaços), com ts como
- * STRING de epoch em milissegundos — e o JSON do POST envia ts como string.
+ * Segredo: lido primeiro do nome canônico INSTITUTIONAL_TRUST_SECRET e depois
+ * de "NSTITUTIONAL_TRUST_SECRET" (nome como já chegou a ficar gravado no painel
+ * deste projeto, sem o "I" inicial). Sem nenhum dos dois, a rota responde 503
+ * com erro claro. Os logs registram qual NOME foi usado (nunca o valor).
  *
- * Segredo: a variável está gravada no painel como "NSTITUTIONAL_TRUST_SECRET"
- * (sem o "I" inicial). Lemos primeiro o nome canônico e depois o gravado; sem
- * nenhum dos dois, a rota responde erro claro (503). Os logs registram qual
- * nome foi usado (nunca o valor).
+ * RASTREAMENTO: tudo com o prefixo "[HealthTracker]" no stream hooks — email,
+ * ts enviado, tamanho da sig, status HTTP e corpo (truncado) das respostas do
+ * trust/token e do summary/records. Assim, uma 401 futura diz nos logs se foi
+ * recusa de ASSINATURA (mensagem "Assinatura inválida") ou de TS FORA DA
+ * TOLERÂNCIA (mensagem de timestamp), além de qual segredo foi usado.
  *
  * IMPORTANTE (JSVM do PocketBase): callbacks de rota rodam num pool de VMs
  * separado — NADA do topo do arquivo (const/function) é visível dentro dos
- * callbacks. Por isso toda a lógica e as constantes estão INLINE nos
+ * callbacks. Por isso toda a lógica, constantes e helpers estão INLINE nos
  * callbacks, inclusive o cache de token (objeto criado dentro de cada
  * callback; se o pool não compartilhar estado entre requests, o efeito é
  * apenas refazer o handshake — nunca um erro).
  */
 
+/* ------------------------------------------------------------------ */
+/* Rota 1 — resumo (somente leitura)                                   */
+/* GET /backend/v1/healthtracker/summary?cliente=<id>                  */
+/* ------------------------------------------------------------------ */
 routerAdd(
   'GET',
   '/backend/v1/healthtracker/summary',
   (e) => {
     const HT_BASE = 'https://clinica-soul-health-tracker-333e7.shrd01.internal.goskip.dev'
-    const HT_TOKEN_TTL_MS = 4 * 60 * 1000 // renova antes da tolerância de 5 min
+    const HT_TOKEN_TTL_MS = 4 * 60 * 1000 // renova antes da tolerância de 5 min (regra R2)
     const HT_TOKEN_CACHE = { token: '', expiraEm: 0 }
+    const LOG_MAX = 300 // corpo truncado nas respostas registradas
+
+    // Corpo (ou objeto) truncado para o log — nunca registra valores de segredo.
+    const truncar = (v) => {
+      let s = ''
+      try {
+        s = typeof v === 'string' ? v : JSON.stringify(v)
+      } catch (_) {
+        s = String(v)
+      }
+      if (!s) s = ''
+      return s.length > LOG_MAX ? s.slice(0, LOG_MAX) + '…[truncado]' : s
+    }
 
     const auth = e.auth
     if (!auth) return e.unauthorizedError('Autenticação necessária.')
@@ -108,7 +141,7 @@ routerAdd(
       }
     }
 
-    // ----- E-mail do cliente no Health Tracker -----
+    // ----- E-mail do cliente no Health Tracker (regra R5: vai na URL) -----
     const email = (cliente.getString('email') || '').toLowerCase().trim()
     if (!email) {
       return e.json(400, {
@@ -117,9 +150,9 @@ routerAdd(
       })
     }
 
-    // ----- Handshake de confiança (passos 1 e 2) -----
+    // ----- Handshake de confiança (regras R1 e R2) -----
     const nomeCanonico = 'INSTITUTIONAL_TRUST_SECRET'
-    const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome real no painel (sem o "I")
+    const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome já visto no painel (sem o "I")
     const valorCanonico = String($os.getenv(nomeCanonico) || '').trim()
     const valorGravado = String($os.getenv(nomeGravado) || '').trim()
     const nomeUsado = valorCanonico ? nomeCanonico : nomeGravado
@@ -138,26 +171,25 @@ routerAdd(
       })
     }
 
-    let token = ''
-    if (HT_TOKEN_CACHE.token && Date.now() < HT_TOKEN_CACHE.expiraEm) {
-      token = HT_TOKEN_CACHE.token
-      console.log('[HealthTracker] summary: reusando token de sessão em cache.')
-    } else {
-      const ts = String(Date.now())
+    // Executa o handshake: sig = hex minúsculo de "email|ts" com ts STRING em ms.
+    const fazerHandshake = () => {
+      const ts = String(Date.now()) // regra R2: milissegundos como STRING
       let sig
       try {
         sig = String($security.hs256(email + '|' + ts, segredo))
-        console.log(
-          '[HealthTracker] summary: handshake — sig gerada por $security.hs256, tamanho=' +
-            sig.length +
-            ' (esperado 64 hex)',
-        )
       } catch (errHmac) {
-        console.log('healthtracker: falha ao gerar HMAC:', errHmac)
-        return e.json(502, {
-          error: 'Falha ao gerar a assinatura de confiança para o Health Tracker.',
-        })
+        console.log('[HealthTracker] summary: falha ao gerar HMAC:', errHmac)
+        return { erro: 'Falha ao gerar a assinatura de confiança para o Health Tracker.' }
       }
+      console.log(
+        '[HealthTracker] summary: trust/token — email=' +
+          email +
+          ' ts=' +
+          ts +
+          ' (string de ms) sig_len=' +
+          sig.length +
+          ' (esperado 64 hex minúsculo) signed="email|ts"',
+      )
       let respToken
       try {
         respToken = $http.send({
@@ -167,45 +199,59 @@ routerAdd(
           body: JSON.stringify({ email: email, ts: ts, sig: sig }),
         })
       } catch (errHttp) {
-        console.log('healthtracker: falha de rede no handshake:', errHttp)
-        return e.json(502, { error: 'Health Tracker indisponível (handshake).' })
+        console.log('[HealthTracker] summary: falha de rede no handshake:', errHttp)
+        return { erro: 'Health Tracker indisponível (handshake).' }
       }
-      const stToken = respToken.statusCode || respToken.status || 0
-      let dadosToken = respToken.json
-      if (typeof dadosToken === 'string') {
+      const st = respToken.statusCode || respToken.status || 0
+      let dados = respToken.json
+      if (typeof dados === 'string') {
         try {
-          dadosToken = JSON.parse(dadosToken)
+          dados = JSON.parse(dados)
         } catch (_) {
-          dadosToken = null
+          dados = null
         }
       }
-      if (stToken < 200 || stToken >= 300) {
-        const msg =
-          dadosToken && dadosToken.error
-            ? String(dadosToken.error)
-            : 'Health Tracker recusou o handshake de confiança (HTTP ' + stToken + ').'
-        console.log('[HealthTracker] summary: handshake recusado — HTTP ' + stToken + ': ' + msg)
-        return e.json(502, { error: msg })
-      }
-      token = String(
-        (dadosToken && (dadosToken.token || dadosToken.session_token || dadosToken.access_token)) ||
-          '',
+      console.log(
+        '[HealthTracker] summary: trust/token respondeu — status=' +
+          st +
+          ' corpo=' +
+          truncar(dados),
       )
-      if (!token) {
-        return e.json(502, { error: 'Health Tracker não devolveu token de sessão no handshake.' })
+      const token = String(
+        (dados && (dados.token || dados.session_token || dados.access_token)) || '',
+      )
+      if (st < 200 || st >= 300 || !token) {
+        const msg =
+          dados && dados.error
+            ? String(dados.error)
+            : 'Health Tracker recusou o handshake de confiança (HTTP ' + st + ').'
+        console.log('[HealthTracker] summary: handshake RECUSADO — HTTP ' + st + ': ' + msg)
+        return { erro: msg }
       }
       console.log('[HealthTracker] summary: handshake OK (token recebido).')
+      return { token: token }
+    }
+
+    let token = ''
+    if (HT_TOKEN_CACHE.token && Date.now() < HT_TOKEN_CACHE.expiraEm) {
+      token = HT_TOKEN_CACHE.token
+      console.log('[HealthTracker] summary: reusando token de sessão em cache.')
+    } else {
+      const hs = fazerHandshake()
+      if (hs.erro) return e.json(502, { error: hs.erro })
+      token = hs.token
       // Guarda um pouco menos que a tolerância de 5 min para nunca usar um
-      // ts que já saiu da janela.
+      // token cujo ts de emissão já saiu da janela.
       HT_TOKEN_CACHE.token = token
       HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
     }
 
-    // ----- Chamada ao summary (passo 3), com renovação única em 401/403 -----
+    // ----- Chamada ao summary (somente leitura), com renovação única em 401/403 -----
     const chamarSummary = () => {
       const resp = $http.send({
         url: HT_BASE + '/backend/v1/trust/patients/' + encodeURIComponent(email) + '/summary',
         method: 'GET',
+        // Regra R1: Authorization SEM a palavra "Bearer".
         headers: { 'Content-Type': 'application/json', Authorization: token },
       })
       const st = resp.statusCode || resp.status || 0
@@ -220,37 +266,13 @@ routerAdd(
       return { status: st, dados: dados }
     }
 
-    // Renovação única do handshake em 401/403.
     const renovarToken = () => {
-      const ts2 = String(Date.now())
-      const sig2 = String($security.hs256(email + '|' + ts2, segredo))
-      const respToken2 = $http.send({
-        url: HT_BASE + '/backend/v1/trust/token',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, ts: ts2, sig: sig2 }),
-      })
-      const stToken2 = respToken2.statusCode || respToken2.status || 0
-      let dadosToken2 = respToken2.json
-      if (typeof dadosToken2 === 'string') {
-        try {
-          dadosToken2 = JSON.parse(dadosToken2)
-        } catch (_) {
-          dadosToken2 = null
-        }
-      }
-      const token2 = String(
-        (dadosToken2 &&
-          (dadosToken2.token || dadosToken2.session_token || dadosToken2.access_token)) ||
-          '',
-      )
-      if (token2 && stToken2 >= 200 && stToken2 < 300) {
-        HT_TOKEN_CACHE.token = token2
-        HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
-        token = token2
-        return true
-      }
-      return false
+      const hs = fazerHandshake()
+      if (hs.erro || !hs.token) return false
+      HT_TOKEN_CACHE.token = hs.token
+      HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
+      token = hs.token
+      return true
     }
 
     try {
@@ -258,6 +280,13 @@ routerAdd(
       if (r.status === 401 || r.status === 403) {
         // Token possivelmente expirado: invalida o cache, refaz o handshake
         // UMA vez e tenta de novo.
+        console.log(
+          '[HealthTracker] summary: summary recusou (HTTP ' +
+            r.status +
+            ', corpo=' +
+            truncar(r.dados) +
+            ') — renovando handshake uma vez…',
+        )
         HT_TOKEN_CACHE.token = ''
         HT_TOKEN_CACHE.expiraEm = 0
         token = ''
@@ -277,10 +306,12 @@ routerAdd(
           r.dados && r.dados.error
             ? String(r.dados.error)
             : 'Health Tracker respondeu HTTP ' + r.status + '.'
-        console.log('[HealthTracker] summary: falha — HTTP ' + r.status + ': ' + msg)
+        console.log(
+          '[HealthTracker] summary: falha — HTTP ' + r.status + ' corpo=' + truncar(r.dados),
+        )
         return e.json(502, { error: msg })
       }
-      console.log('[HealthTracker] summary: OK para ' + email)
+      console.log('[HealthTracker] summary: OK para ' + email + ' — corpo=' + truncar(r.dados, 200))
       return e.json(200, { health_tracker: r.dados || {}, cliente_email: email })
     } catch (err) {
       console.log('[HealthTracker] summary: erro inesperado:', err)
@@ -293,7 +324,8 @@ routerAdd(
 )
 
 /* ------------------------------------------------------------------ */
-/* Rota 2 — registro (passo 4): POST /backend/v1/healthtracker/record  */
+/* Rota 2 — registro (gravação)                                        */
+/* POST /backend/v1/healthtracker/record                               */
 /* Body: { cliente_id, collection, tipo, payload, professional_name }  */
 /* ------------------------------------------------------------------ */
 routerAdd(
@@ -303,6 +335,39 @@ routerAdd(
     const HT_BASE = 'https://clinica-soul-health-tracker-333e7.shrd01.internal.goskip.dev'
     const HT_TOKEN_TTL_MS = 4 * 60 * 1000
     const HT_TOKEN_CACHE = { token: '', expiraEm: 0 }
+    const LOG_MAX = 300
+
+    const truncar = (v) => {
+      let s = ''
+      try {
+        s = typeof v === 'string' ? v : JSON.stringify(v)
+      } catch (_) {
+        s = String(v)
+      }
+      if (!s) s = ''
+      return s.length > LOG_MAX ? s.slice(0, LOG_MAX) + '…[truncado]' : s
+    }
+
+    /* ----- Whitelist de coleções graváveis (regra R4 do dono) -----
+     * health_metrics, medical_records, emotional_logs, diets, reminders,
+     * medications, profile_biomarkers + condições/alergias/vacinas/eventos/
+     * genética/profissionais/estilo de vida. "exams" é SOMENTE LEITURA. */
+    const COLECOES_GRAVAVEIS = {
+      health_metrics: true,
+      medical_records: true,
+      emotional_logs: true,
+      diets: true,
+      reminders: true,
+      medications: true,
+      profile_biomarkers: true,
+      conditions: true,
+      allergies: true,
+      vaccines: true,
+      events: true,
+      genetics: true,
+      professionals: true,
+      lifestyle: true,
+    }
 
     const auth = e.auth
     if (!auth) return e.unauthorizedError('Autenticação necessária.')
@@ -313,6 +378,8 @@ routerAdd(
     const body = e.requestInfo().body || {}
     const clienteId = String(body.cliente_id || '')
     const collection = String(body.collection || '')
+      .toLowerCase()
+      .trim()
     const tipo = String(body.tipo || '')
     const payload = body.payload || {}
     const professionalName = String(body.professional_name || '')
@@ -330,6 +397,20 @@ routerAdd(
     if (!clienteId || !collection) {
       return e.json(400, { error: 'cliente_id e collection são obrigatórios.' })
     }
+
+    // ----- Whitelist (regra R4): recusa ANTES de qualquer chamada externa -----
+    if (!COLECOES_GRAVAVEIS[collection]) {
+      const msg =
+        collection === 'exams'
+          ? 'A coleção "exams" é somente leitura no Health Tracker — gravação recusada (regra da clínica: exames enviados pela clínica vão em medical_records).'
+          : 'A coleção "' +
+            collection +
+            '" não é permitida para gravação no Health Tracker. Permitidas: health_metrics, medical_records, emotional_logs, diets, reminders, medications, profile_biomarkers, conditions, allergies, vaccines, events, genetics, professionals, lifestyle.'
+      console.log('[HealthTracker] record: RECUSADO pela whitelist — collection=' + collection)
+      return e.json(400, { error: msg })
+    }
+    // Gravação é sempre POST de registro novo (regra R3) — este hook nunca
+    // faz PATCH/PUT nem apaga nada no Health Tracker.
 
     let cliente
     try {
@@ -369,7 +450,7 @@ routerAdd(
       }
     }
 
-    // ----- E-mail do cliente no Health Tracker -----
+    // ----- E-mail do cliente na URL (regra R5) + nome no corpo -----
     const email = (cliente.getString('email') || '').toLowerCase().trim()
     if (!email) {
       return e.json(400, {
@@ -378,10 +459,22 @@ routerAdd(
     }
 
     const nomeProf = professionalName || auth.getString('name') || ''
+    if (!nomeProf) {
+      return e.json(400, {
+        error:
+          'Nome do profissional ausente — o Health Tracker exige professional_name para identificar a origem do registro.',
+      })
+    }
+    console.log(
+      '[HealthTracker] record: origem — email_na_url=' +
+        email +
+        ' professional_name_no_corpo=' +
+        nomeProf,
+    )
 
-    // ----- Handshake de confiança (passos 1 e 2) -----
+    // ----- Handshake de confiança (regras R1 e R2) -----
     const nomeCanonico = 'INSTITUTIONAL_TRUST_SECRET'
-    const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome real no painel (sem o "I")
+    const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome já visto no painel (sem o "I")
     const valorCanonico = String($os.getenv(nomeCanonico) || '').trim()
     const valorGravado = String($os.getenv(nomeGravado) || '').trim()
     const nomeUsado = valorCanonico ? nomeCanonico : nomeGravado
@@ -400,26 +493,24 @@ routerAdd(
       })
     }
 
-    let token = ''
-    if (HT_TOKEN_CACHE.token && Date.now() < HT_TOKEN_CACHE.expiraEm) {
-      token = HT_TOKEN_CACHE.token
-      console.log('[HealthTracker] record: reusando token de sessão em cache.')
-    } else {
-      const ts = String(Date.now())
+    const fazerHandshake = () => {
+      const ts = String(Date.now()) // regra R2: milissegundos como STRING
       let sig
       try {
         sig = String($security.hs256(email + '|' + ts, segredo))
-        console.log(
-          '[HealthTracker] record: handshake — sig gerada por $security.hs256, tamanho=' +
-            sig.length +
-            ' (esperado 64 hex)',
-        )
       } catch (errHmac) {
-        console.log('healthtracker: falha ao gerar HMAC:', errHmac)
-        return e.json(502, {
-          error: 'Falha ao gerar a assinatura de confiança para o Health Tracker.',
-        })
+        console.log('[HealthTracker] record: falha ao gerar HMAC:', errHmac)
+        return { erro: 'Falha ao gerar a assinatura de confiança para o Health Tracker.' }
       }
+      console.log(
+        '[HealthTracker] record: trust/token — email=' +
+          email +
+          ' ts=' +
+          ts +
+          ' (string de ms) sig_len=' +
+          sig.length +
+          ' (esperado 64 hex minúsculo) signed="email|ts"',
+      )
       let respToken
       try {
         respToken = $http.send({
@@ -429,47 +520,58 @@ routerAdd(
           body: JSON.stringify({ email: email, ts: ts, sig: sig }),
         })
       } catch (errHttp) {
-        console.log('healthtracker: falha de rede no handshake:', errHttp)
-        return e.json(502, { error: 'Health Tracker indisponível (handshake).' })
+        console.log('[HealthTracker] record: falha de rede no handshake:', errHttp)
+        return { erro: 'Health Tracker indisponível (handshake).' }
       }
-      const stToken = respToken.statusCode || respToken.status || 0
-      let dadosToken = respToken.json
-      if (typeof dadosToken === 'string') {
+      const st = respToken.statusCode || respToken.status || 0
+      let dados = respToken.json
+      if (typeof dados === 'string') {
         try {
-          dadosToken = JSON.parse(dadosToken)
+          dados = JSON.parse(dados)
         } catch (_) {
-          dadosToken = null
+          dados = null
         }
       }
-      if (stToken < 200 || stToken >= 300) {
-        const msg =
-          dadosToken && dadosToken.error
-            ? String(dadosToken.error)
-            : 'Health Tracker recusou o handshake de confiança (HTTP ' + stToken + ').'
-        console.log('[HealthTracker] record: handshake recusado — HTTP ' + stToken + ': ' + msg)
-        return e.json(502, { error: msg })
-      }
-      token = String(
-        (dadosToken && (dadosToken.token || dadosToken.session_token || dadosToken.access_token)) ||
-          '',
+      console.log(
+        '[HealthTracker] record: trust/token respondeu — status=' + st + ' corpo=' + truncar(dados),
       )
-      if (!token) {
-        return e.json(502, { error: 'Health Tracker não devolveu token de sessão no handshake.' })
+      const token = String(
+        (dados && (dados.token || dados.session_token || dados.access_token)) || '',
+      )
+      if (st < 200 || st >= 300 || !token) {
+        const msg =
+          dados && dados.error
+            ? String(dados.error)
+            : 'Health Tracker recusou o handshake de confiança (HTTP ' + st + ').'
+        console.log('[HealthTracker] record: handshake RECUSADO — HTTP ' + st + ': ' + msg)
+        return { erro: msg }
       }
       console.log('[HealthTracker] record: handshake OK (token recebido).')
+      return { token: token }
+    }
+
+    let token = ''
+    if (HT_TOKEN_CACHE.token && Date.now() < HT_TOKEN_CACHE.expiraEm) {
+      token = HT_TOKEN_CACHE.token
+      console.log('[HealthTracker] record: reusando token de sessão em cache.')
+    } else {
+      const hs = fazerHandshake()
+      if (hs.erro) return e.json(502, { error: hs.erro })
+      token = hs.token
       HT_TOKEN_CACHE.token = token
       HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
     }
 
-    // ----- Gravação do registro (passo 4), renovação única em 401/403 -----
+    // ----- Gravação do registro (regras R1, R3 e R5) -----
     const chamarRecord = () => {
       const resp = $http.send({
         url: HT_BASE + '/backend/v1/trust/patients/' + encodeURIComponent(email) + '/records',
-        method: 'POST',
+        method: 'POST', // sempre POST de registro novo — nunca PATCH/PUT (regra R3)
+        // Regra R1: Authorization SEM a palavra "Bearer".
         headers: { 'Content-Type': 'application/json', Authorization: token },
         body: JSON.stringify({
           collection: collection,
-          professional_name: nomeProf,
+          professional_name: nomeProf, // regra R5: nome no corpo
           data: { tipo: tipo, payload: payload },
         }),
       })
@@ -485,42 +587,25 @@ routerAdd(
       return { status: st, dados: dados }
     }
 
-    // Renovação única do handshake em 401/403.
     const renovarToken = () => {
-      const ts2 = String(Date.now())
-      const sig2 = String($security.hs256(email + '|' + ts2, segredo))
-      const respToken2 = $http.send({
-        url: HT_BASE + '/backend/v1/trust/token',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, ts: ts2, sig: sig2 }),
-      })
-      const stToken2 = respToken2.statusCode || respToken2.status || 0
-      let dadosToken2 = respToken2.json
-      if (typeof dadosToken2 === 'string') {
-        try {
-          dadosToken2 = JSON.parse(dadosToken2)
-        } catch (_) {
-          dadosToken2 = null
-        }
-      }
-      const token2 = String(
-        (dadosToken2 &&
-          (dadosToken2.token || dadosToken2.session_token || dadosToken2.access_token)) ||
-          '',
-      )
-      if (token2 && stToken2 >= 200 && stToken2 < 300) {
-        HT_TOKEN_CACHE.token = token2
-        HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
-        token = token2
-        return true
-      }
-      return false
+      const hs = fazerHandshake()
+      if (hs.erro || !hs.token) return false
+      HT_TOKEN_CACHE.token = hs.token
+      HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
+      token = hs.token
+      return true
     }
 
     try {
       let r = chamarRecord()
       if (r.status === 401 || r.status === 403) {
+        console.log(
+          '[HealthTracker] record: records recusou (HTTP ' +
+            r.status +
+            ', corpo=' +
+            truncar(r.dados) +
+            ') — renovando handshake uma vez…',
+        )
         HT_TOKEN_CACHE.token = ''
         HT_TOKEN_CACHE.expiraEm = 0
         token = ''
@@ -538,10 +623,19 @@ routerAdd(
           r.dados && r.dados.error
             ? String(r.dados.error)
             : 'Health Tracker respondeu HTTP ' + r.status + '.'
-        console.log('[HealthTracker] record: falha — HTTP ' + r.status + ': ' + msg)
+        console.log(
+          '[HealthTracker] record: falha — HTTP ' + r.status + ' corpo=' + truncar(r.dados),
+        )
         return e.json(502, { error: msg })
       }
-      console.log('[HealthTracker] record: OK para ' + email)
+      console.log(
+        '[HealthTracker] record: OK para ' +
+          email +
+          ' (collection=' +
+          collection +
+          ') — corpo=' +
+          truncar(r.dados, 200),
+      )
       return e.json(200, { success: true, health_tracker: r.dados || {} })
     } catch (err) {
       console.log('[HealthTracker] record: erro inesperado:', err)

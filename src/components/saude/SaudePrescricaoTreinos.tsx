@@ -16,7 +16,11 @@ import {
   type SaudeClienteRecord,
   type SaudeRegistroRecord,
 } from '@/services/saudeBemEstar'
-import { enviarRegistroHealthTracker, mensagemErroHealthTracker } from '@/services/healthTracker'
+import {
+  colecaoHtrParaTipo,
+  enviarRegistroHealthTracker,
+  mensagemErroHealthTracker,
+} from '@/services/healthTracker'
 
 interface Props {
   cliente: SaudeClienteRecord
@@ -45,12 +49,6 @@ export function resumoExercicios(items: ItemTreino[] | undefined): string {
     .join('\n')
 }
 
-const COLECAO_HTR_POR_TIPO: Record<string, string> = {
-  treino: 'treinos',
-  reabilitacao: 'reabilitacao',
-  exame: 'exames',
-}
-
 /**
  * Envio "best effort" ao Health Tracker (outro projeto Skip): chamado APÓS
  * o registro local já ter sido gravado — uma falha aqui NÃO desfaz nada,
@@ -65,7 +63,7 @@ async function sincronizarHealthTracker(
   try {
     await enviarRegistroHealthTracker({
       cliente_id: clienteId,
-      collection: COLECAO_HTR_POR_TIPO[tipo] || tipo,
+      collection: colecaoHtrParaTipo(tipo),
       tipo: tipo,
       payload: payload,
       professional_name: nomeProfissional,
