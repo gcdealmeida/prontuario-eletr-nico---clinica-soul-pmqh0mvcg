@@ -21,13 +21,17 @@
  * designados a ele em vinculos_pacientes (paciente_id do saude_clientes —
  * mesmo padrão da migration 0064); ADM/Secretária acessam todos.
  *
- * Nota sobre o segredo: a variável está gravada no painel como
- * "NSTITUTIONAL_TRUST_SECRET" (sem o "I" inicial). Lemos primeiro o nome
- * correto e depois o gravado; sem nenhum dos dois, a rota responde erro
- * claro (503) em vez de falhar silenciosamente.
+ * Formato da assinatura: $security.hs256(texto, segredo) devolve o HMAC-SHA256
+ * em HEXADECIMAL minúsculo (fonte: Go tools/security/crypto.go —
+ * fmt.Sprintf("%x", h.Sum(nil))), exatamente o formato do
+ * `openssl dgst -sha256 -hmac "$SECRET" -hex` que o Health Tracker compara.
+ * A string assinada é exatamente `${email}|${ts}` (sem espaços), com ts como
+ * STRING de epoch em milissegundos — e o JSON do POST envia ts como string.
  *
- * Primitiva de HMAC: $security.hs256(s, secret) — disponível na JSVM desta
- * instância (ver lista de globals da skill skip-cloud/coding).
+ * Segredo: a variável está gravada no painel como "NSTITUTIONAL_TRUST_SECRET"
+ * (sem o "I" inicial). Lemos primeiro o nome canônico e depois o gravado; sem
+ * nenhum dos dois, a rota responde erro claro (503). Os logs registram qual
+ * nome foi usado (nunca o valor).
  *
  * IMPORTANTE (JSVM do PocketBase): callbacks de rota rodam num pool de VMs
  * separado — NADA do topo do arquivo (const/function) é visível dentro dos
@@ -114,9 +118,19 @@ routerAdd(
     }
 
     // ----- Handshake de confiança (passos 1 e 2) -----
-    const segredo =
-      String($os.getenv('INSTITUTIONAL_TRUST_SECRET') || '').trim() ||
-      String($os.getenv('NSTITUTIONAL_TRUST_SECRET') || '').trim()
+    const nomeCanonico = 'INSTITUTIONAL_TRUST_SECRET'
+    const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome real no painel (sem o "I")
+    const valorCanonico = String($os.getenv(nomeCanonico) || '').trim()
+    const valorGravado = String($os.getenv(nomeGravado) || '').trim()
+    const nomeUsado = valorCanonico ? nomeCanonico : nomeGravado
+    const segredo = valorCanonico || valorGravado
+    console.log(
+      '[HealthTracker] summary: segredo lido de "' +
+        nomeUsado +
+        '" (presente=' +
+        Boolean(segredo) +
+        ')',
+    )
     if (!segredo) {
       return e.json(503, {
         error:
@@ -127,11 +141,17 @@ routerAdd(
     let token = ''
     if (HT_TOKEN_CACHE.token && Date.now() < HT_TOKEN_CACHE.expiraEm) {
       token = HT_TOKEN_CACHE.token
+      console.log('[HealthTracker] summary: reusando token de sessão em cache.')
     } else {
       const ts = String(Date.now())
       let sig
       try {
-        sig = $security.hs256(email + '|' + ts, segredo)
+        sig = String($security.hs256(email + '|' + ts, segredo))
+        console.log(
+          '[HealthTracker] summary: handshake — sig gerada por $security.hs256, tamanho=' +
+            sig.length +
+            ' (esperado 64 hex)',
+        )
       } catch (errHmac) {
         console.log('healthtracker: falha ao gerar HMAC:', errHmac)
         return e.json(502, {
@@ -164,6 +184,7 @@ routerAdd(
           dadosToken && dadosToken.error
             ? String(dadosToken.error)
             : 'Health Tracker recusou o handshake de confiança (HTTP ' + stToken + ').'
+        console.log('[HealthTracker] summary: handshake recusado — HTTP ' + stToken + ': ' + msg)
         return e.json(502, { error: msg })
       }
       token = String(
@@ -173,6 +194,7 @@ routerAdd(
       if (!token) {
         return e.json(502, { error: 'Health Tracker não devolveu token de sessão no handshake.' })
       }
+      console.log('[HealthTracker] summary: handshake OK (token recebido).')
       // Guarda um pouco menos que a tolerância de 5 min para nunca usar um
       // ts que já saiu da janela.
       HT_TOKEN_CACHE.token = token
@@ -198,6 +220,39 @@ routerAdd(
       return { status: st, dados: dados }
     }
 
+    // Renovação única do handshake em 401/403.
+    const renovarToken = () => {
+      const ts2 = String(Date.now())
+      const sig2 = String($security.hs256(email + '|' + ts2, segredo))
+      const respToken2 = $http.send({
+        url: HT_BASE + '/backend/v1/trust/token',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, ts: ts2, sig: sig2 }),
+      })
+      const stToken2 = respToken2.statusCode || respToken2.status || 0
+      let dadosToken2 = respToken2.json
+      if (typeof dadosToken2 === 'string') {
+        try {
+          dadosToken2 = JSON.parse(dadosToken2)
+        } catch (_) {
+          dadosToken2 = null
+        }
+      }
+      const token2 = String(
+        (dadosToken2 &&
+          (dadosToken2.token || dadosToken2.session_token || dadosToken2.access_token)) ||
+          '',
+      )
+      if (token2 && stToken2 >= 200 && stToken2 < 300) {
+        HT_TOKEN_CACHE.token = token2
+        HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
+        token = token2
+        return true
+      }
+      return false
+    }
+
     try {
       let r = chamarSummary()
       if (r.status === 401 || r.status === 403) {
@@ -206,32 +261,7 @@ routerAdd(
         HT_TOKEN_CACHE.token = ''
         HT_TOKEN_CACHE.expiraEm = 0
         token = ''
-        const ts2 = String(Date.now())
-        const sig2 = $security.hs256(email + '|' + ts2, segredo)
-        const respToken2 = $http.send({
-          url: HT_BASE + '/backend/v1/trust/token',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, ts: ts2, sig: sig2 }),
-        })
-        const stToken2 = respToken2.statusCode || respToken2.status || 0
-        let dadosToken2 = respToken2.json
-        if (typeof dadosToken2 === 'string') {
-          try {
-            dadosToken2 = JSON.parse(dadosToken2)
-          } catch (_) {
-            dadosToken2 = null
-          }
-        }
-        const token2 = String(
-          (dadosToken2 &&
-            (dadosToken2.token || dadosToken2.session_token || dadosToken2.access_token)) ||
-            '',
-        )
-        if (token2 && stToken2 >= 200 && stToken2 < 300) {
-          HT_TOKEN_CACHE.token = token2
-          HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
-          token = token2
+        if (renovarToken()) {
           r = chamarSummary()
         }
       }
@@ -277,6 +307,9 @@ routerAdd(
     const auth = e.auth
     if (!auth) return e.unauthorizedError('Autenticação necessária.')
 
+    const role = auth.getString('role') || ''
+    const authEmail = (auth.getString('email') || '').toLowerCase().trim()
+
     const body = e.requestInfo().body || {}
     const clienteId = String(body.cliente_id || '')
     const collection = String(body.collection || '')
@@ -297,9 +330,6 @@ routerAdd(
     if (!clienteId || !collection) {
       return e.json(400, { error: 'cliente_id e collection são obrigatórios.' })
     }
-
-    const role = auth.getString('role') || ''
-    const authEmail = (auth.getString('email') || '').toLowerCase().trim()
 
     let cliente
     try {
@@ -350,9 +380,19 @@ routerAdd(
     const nomeProf = professionalName || auth.getString('name') || ''
 
     // ----- Handshake de confiança (passos 1 e 2) -----
-    const segredo =
-      String($os.getenv('INSTITUTIONAL_TRUST_SECRET') || '').trim() ||
-      String($os.getenv('NSTITUTIONAL_TRUST_SECRET') || '').trim()
+    const nomeCanonico = 'INSTITUTIONAL_TRUST_SECRET'
+    const nomeGravado = 'NSTITUTIONAL_TRUST_SECRET' // nome real no painel (sem o "I")
+    const valorCanonico = String($os.getenv(nomeCanonico) || '').trim()
+    const valorGravado = String($os.getenv(nomeGravado) || '').trim()
+    const nomeUsado = valorCanonico ? nomeCanonico : nomeGravado
+    const segredo = valorCanonico || valorGravado
+    console.log(
+      '[HealthTracker] record: segredo lido de "' +
+        nomeUsado +
+        '" (presente=' +
+        Boolean(segredo) +
+        ')',
+    )
     if (!segredo) {
       return e.json(503, {
         error:
@@ -363,11 +403,17 @@ routerAdd(
     let token = ''
     if (HT_TOKEN_CACHE.token && Date.now() < HT_TOKEN_CACHE.expiraEm) {
       token = HT_TOKEN_CACHE.token
+      console.log('[HealthTracker] record: reusando token de sessão em cache.')
     } else {
       const ts = String(Date.now())
       let sig
       try {
-        sig = $security.hs256(email + '|' + ts, segredo)
+        sig = String($security.hs256(email + '|' + ts, segredo))
+        console.log(
+          '[HealthTracker] record: handshake — sig gerada por $security.hs256, tamanho=' +
+            sig.length +
+            ' (esperado 64 hex)',
+        )
       } catch (errHmac) {
         console.log('healthtracker: falha ao gerar HMAC:', errHmac)
         return e.json(502, {
@@ -400,6 +446,7 @@ routerAdd(
           dadosToken && dadosToken.error
             ? String(dadosToken.error)
             : 'Health Tracker recusou o handshake de confiança (HTTP ' + stToken + ').'
+        console.log('[HealthTracker] record: handshake recusado — HTTP ' + stToken + ': ' + msg)
         return e.json(502, { error: msg })
       }
       token = String(
@@ -409,6 +456,7 @@ routerAdd(
       if (!token) {
         return e.json(502, { error: 'Health Tracker não devolveu token de sessão no handshake.' })
       }
+      console.log('[HealthTracker] record: handshake OK (token recebido).')
       HT_TOKEN_CACHE.token = token
       HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
     }
@@ -437,38 +485,46 @@ routerAdd(
       return { status: st, dados: dados }
     }
 
+    // Renovação única do handshake em 401/403.
+    const renovarToken = () => {
+      const ts2 = String(Date.now())
+      const sig2 = String($security.hs256(email + '|' + ts2, segredo))
+      const respToken2 = $http.send({
+        url: HT_BASE + '/backend/v1/trust/token',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, ts: ts2, sig: sig2 }),
+      })
+      const stToken2 = respToken2.statusCode || respToken2.status || 0
+      let dadosToken2 = respToken2.json
+      if (typeof dadosToken2 === 'string') {
+        try {
+          dadosToken2 = JSON.parse(dadosToken2)
+        } catch (_) {
+          dadosToken2 = null
+        }
+      }
+      const token2 = String(
+        (dadosToken2 &&
+          (dadosToken2.token || dadosToken2.session_token || dadosToken2.access_token)) ||
+          '',
+      )
+      if (token2 && stToken2 >= 200 && stToken2 < 300) {
+        HT_TOKEN_CACHE.token = token2
+        HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
+        token = token2
+        return true
+      }
+      return false
+    }
+
     try {
       let r = chamarRecord()
       if (r.status === 401 || r.status === 403) {
         HT_TOKEN_CACHE.token = ''
         HT_TOKEN_CACHE.expiraEm = 0
         token = ''
-        const ts2 = String(Date.now())
-        const sig2 = $security.hs256(email + '|' + ts2, segredo)
-        const respToken2 = $http.send({
-          url: HT_BASE + '/backend/v1/trust/token',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, ts: ts2, sig: sig2 }),
-        })
-        const stToken2 = respToken2.statusCode || respToken2.status || 0
-        let dadosToken2 = respToken2.json
-        if (typeof dadosToken2 === 'string') {
-          try {
-            dadosToken2 = JSON.parse(dadosToken2)
-          } catch (_) {
-            dadosToken2 = null
-          }
-        }
-        const token2 = String(
-          (dadosToken2 &&
-            (dadosToken2.token || dadosToken2.session_token || dadosToken2.access_token)) ||
-            '',
-        )
-        if (token2 && stToken2 >= 200 && stToken2 < 300) {
-          HT_TOKEN_CACHE.token = token2
-          HT_TOKEN_CACHE.expiraEm = Date.now() + HT_TOKEN_TTL_MS
-          token = token2
+        if (renovarToken()) {
           r = chamarRecord()
         }
       }
