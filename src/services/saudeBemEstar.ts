@@ -138,12 +138,35 @@ export interface SaudeDevPessoalRecord {
  *   (paciente_id do saude_clientes designado a ele — mesmo padrão da 0064).
  * A regra de API do backend já filtra; aqui apenas buscamos a lista completa
  * (o filtro por papel é servidor-side, não client-side).
+ *
+ * Fonte ÚNICA da lista "Por Cliente" em Saúde & Bem-Estar: a coleção
+ * saude_clientes. NUNCA listamos users com role=cliente — quem tem conta de
+ * login já possui (ou ganha, via "Criar acesso") o seu registro em
+ * saude_clientes com user_id, e é esse registro que carrega o e-mail usado
+ * pela integração de confiança com o Health Tracker (/trust/patients/{email}).
+ *
+ * Dedup defensiva: se por qualquer motivo existirem dois registros apontando
+ * para o mesmo usuário (user_id) ou mesmo e-mail, mantém só o primeiro
+ * (o mais antigo, pela ordenação por nome/created) — a lista nunca exibe
+ * dois cartões do mesmo cliente.
  */
 export async function listarSaudeClientes(): Promise<SaudeClienteRecord[]> {
-  return pb.collection('saude_clientes').getFullList<SaudeClienteRecord>({
-    sort: 'nome',
+  const todos = await pb.collection('saude_clientes').getFullList<SaudeClienteRecord>({
+    sort: '-created',
     expand: 'user_id,paciente_id',
   })
+  const vistos = new Set<string>()
+  const unicos: SaudeClienteRecord[] = []
+  for (const c of todos) {
+    const chaveUser = (c.user_id || '').trim().toLowerCase()
+    const chaveEmail = (c.email || '').trim().toLowerCase()
+    const chavePaciente = (c.paciente_id || '').trim()
+    const chave = chaveUser || chaveEmail || `pac:${chavePaciente}` || `id:${c.id}`
+    if (vistos.has(chave)) continue
+    vistos.add(chave)
+    unicos.push(c)
+  }
+  return unicos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 }
 
 export async function criarSaudeCliente(payload: {
