@@ -34,6 +34,8 @@ import {
   type SaudeOrientacaoRecord,
 } from '@/services/saudeBemEstar'
 import { formatDataHoraPTBR } from '@/lib/constants'
+import { useAuth } from '@/contexts/AuthContext'
+import { enviarRegistroHealthTracker, mensagemErroHealthTracker } from '@/services/healthTracker'
 import { Bell, Eye, EyeOff, Lightbulb, Plus, Trash2, UserPlus } from 'lucide-react'
 
 const hojeYMD = () => new Date().toISOString().slice(0, 10)
@@ -83,6 +85,9 @@ function extrairMensagemErroConta(err: unknown): string {
 
 export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
   const { toast } = useToast()
+  const { user } = useAuth()
+  // Aviso discreto quando o envio ao Health Tracker falha (o lembrete local permanece).
+  const [avisoHt, setAvisoHt] = useState('')
   const [orientacoes, setOrientacoes] = useState<SaudeOrientacaoRecord[]>([])
   const [lembretes, setLembretes] = useState<SaudeLembreteRecord[]>([])
 
@@ -195,20 +200,47 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
       toast({ title: 'Título e data/hora são obrigatórios.', variant: 'destructive' })
       return
     }
+    const dataHoraIso = new Date(lemDataHora).toISOString()
     try {
       await criarSaudeLembrete({
         cliente_id: cliente.id,
         titulo: lemTitulo.trim(),
         descricao: lemDescricao.trim() || undefined,
-        data_hora: new Date(lemDataHora).toISOString(),
+        data_hora: dataHoraIso,
         repeticao: lemRepeticao,
       })
       toast({ title: 'Lembrete criado!' })
+      const tituloEnviado = lemTitulo.trim()
+      const descricaoEnviada = lemDescricao.trim() || undefined
+      const repeticaoEnviada = lemRepeticao
       setModalLembrete(false)
       setLemTitulo('')
       setLemDescricao('')
       setLemDataHora('')
       await carregar()
+
+      // Best effort: envia o lembrete ao Health Tracker (coleção reminders) com o
+      // nome do profissional logado. Falha aqui NÃO desfaz o lembrete local.
+      try {
+        await enviarRegistroHealthTracker({
+          cliente_id: cliente.id,
+          collection: 'reminders',
+          tipo: 'lembrete',
+          payload: {
+            category: 'reminder',
+            title: tituloEnviado,
+            description: descricaoEnviada,
+            date_time: dataHoraIso,
+            repeat: repeticaoEnviada,
+          },
+          professional_name: user?.name || '',
+          data_lancamento: dataHoraIso.slice(0, 10),
+        })
+        setAvisoHt('')
+      } catch (errHt) {
+        console.error('Falha ao enviar lembrete ao Health Tracker:', errHt)
+        setAvisoHt(mensagemErroHealthTracker(errHt))
+      }
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro ao criar lembrete.', variant: 'destructive' })
@@ -342,6 +374,11 @@ export function SaudeIntervencoes({ cliente, onContaCriada }: Props) {
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
+          {avisoHt && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
+              Lembrete salvo na clínica, mas o envio ao Health Tracker falhou: {avisoHt}
+            </p>
+          )}
           {lembretes.length === 0 ? (
             <p className="text-sm text-[#73574A] italic">Nenhum lembrete para este cliente.</p>
           ) : (

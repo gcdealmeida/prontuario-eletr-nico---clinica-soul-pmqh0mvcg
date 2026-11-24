@@ -108,7 +108,11 @@ export function SaudeTimelineClinica({ clienteId }: Props) {
           cliente_id: clienteId,
           collection: colecaoHtrParaTipo(novoTipo),
           tipo: novoTipo,
-          payload: { observacao: novaObs.trim() || undefined, data: novaData },
+          payload: {
+            title: TIPOS_REGISTRO.find((t) => t.value === novoTipo)?.label || novoTipo,
+            observacao: novaObs.trim() || undefined,
+            data: novaData,
+          },
           professional_name: user?.name || '',
           // date_time usa a DATA DO LANÇAMENTO escolhida no modal, não a do envio.
           data_lancamento: novaData,

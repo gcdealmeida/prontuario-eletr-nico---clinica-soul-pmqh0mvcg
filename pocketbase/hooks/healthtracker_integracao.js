@@ -525,6 +525,11 @@ routerAdd(
           ? d + ' 12:00:00.000Z'
           : new Date().toISOString()
       }
+      // Campos que o Health Tracker exige no nível do registro (log de 400:
+      // "Envie os campos obrigatórios: type"). type = tipo do lançamento ou a
+      // própria coleção; title = título informado ou rótulo do tipo.
+      dados.type = String(dados.type || tipo || collection)
+      dados.title = String(dados.title || dados.titulo || tipo || collection)
       dados.tipo = tipo
       dados.payload = payload
       return dados
