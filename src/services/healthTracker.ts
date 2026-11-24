@@ -19,8 +19,10 @@ export interface HealthTrackerSummaryResponse {
   cliente_email: string
 }
 
+/** Erro com `not_found=true` = cliente sem cadastro no Health Tracker (404 do outro projeto). */
 export interface HealthTrackerErro {
   error: string
+  not_found?: boolean
 }
 
 /**
@@ -31,10 +33,18 @@ export interface HealthTrackerErro {
 export async function buscarHealthTrackerSummary(
   clienteId: string,
 ): Promise<HealthTrackerSummaryResponse> {
-  return pb.send<HealthTrackerSummaryResponse>('/backend/v1/healthtracker/summary', {
-    method: 'GET',
-    query: { cliente: clienteId },
-  })
+  try {
+    return await pb.send<HealthTrackerSummaryResponse>('/backend/v1/healthtracker/summary', {
+      method: 'GET',
+      query: { cliente: clienteId },
+    })
+  } catch (err) {
+    if (eh404HealthTracker(err)) {
+      // Cliente sem conta no outro projeto — estado vazio, não erro genérico.
+      throw { error: 'Cliente sem cadastro no Health Tracker.', not_found: true }
+    }
+    throw err
+  }
 }
 
 /**
@@ -50,10 +60,30 @@ export async function enviarRegistroHealthTracker(payload: {
   payload?: Record<string, unknown>
   professional_name: string
 }): Promise<{ success: boolean }> {
-  return pb.send<{ success: boolean }>('/backend/v1/healthtracker/record', {
-    method: 'POST',
-    body: payload,
-  })
+  return pb
+    .send<{ success: boolean }>('/backend/v1/healthtracker/record', {
+      method: 'POST',
+      body: payload,
+    })
+    .catch((err) => {
+      if (eh404HealthTracker(err)) {
+        throw { error: 'Cliente sem cadastro no Health Tracker.', not_found: true }
+      }
+      throw err
+    })
+}
+
+/** True quando o erro representa 404 — cliente sem cadastro no Health Tracker. */
+export function eh404HealthTracker(err: unknown): boolean {
+  const qualquer = err as { status?: number; response?: { status?: number }; data?: unknown }
+  // pb.send (SDK JS) lança ClientResponseError com .status; erros do pb_hooks
+  // chegam como { response: { status, data } } ou { data: { error, not_found } }.
+  const status = qualquer?.status ?? qualquer?.response?.status ?? 0
+  if (status === 404) return true
+  const dados = (qualquer?.data || (qualquer?.response as { data?: unknown })?.data) as
+    | HealthTrackerErro
+    | undefined
+  return Boolean(dados && typeof dados === 'object' && (dados as HealthTrackerErro).not_found)
 }
 
 /** Extrai a mensagem amigável de um erro devolvido pelo hook/Health Tracker. */
@@ -62,6 +92,10 @@ export function mensagemErroHealthTracker(err: unknown): string {
   const resposta = qualquer?.response
   if (resposta && typeof resposta.error === 'string' && resposta.error) {
     return resposta.error
+  }
+  const dados = qualquer?.data as HealthTrackerErro | undefined
+  if (dados && typeof dados.error === 'string' && dados.error) {
+    return dados.error
   }
   if (qualquer?.message) return qualquer.message
   return 'Não foi possível comunicar com o Health Tracker.'

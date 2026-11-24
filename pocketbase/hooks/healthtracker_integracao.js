@@ -55,6 +55,14 @@ routerAdd(
 
     const role = auth.getString('role') || ''
     const authEmail = (auth.getString('email') || '').toLowerCase().trim()
+    console.log(
+      '[HealthTracker] summary: chamada recebida — cliente=' +
+        clienteId +
+        ' role=' +
+        role +
+        ' auth=' +
+        authEmail,
+    )
 
     let cliente
     try {
@@ -228,16 +236,24 @@ routerAdd(
         }
       }
 
+      if (r.status === 404) {
+        // Cliente ainda não existe no outro projeto (e-mail sem conta lá):
+        // 404 específico para o frontend mostrar o estado vazio explicativo.
+        console.log('[HealthTracker] summary: cliente sem cadastro no Health Tracker — ' + email)
+        return e.json(404, { error: 'Cliente sem cadastro no Health Tracker.' })
+      }
       if (r.status < 200 || r.status >= 300) {
         const msg =
           r.dados && r.dados.error
             ? String(r.dados.error)
             : 'Health Tracker respondeu HTTP ' + r.status + '.'
+        console.log('[HealthTracker] summary: falha — HTTP ' + r.status + ': ' + msg)
         return e.json(502, { error: msg })
       }
+      console.log('[HealthTracker] summary: OK para ' + email)
       return e.json(200, { health_tracker: r.dados || {}, cliente_email: email })
     } catch (err) {
-      console.log('healthtracker summary erro:', err)
+      console.log('[HealthTracker] summary: erro inesperado:', err)
       return e.json(502, {
         error: (err && err.message) || 'Não foi possível obter os dados do Health Tracker agora.',
       })
@@ -267,6 +283,16 @@ routerAdd(
     const tipo = String(body.tipo || '')
     const payload = body.payload || {}
     const professionalName = String(body.professional_name || '')
+    console.log(
+      '[HealthTracker] record: chamada recebida — cliente=' +
+        clienteId +
+        ' collection=' +
+        collection +
+        ' tipo=' +
+        tipo +
+        ' role=' +
+        role,
+    )
 
     if (!clienteId || !collection) {
       return e.json(400, { error: 'cliente_id e collection são obrigatórios.' })
@@ -447,16 +473,22 @@ routerAdd(
         }
       }
 
+      if (r.status === 404) {
+        console.log('[HealthTracker] record: cliente sem cadastro no Health Tracker — ' + email)
+        return e.json(404, { error: 'Cliente sem cadastro no Health Tracker.' })
+      }
       if (r.status < 200 || r.status >= 300) {
         const msg =
           r.dados && r.dados.error
             ? String(r.dados.error)
             : 'Health Tracker respondeu HTTP ' + r.status + '.'
+        console.log('[HealthTracker] record: falha — HTTP ' + r.status + ': ' + msg)
         return e.json(502, { error: msg })
       }
+      console.log('[HealthTracker] record: OK para ' + email)
       return e.json(200, { success: true, health_tracker: r.dados || {} })
     } catch (err) {
-      console.log('healthtracker record erro:', err)
+      console.log('[HealthTracker] record: erro inesperado:', err)
       return e.json(502, {
         error: (err && err.message) || 'Não foi possível gravar no Health Tracker agora.',
       })

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ExternalLink, RefreshCw, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   buscarHealthTrackerSummary,
+  eh404HealthTracker,
   mensagemErroHealthTracker,
   type HealthTrackerSummary,
 } from '@/services/healthTracker'
@@ -138,6 +139,7 @@ export function SaudeHealthTrackerSection({ clienteId, emailCliente }: Props) {
   const [carregando, setCarregando] = useState(true)
   const [dados, setDados] = useState<HealthTrackerSummary | null>(null)
   const [erro, setErro] = useState('')
+  const [semCadastro, setSemCadastro] = useState(false)
   const [recarregar, setRecarregar] = useState(0)
 
   useEffect(() => {
@@ -145,6 +147,7 @@ export function SaudeHealthTrackerSection({ clienteId, emailCliente }: Props) {
     let cancelado = false
     setCarregando(true)
     setErro('')
+    setSemCadastro(false)
     setDados(null)
     buscarHealthTrackerSummary(clienteId)
       .then((resposta) => {
@@ -153,7 +156,9 @@ export function SaudeHealthTrackerSection({ clienteId, emailCliente }: Props) {
       })
       .catch((err) => {
         if (cancelado) return
-        setErro(mensagemErroHealthTracker(err))
+        const nf = eh404HealthTracker(err)
+        setSemCadastro(nf)
+        setErro(nf ? '' : mensagemErroHealthTracker(err))
       })
       .finally(() => {
         if (!cancelado) setCarregando(false)
@@ -200,6 +205,28 @@ export function SaudeHealthTrackerSection({ clienteId, emailCliente }: Props) {
             <Skeleton className="h-20 w-full rounded-xl" />
             <Skeleton className="h-20 w-full rounded-xl" />
             <Skeleton className="h-20 w-full rounded-xl" />
+          </div>
+        )}
+        {/* Estado vazio: cliente existe no nosso app mas não tem conta no Health Tracker. */}
+        {!carregando && semCadastro && (
+          <div
+            className="flex items-start gap-3 rounded-xl border p-4 text-sm"
+            style={{ borderColor: SOUL.borda, backgroundColor: '#FAF6F0', color: SOUL.marrom }}
+          >
+            <UserPlus className="mt-0.5 h-4 w-4 shrink-0" style={{ color: SOUL.dourado }} />
+            <div className="space-y-1">
+              <p className="font-medium">Cliente sem cadastro no Health Tracker</p>
+              <p className="text-xs" style={{ color: SOUL.textoSuave }}>
+                Não encontramos uma conta deste cliente no app SOUL Health Tracker (SOUL HTR){' '}
+                {emailCliente ? (
+                  <>
+                    para o e-mail <span className="font-medium">{emailCliente}</span>
+                  </>
+                ) : null}
+                . Para acompanhar os dados dele aqui, o cliente precisa criar a conta no app (aba
+                Perfil → conta de acesso) usando este e-mail.
+              </p>
+            </div>
           </div>
         )}
         {!carregando && erro && (
