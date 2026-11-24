@@ -16,6 +16,7 @@ import {
   Pill,
   Salad,
   Smile,
+  Smartphone,
   Sparkles,
   UserPlus,
   Dumbbell,
@@ -44,6 +45,10 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSaudeRealtime } from '@/hooks/useSaudeRealtime'
+import { PainelMonitorClinico } from '@/components/saude/PainelMonitorClinico'
+import { SaudeAcessoHealthTracker } from '@/components/saude/SaudeAcessoHealthTracker'
+import { SOUL_HTR } from '@/lib/soulHtrTheme'
 import { formatDataPTBR, formatDataHoraPTBR } from '@/lib/constants'
 import {
   listarSaudeClientes,
@@ -97,8 +102,11 @@ const exibirData = (iso?: string) => {
   return formatDataPTBR(iso)
 }
 
+export type ModoSaude = 'clinica' | 'health_tracker'
+
 export default function SaudeBemEstar() {
   const { user, isProfissional } = useAuth()
+  const isAdmin = user?.role === 'adm' || user?.role === 'admin'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { toast } = useToast()
@@ -111,6 +119,11 @@ export default function SaudeBemEstar() {
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [modalNovoCliente, setModalNovoCliente] = useState(false)
+
+  // Modo da área: 'clinica' (padrão — monitoramento em tempo real) ou
+  // 'health_tracker' (acesso ao app do cliente p/ testes).
+  const [modo, setModo] = useState<ModoSaude>('clinica')
+  const realtime = useSaudeRealtime(modo === 'clinica' && !clienteSelecionadoId)
 
   // Form novo cliente
   const [formNome, setFormNome] = useState('')
@@ -234,17 +247,58 @@ export default function SaudeBemEstar() {
     }
   }
 
+  /** Alternador Clínica / Health Tracker — visível no topo da área. */
+  const AlternadorModos = (
+    <div
+      className="flex flex-col sm:flex-row gap-2 p-1.5 rounded-2xl border border-[#E2D4BF]"
+      style={{ backgroundColor: SOUL_HTR.bg }}
+    >
+      <button
+        type="button"
+        onClick={() => setModo('clinica')}
+        className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+        style={
+          modo === 'clinica'
+            ? { backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }
+            : { color: SOUL_HTR.marrom, backgroundColor: 'transparent' }
+        }
+        aria-pressed={modo === 'clinica'}
+      >
+        <HeartPulse className="h-4 w-4" />
+        Clínica — Monitoramento em tempo real
+      </button>
+      <button
+        type="button"
+        onClick={() => setModo('health_tracker')}
+        className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+        style={
+          modo === 'health_tracker'
+            ? { backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }
+            : { color: SOUL_HTR.marrom, backgroundColor: 'transparent' }
+        }
+        aria-pressed={modo === 'health_tracker'}
+      >
+        <Smartphone className="h-4 w-4" />
+        Health Tracker (App do Cliente)
+      </button>
+    </div>
+  )
+
   /* ------------------------------------------------------------------ */
   /* Visão individual do cliente                                         */
   /* ------------------------------------------------------------------ */
   if (clienteSelecionado) {
     return (
       <div className="max-w-6xl mx-auto space-y-6 p-4 md:p-6">
+        {AlternadorModos}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => selecionarCliente('')}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
         </div>
+        {modo === 'health_tracker' && (
+          <SaudeAcessoHealthTracker clientes={clientes} isAdmin={isAdmin} />
+        )}
         <div>
           <h1 className="text-2xl font-bold text-[#33221C]">{clienteSelecionado.nome}</h1>
           <p className="text-sm text-[#73574A]">
@@ -279,156 +333,177 @@ export default function SaudeBemEstar() {
   /* ------------------------------------------------------------------ */
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#33221C] flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-[#C9A46A]" /> Saúde & Bem-Estar
-          </h1>
-          <p className="text-sm text-[#73574A]">
-            {isProfissional
-              ? 'Acompanhe o dia a dia de saúde dos pacientes designados a você.'
-              : 'Acompanhe o que cada cliente registra: atividade física, sono, bebidas, alimentos, exames e sintomas.'}
-          </p>
-        </div>
-        {!isProfissional && (
-          <Button onClick={() => setModalNovoCliente(true)}>
-            <UserPlus className="h-4 w-4 mr-2" /> Novo Cliente de Saúde
-          </Button>
-        )}
-      </div>
+      {AlternadorModos}
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#73574A]/60" />
-        <Input
-          placeholder="Buscar cliente por nome ou e-mail..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {carregando ? (
-        <p className="text-sm text-[#73574A]">Carregando...</p>
-      ) : clientesFiltrados.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-[#73574A]">
-            Nenhum cliente de saúde ainda. Clique em "Novo Cliente de Saúde" para começar.
-          </CardContent>
-        </Card>
+      {modo === 'health_tracker' ? (
+        <SaudeAcessoHealthTracker clientes={clientes} isAdmin={isAdmin} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {clientesFiltrados.map((c) => {
-            const r = resumo[c.id]
-            const novos = novosDesdeVisita[c.id] || 0
-            return (
-              <Card
-                key={c.id}
-                className="cursor-pointer hover:border-[#C9A46A] transition-colors"
-                onClick={() => navigate(`/saude-bem-estar?cliente=${c.id}`)}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-base">{c.nome}</CardTitle>
-                    {novos > 0 && (
-                      <Badge className="bg-[#C9A46A] text-[#33221C]">{novos} novo(s)</Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#73574A]">
-                    {c.email || 'sem e-mail'}
-                    {c.ativo === false ? ' • inativo' : ''}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {r ? (
-                    <>
-                      <SaudeResumoIcones porTipo={r.porTipo} icones={iconesTipo} />
-                      <p className="text-xs text-[#73574A] mt-2">
-                        Último registro: {exibirData(r.ultima)} • {r.total} registro(s)
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-[#33221C] flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-[#C9A46A]" /> Saúde & Bem-Estar
+              </h1>
+              <p className="text-sm text-[#73574A]">
+                {isProfissional
+                  ? 'Acompanhe o dia a dia de saúde dos pacientes designados a você.'
+                  : 'Acompanhe o que cada cliente registra: atividade física, sono, bebidas, alimentos, exames e sintomas.'}
+              </p>
+            </div>
+            {!isProfissional && (
+              <Button onClick={() => setModalNovoCliente(true)}>
+                <UserPlus className="h-4 w-4 mr-2" /> Novo Cliente de Saúde
+              </Button>
+            )}
+          </div>
+
+          <PainelMonitorClinico
+            clientes={realtime.clientes}
+            registros={realtime.registros}
+            carregando={realtime.carregando}
+            notificacoes={realtime.notificacoes}
+            recarregar={realtime.recarregar}
+            naoLidas={realtime.naoLidas}
+            sinoAberto={realtime.sinoAberto}
+            setSinoAberto={realtime.setSinoAberto}
+            conectado={realtime.conectado}
+            onAbrirCliente={(id) => navigate(`/saude-bem-estar?cliente=${id}`)}
+          />
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#73574A]/60" />
+            <Input
+              placeholder="Buscar cliente por nome ou e-mail..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {carregando ? (
+            <p className="text-sm text-[#73574A]">Carregando...</p>
+          ) : clientesFiltrados.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-[#73574A]">
+                Nenhum cliente de saúde ainda. Clique em "Novo Cliente de Saúde" para começar.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {clientesFiltrados.map((c) => {
+                const r = resumo[c.id]
+                const novos = novosDesdeVisita[c.id] || 0
+                return (
+                  <Card
+                    key={c.id}
+                    className="cursor-pointer hover:border-[#C9A46A] transition-colors"
+                    onClick={() => navigate(`/saude-bem-estar?cliente=${c.id}`)}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="text-base">{c.nome}</CardTitle>
+                        {novos > 0 && (
+                          <Badge className="bg-[#C9A46A] text-[#33221C]">{novos} novo(s)</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#73574A]">
+                        {c.email || 'sem e-mail'}
+                        {c.ativo === false ? ' • inativo' : ''}
                       </p>
-                    </>
-                  ) : (
-                    <p className="text-xs text-[#73574A] italic">
-                      Sem registros ainda — o cliente pode começar pelo app dele.
-                    </p>
-                  )}
-                  {!c.user_id && !isProfissional && (
-                    <Badge variant="outline" className="mt-2 border-[#C9A46A] text-[#73574A]">
-                      conta de acesso ainda não criada
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
+                    </CardHeader>
+                    <CardContent>
+                      {r ? (
+                        <>
+                          <SaudeResumoIcones porTipo={r.porTipo} icones={iconesTipo} />
+                          <p className="text-xs text-[#73574A] mt-2">
+                            Último registro: {exibirData(r.ultima)} • {r.total} registro(s)
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-[#73574A] italic">
+                          Sem registros ainda — o cliente pode começar pelo app dele.
+                        </p>
+                      )}
+                      {!c.user_id && !isProfissional && (
+                        <Badge variant="outline" className="mt-2 border-[#C9A46A] text-[#73574A]">
+                          conta de acesso ainda não criada
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Modal novo cliente de saúde */}
+          <Dialog open={modalNovoCliente} onOpenChange={setModalNovoCliente}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Novo Cliente de Saúde</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label>Nome *</Label>
+                  <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} />
+                </div>
+                <div>
+                  <Label>E-mail (para o acesso do cliente)</Label>
+                  <Input
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="cliente@email.com"
+                  />
+                </div>
+                <div>
+                  <Label>Data de nascimento</Label>
+                  <Input
+                    type="date"
+                    value={formNascimento}
+                    onChange={(e) => setFormNascimento(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Vincular a paciente cadastrado</Label>
+                  <Select value={formPaciente} onValueChange={setFormPaciente}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Opcional — permite designar profissionais" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {pacientes.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    rows={3}
+                    value={formObservacoes}
+                    onChange={(e) => setFormObservacoes(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-[#73574A]">
+                  Depois de criar, abra o cliente para gerar a conta de acesso do app Cliente Soul
+                  (e-mail + senha).
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setModalNovoCliente(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={salvarNovoCliente} disabled={salvandoCliente}>
+                  {salvandoCliente ? 'Salvando...' : 'Criar cliente'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
-
-      {/* Modal novo cliente de saúde */}
-      <Dialog open={modalNovoCliente} onOpenChange={setModalNovoCliente}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Cliente de Saúde</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome *</Label>
-              <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} />
-            </div>
-            <div>
-              <Label>E-mail (para o acesso do cliente)</Label>
-              <Input
-                type="email"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                placeholder="cliente@email.com"
-              />
-            </div>
-            <div>
-              <Label>Data de nascimento</Label>
-              <Input
-                type="date"
-                value={formNascimento}
-                onChange={(e) => setFormNascimento(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Vincular a paciente cadastrado</Label>
-              <Select value={formPaciente} onValueChange={setFormPaciente}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Opcional — permite designar profissionais" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  {pacientes.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Observações</Label>
-              <Textarea
-                rows={3}
-                value={formObservacoes}
-                onChange={(e) => setFormObservacoes(e.target.value)}
-              />
-            </div>
-            <p className="text-xs text-[#73574A]">
-              Depois de criar, abra o cliente para gerar a conta de acesso do app Cliente Soul
-              (e-mail + senha).
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalNovoCliente(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={salvarNovoCliente} disabled={salvandoCliente}>
-              {salvandoCliente ? 'Salvando...' : 'Criar cliente'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

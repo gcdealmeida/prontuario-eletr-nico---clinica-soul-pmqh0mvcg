@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Loader2, Lock, Mail } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { LogoSoulHtr } from '@/components/cliente/LogoSoulHtr'
@@ -14,10 +15,19 @@ interface Props {
  * re-estilizada na paleta SOUL (bege claro + marrons + dourado).
  */
 export function ClienteSoulLogin({ onEntrou }: Props) {
-  const [email, setEmail] = useState('')
+  const [searchParams] = useSearchParams()
+  // Atalho de teste (admin): /cliente?email=... apenas PREENCHE o campo de
+  // e-mail — a senha continua obrigatória, nada é burlado.
+  const emailPre = (searchParams.get('email') || '').trim().toLowerCase()
+  const [email, setEmail] = useState(emailPre)
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+
+  useEffect(() => {
+    if (emailPre && !email) setEmail(emailPre)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailPre])
 
   const entrar = async (e: React.FormEvent) => {
     e.preventDefault()
