@@ -8,7 +8,7 @@ import { SOUL_HTR } from '@/lib/soulHtrTheme'
 import type { SaudeClienteRecord } from '@/services/saudeBemEstar'
 
 /** App Health Tracker de verdade — OUTRO projeto Skip (não é o /cliente interno). */
-const URL_HEALTH_TRACKER = 'https://clinica-soul-health-tracker-333e7--preview.goskip.app/login'
+const URL_HEALTH_TRACKER = 'https://clinica-soul-health-tracker-333e7.goskip.app/login'
 
 interface Props {
   /** lista de clientes p/ o atalho de teste rápido (apenas admin) */

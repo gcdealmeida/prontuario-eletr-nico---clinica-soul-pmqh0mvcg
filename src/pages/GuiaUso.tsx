@@ -2233,7 +2233,7 @@ export default function GuiaUso() {
                 ). O app do cliente em si é o <strong>Health Tracker</strong>, um sistema externo,
                 cuja tela de login fica em{' '}
                 <code className="text-[11px] bg-[#FAF7F1] px-1.5 py-0.5 rounded border border-[#E9E1D2] text-[#8C6527]">
-                  clinica-soul-health-tracker-333e7--preview.goskip.app/login
+                  clinica-soul-health-tracker-333e7.goskip.app/login
                 </code>{' '}
                 (acessível pelo cartão <strong>"Health Tracker (App do Cliente)"</strong> no topo de
                 Saúde & Bem-Estar, que abre em nova aba).
@@ -2327,7 +2327,7 @@ export default function GuiaUso() {
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Abra o app <strong>Health Tracker</strong> em{' '}
                     <code className="text-[11px] bg-white px-1.5 py-0.5 rounded border border-[#C1D7C4] text-[#477A53]">
-                      clinica-soul-health-tracker-333e7--preview.goskip.app/login
+                      clinica-soul-health-tracker-333e7.goskip.app/login
                     </code>{' '}
                     (ou clique no cartão <strong>"Health Tracker (App do Cliente)"</strong> no topo
                     de Saúde & Bem-Estar, que abre o app externo em nova aba).
