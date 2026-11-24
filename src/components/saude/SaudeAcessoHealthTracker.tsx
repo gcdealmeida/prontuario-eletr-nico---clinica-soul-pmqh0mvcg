@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { SOUL_HTR, NOME_APP_CLIENTE } from '@/lib/soulHtrTheme'
+import { SOUL_HTR } from '@/lib/soulHtrTheme'
 import type { SaudeClienteRecord } from '@/services/saudeBemEstar'
+
+/** App Health Tracker de verdade — OUTRO projeto Skip (não é o /cliente interno). */
+const URL_HEALTH_TRACKER = 'https://clinica-soul-health-tracker-333e7--preview.goskip.app/login'
 
 interface Props {
   /** lista de clientes p/ o atalho de teste rápido (apenas admin) */
@@ -15,31 +18,43 @@ interface Props {
 
 /**
  * Acesso "Health Tracker (App do Cliente)":
- * - abre o app do cliente (/cliente) em nova aba, para testes;
- * - para admin: atalho que gera /cliente?email=<email> — o link APENAS
- *   preenche o campo de login do app do cliente; a senha continua obrigatória.
+ * - abre o app externo do Health Tracker (outro projeto Skip) em nova aba;
+ * - para admin: atalho de teste que abre a tela de login do app externo
+ *   (o e-mail digitado é copiado para a área de transferência para colar
+ *   no login — a senha continua obrigatória, nada é burlado).
  */
 export function SaudeAcessoHealthTracker({ clientes, isAdmin }: Props) {
   const [email, setEmail] = useState('')
   const [sugestoes, setSugestoes] = useState<SaudeClienteRecord[]>([])
   const { toast } = useToast()
 
-  const abrirAppCliente = () => {
-    window.open('/cliente', '_blank', 'noopener')
+  const abrirAppHealthTracker = () => {
+    window.open(URL_HEALTH_TRACKER, '_blank', 'noopener')
   }
 
-  const gerarLinkComEmail = (e: string) => {
+  const abrirLoginComEmail = (e: string) => {
     const limpo = e.trim().toLowerCase()
     if (!limpo) {
       toast({
         title: 'Informe um e-mail',
-        description: 'Digite o e-mail do cliente cadastrado para gerar o link de teste.',
+        description: 'Digite o e-mail do cliente cadastrado para abrir o app do Health Tracker.',
         variant: 'destructive',
       })
       return
     }
-    const url = `${window.location.origin}/cliente?email=${encodeURIComponent(limpo)}`
-    window.open(url, '_blank', 'noopener')
+    // O app externo não documenta pré-preenchimento por query (?email=...),
+    // então abrimos a tela de login simples e copiamos o e-mail para colar.
+    window.open(URL_HEALTH_TRACKER, '_blank', 'noopener')
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(limpo).then(
+        () =>
+          toast({
+            title: 'E-mail copiado',
+            description: `Cole "${limpo}" na tela de login do Health Tracker (a senha continua necessária).`,
+          }),
+        () => {},
+      )
+    }
   }
 
   const filtrarSugestoes = (q: string) => {
@@ -68,10 +83,10 @@ export function SaudeAcessoHealthTracker({ clientes, isAdmin }: Props) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold" style={{ color: SOUL_HTR.marromEscuro }}>
-              {NOME_APP_CLIENTE} (App do Cliente)
+              Health Tracker (App do Cliente)
             </p>
             <p className="text-xs" style={{ color: SOUL_HTR.textoFraco }}>
-              Abre o aplicativo que o cliente usa, em nova aba — para testes.
+              Abre o aplicativo externo do Health Tracker (outro sistema), em nova aba.
             </p>
           </div>
         </div>
@@ -79,7 +94,7 @@ export function SaudeAcessoHealthTracker({ clientes, isAdmin }: Props) {
         <Button
           className="w-full"
           style={{ backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }}
-          onClick={abrirAppCliente}
+          onClick={abrirAppHealthTracker}
         >
           <ExternalLink className="mr-2 h-4 w-4" />
           Abrir Health Tracker em nova aba
@@ -110,7 +125,7 @@ export function SaudeAcessoHealthTracker({ clientes, isAdmin }: Props) {
                     <button
                       type="button"
                       className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[#F5EFE6]"
-                      onClick={() => gerarLinkComEmail(c.email || '')}
+                      onClick={() => abrirLoginComEmail(c.email || '')}
                     >
                       <span
                         className="min-w-0 flex-1 truncate"
@@ -129,13 +144,13 @@ export function SaudeAcessoHealthTracker({ clientes, isAdmin }: Props) {
               size="sm"
               className="w-full"
               style={{ borderColor: SOUL_HTR.dourado, color: SOUL_HTR.marrom }}
-              onClick={() => gerarLinkComEmail(email)}
+              onClick={() => abrirLoginComEmail(email)}
             >
               <ExternalLink className="mr-2 h-3.5 w-3.5" />
-              Gerar link de teste com este e-mail
+              Abrir login do Health Tracker com este e-mail
             </Button>
             <p className="text-[11px] leading-snug" style={{ color: SOUL_HTR.textoFraco }}>
-              O link apenas preenche o e-mail na tela de login do app do cliente. A senha continua
+              Abre a tela de login do app externo e copia o e-mail para colar. A senha continua
               necessária — nada é burlado.
             </p>
           </div>

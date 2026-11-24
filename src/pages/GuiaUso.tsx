@@ -2230,11 +2230,13 @@ export default function GuiaUso() {
                 <code className="text-[11px] bg-[#FAF7F1] px-1.5 py-0.5 rounded border border-[#E9E1D2] text-[#8C6527]">
                   /saude-bem-estar
                 </code>
-                ) e o app do cliente na rota pública{' '}
+                ). O app do cliente em si é o <strong>Health Tracker</strong>, um sistema externo,
+                cuja tela de login fica em{' '}
                 <code className="text-[11px] bg-[#FAF7F1] px-1.5 py-0.5 rounded border border-[#E9E1D2] text-[#8C6527]">
-                  /cliente
-                </code>
-                .
+                  clinica-soul-health-tracker-333e7--preview.goskip.app/login
+                </code>{' '}
+                (acessível pelo cartão <strong>"Health Tracker (App do Cliente)"</strong> no topo de
+                Saúde & Bem-Estar, que abre em nova aba).
               </p>
             </div>
 
@@ -2315,18 +2317,20 @@ export default function GuiaUso() {
 
               <div className="p-4 rounded-2xl bg-[#F2F6F1] border border-[#C1D7C4] space-y-3">
                 <p className="text-xs font-bold text-[#477A53]">
-                  B) O cliente entra no app dele (no celular ou computador):
+                  B) O cliente entra no app dele (no celular ou computador) — app{' '}
+                  <strong>Health Tracker</strong> (sistema externo):
                 </p>
                 <div className="flex gap-3">
                   <div className="h-6 w-6 rounded-full bg-[#3E7C59] text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                     1
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Abra o endereço da clínica seguido de{' '}
+                    Abra o app <strong>Health Tracker</strong> em{' '}
                     <code className="text-[11px] bg-white px-1.5 py-0.5 rounded border border-[#C1D7C4] text-[#477A53]">
-                      /cliente
+                      clinica-soul-health-tracker-333e7--preview.goskip.app/login
                     </code>{' '}
-                    (ex.: <em>nomedaclinica.goskip.app/cliente</em>).
+                    (ou clique no cartão <strong>"Health Tracker (App do Cliente)"</strong> no topo
+                    de Saúde & Bem-Estar, que abre o app externo em nova aba).
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -2334,9 +2338,9 @@ export default function GuiaUso() {
                     2
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Na tela verde <strong>"Cliente Soul — Seu espaço de saúde e bem-estar"</strong>,
-                    digite o <strong>e-mail</strong> e a <strong>senha</strong> recebidos da clínica
-                    e toque em <strong>"Entrar"</strong>.
+                    Na tela de login do Health Tracker, digite o <strong>e-mail</strong> e a{' '}
+                    <strong>senha</strong> recebidos da clínica e toque em{' '}
+                    <strong>"Acessar Conta"</strong>.
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -2344,9 +2348,9 @@ export default function GuiaUso() {
                     3
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    O app abre na aba <strong>Hoje</strong>, com os cartões Sono, Água, Calorias e
-                    Atividade — cada um com a meta do dia e um botão <strong>"+"</strong> para
-                    registrar na hora.
+                    O app abre no painel dele, com os cartões do dia (sono, água, calorias,
+                    atividade...) para registrar na hora. Detalhes das telas podem variar conforme a
+                    versão do app Health Tracker.
                   </p>
                 </div>
                 <p className="text-[11px] text-[#477A53] flex items-center gap-1.5">
