@@ -1,11 +1,20 @@
 /**
  * Vocabulário do app externo Health Tracker (outro projeto Skip) para os
  * registros enviados pela clínica — MESMA tradução do hook de servidor
- * pocketbase/hooks/healthtracker_integracao.js (CANDIDATOS_TYPE_POR_TIPO,
- * CANDIDATOS_CATEGORY_POR_TIPO, CATEGORIA_POR_TIPO e mapa de repeat).
+ * pocketbase/hooks/healthtracker_integracao.js (CATEGORIA_POR_TIPO e mapa de
+ * repeat).
  *
- * O frontend envia type/category JÁ traduzidos (1º candidato de cada lista),
- * para não depender do reenvio automático do servidor em "Invalid value".
+ * O frontend envia type/category JÁ traduzidos ao schema REAL do Health
+ * Tracker, fornecido pelo dono do outro projeto — sem "escada de candidatos":
+ * uma única chamada com o valor certo basta.
+ *
+ * SCHEMA REAL — coleção `reminders` do Health Tracker:
+ *   - type: ENUM, aceita APENAS remedio | exame | consulta | habito | outro
+ *     (padrão do envio da clínica: 'outro').
+ *   - title (texto do lembrete) e date (YYYY-MM-DD) são OBRIGATÓRIOS.
+ *   - time (HH:MM) e notes (detalhes) são opcionais.
+ * Demais coleções (health_metrics, diets, medical_records…) mantêm category +
+ * date_time obrigatórios e o type que já funcionava (treino → 'workout' etc.).
  */
 
 /** Mapa tipo de registro (saude_registros) → coleção gravável do Health Tracker. */
@@ -59,116 +68,78 @@ export function categoriaHtrParaTipo(tipo: string): string {
 }
 
 /**
- * Candidatos para o campo ENUM "type" de cada coleção, por tipo de
- * lançamento — espelha CANDIDATOS_TYPE_POR_TIPO do hook. O Health Tracker
- * recusa valores fora da lista de opções (erro real: "type: Invalid value
- * treino"); quando o log [HealthTracker] mostrar o valor aceito, ele vira a
- * 1ª posição aqui (e no hook).
+ * ENUM "type" de cada coleção, por tipo de lançamento — schema REAL do Health
+ * Tracker. Para os tipos de prescrição/linha do tempo (treino, reabilitação,
+ * exame, sintoma…) mantém o valor que o outro app já aceita; para lembretes,
+ * a coleção `reminders` só aceita remedio/exame/consulta/habito/outro.
  */
 export const CANDIDATOS_TYPE_POR_TIPO: Record<string, string[]> = {
-  treino: ['workout', 'exercise', 'treino_fisico', 'training', 'other', 'general'],
-  reabilitacao: ['rehabilitation', 'therapy', 'treatment', 'other', 'general'],
-  exame: ['exam', 'examination', 'other', 'general'],
-  sintoma: ['symptom', 'other', 'general'],
-  atividade_fisica: ['activity', 'exercise', 'other', 'general'],
-  sono: ['sleep', 'other', 'general'],
-  bebida: ['water', 'hydration', 'other', 'general'],
-  energia: ['energy', 'activity', 'other', 'general'],
-  alimento: ['food', 'nutrition', 'meal', 'other', 'general'],
-  refeicao: ['meal', 'food', 'diet', 'other', 'general'],
-  dieta: ['diet', 'nutrition', 'other', 'general'],
-  medicacao: ['medication', 'medicine', 'other', 'general'],
-  emocao: ['emotion', 'mood', 'other', 'general'],
-  humor: ['emotion', 'mood', 'other', 'general'],
-  // Log real (24/11): reminder, task, other E general foram TODOS recusados
-  // pelo enum da coleção reminders do Health Tracker — a lista se esgotou sem
-  // achar valor válido (mesma lição do hook). Lista ampliada cobre os
-  // vocabulários plausíveis do outro app; o valor aceito no log VALOR ACEITO
-  // vira a 1ª posição.
-  lembrete: [
-    'reminder',
-    'task',
-    'other',
-    'general',
-    'custom',
-    'appointment',
-    'medication',
-    'activity',
-    'water',
-    'note',
-    'event',
-    'info',
-    'alert',
-    'personal',
-    'clinic',
-    'measurement',
-    'sleep',
-    'diet',
-    'nutrition',
-    'exercise',
-    'workout',
-    'exam',
-    'symptom',
-    'emotion',
-    'mood',
-  ],
+  treino: ['workout'],
+  reabilitacao: ['rehabilitation'],
+  exame: ['exam'],
+  sintoma: ['symptom'],
+  atividade_fisica: ['activity'],
+  sono: ['sleep'],
+  bebida: ['water'],
+  energia: ['energy'],
+  alimento: ['food'],
+  refeicao: ['meal'],
+  dieta: ['diet'],
+  medicacao: ['medication'],
+  emocao: ['emotion'],
+  humor: ['emotion'],
+  // Schema real da coleção reminders (informado pelo dono do Health Tracker):
+  // remedio | exame | consulta | habito | outro. A clínica envia 'outro' por
+  // padrão (o valor exato só quando o lembrete É remédio/exame/consulta/hábito).
+  lembrete: ['outro'],
+  lembrete_medicacao: ['remedio'],
+  lembrete_exame: ['exame'],
+  lembrete_consulta: ['consulta'],
+  lembrete_habito: ['habito'],
 }
 
-/** Candidatos de fallback quando o tipo não está no mapa. */
-export const CANDIDATOS_TYPE_PADRAO: string[] = [
-  'other',
-  'general',
-  'custom',
-  'note',
-  'info',
-  'task',
-  'reminder',
-  'appointment',
-  'personal',
-  'clinic',
-  'event',
-  'activity',
-]
+/** Valor de fallback quando o tipo não está no mapa. */
+export const CANDIDATOS_TYPE_PADRAO: string[] = ['other']
 
 /**
- * Candidatos análogos para o campo "category" (obrigatório em todas as
- * coleções e também suscetível de ser enum no outro projeto) — espelha
- * CANDIDATOS_CATEGORY_POR_TIPO do hook.
+ * Categoria por tipo de lançamento (obrigatória em todas as coleções).
+ * Em reminders não há campo category — o hook não injeta categoria para
+ * essa coleção.
  */
 export const CANDIDATOS_CATEGORY_POR_TIPO: Record<string, string[]> = {
-  treino: ['workout', 'exercise', 'training', 'activity', 'general'],
-  reabilitacao: ['rehabilitation', 'therapy', 'treatment', 'general'],
-  exame: ['exam', 'examination', 'medical', 'general'],
-  sintoma: ['symptom', 'medical', 'general'],
-  atividade_fisica: ['activity', 'exercise', 'general'],
-  sono: ['sleep', 'general'],
-  bebida: ['water', 'hydration', 'general'],
-  energia: ['energy', 'activity', 'general'],
-  alimento: ['nutrition', 'food', 'meal', 'diet', 'general'],
-  refeicao: ['diet', 'meal', 'nutrition', 'general'],
-  dieta: ['diet', 'nutrition', 'general'],
-  medicacao: ['medication', 'medicine', 'general'],
-  emocao: ['emotion', 'mood', 'general'],
-  humor: ['emotion', 'mood', 'general'],
-  lembrete: [
-    'reminder',
-    'task',
-    'event',
-    'general',
-    'custom',
-    'appointment',
-    'medication',
-    'activity',
-  ],
+  treino: ['workout'],
+  reabilitacao: ['rehabilitation'],
+  exame: ['exam'],
+  sintoma: ['symptom'],
+  atividade_fisica: ['activity'],
+  sono: ['sleep'],
+  bebida: ['water'],
+  energia: ['energy'],
+  alimento: ['nutrition'],
+  refeicao: ['diet'],
+  dieta: ['diet'],
+  medicacao: ['medication'],
+  emocao: ['emotion'],
+  humor: ['emotion'],
+  // reminders não usa category (schema real: type/title/date/time/notes/repeat).
+  lembrete: [],
+  lembrete_medicacao: [],
+  lembrete_exame: [],
+  lembrete_consulta: [],
+  lembrete_habito: [],
 }
 
-/** Candidatos de category para tipos fora do mapa. */
-export const CANDIDATOS_CATEGORY_PADRAO: string[] = ['general', 'other']
+/** Category de fallback para tipos fora do mapa. */
+export const CANDIDATOS_CATEGORY_PADRAO: string[] = ['general']
 
-/** 1º candidato do enum "type" para um tipo de lançamento. */
+/**
+ * 1º (e único) valor do enum "type" para um tipo de lançamento.
+ * Para os subtipos de lembrete (lembrete_medicacao…) devolve o valor exato
+ * do schema real (remedio/exame/consulta/habito); para 'lembrete', 'outro'.
+ */
 export function typeHtrParaTipo(tipo: string): string {
   const lista = CANDIDATOS_TYPE_POR_TIPO[tipo] || CANDIDATOS_TYPE_PADRAO
-  return lista[0] || tipo || 'other'
+  return lista[0] || tipo || 'outro'
 }
 
 /**
@@ -186,15 +157,18 @@ export function repeatHtr(repeticao: string): string | undefined {
 }
 
 /**
- * Garante category/date_time/type já traduzidos no payload que vai ao Health
- * Tracker (mesma lógica do hook — última linha de defesa lá; aqui evita a
- * primeira recusa "Invalid value"). Valores explícitos no payload têm
- * prioridade.
+ * Garante o shape do schema REAL no payload que vai ao Health Tracker
+ * (mesma lógica do hook — última linha de defesa lá):
+ *  - reminders: type (enum real, 'outro' por padrão), title e date
+ *    OBRIGATÓRIOS (date = YYYY-MM-DD), time (HH:MM) e notes opcionais —
+ *    SEM category (a coleção não tem esse campo).
+ *  - demais coleções: category + date_time obrigatórios como já funcionava.
+ * Valores explícitos no payload têm prioridade.
  */
 export function prepararPayloadHtr(opcoes: {
   tipo: string
   payload: Record<string, unknown>
-  /** Data própria do lançamento ("YYYY-MM-DD" ou ISO) — vira date_time. */
+  /** Data própria do lançamento ("YYYY-MM-DD" ou ISO) — vira date/time. */
   dataLancamento?: string
 }): Record<string, unknown> {
   const dados: Record<string, unknown> = {}
@@ -203,6 +177,48 @@ export function prepararPayloadHtr(opcoes: {
     if (v === undefined || v === null || v === '') continue
     dados[k] = v
   }
+
+  if (colecaoHtrParaTipo(opcoes.tipo) === 'reminders') {
+    // ---- Schema real da coleção reminders ----
+    if (!dados.type) dados.type = typeHtrParaTipo(opcoes.tipo)
+    // title = texto do lembrete (obrigatório)
+    dados.title = String(dados.title || dados.titulo || dados.description || opcoes.tipo)
+    delete dados.titulo
+    delete dados.description
+    delete dados.observacao
+    // date = YYYY-MM-DD (obrigatório); time = HH:MM (opcional)
+    const bruta = String(
+      dados.data ||
+        (opcoes.dataLancamento ? opcoes.dataLancamento : '') ||
+        new Date().toISOString(),
+    )
+    const dia = /^\d{4}-\d{2}-\d{2}/.test(bruta)
+      ? bruta.slice(0, 10)
+      : new Date().toISOString().slice(0, 10)
+    dados.date = dia
+    delete dados.data
+    delete dados.date_time
+    const horaBruta = String(dados.time || dados.hora || '')
+    if (/^\d{1,2}:\d{2}/.test(horaBruta)) {
+      const [h, m] = horaBruta.split(':')
+      dados.time = `${h.padStart(2, '0')}:${m}`
+    } else if (/T\d{2}:\d{2}/.test(bruta)) {
+      dados.time = bruta.slice(11, 16)
+    } else {
+      delete dados.time
+    }
+    delete dados.hora
+    // notes = detalhes (opcional)
+    if (!dados.notes && typeof dados.texto === 'string' && dados.texto.trim()) {
+      dados.notes = dados.texto
+    }
+    delete dados.texto
+    // A coleção reminders não tem category — remove qualquer resquício.
+    delete dados.category
+    return dados
+  }
+
+  // ---- Demais coleções (comportamento que já funciona) ----
   dados.category = String(
     dados.category || categoriaHtrParaTipo(opcoes.tipo) || opcoes.tipo || 'general',
   )

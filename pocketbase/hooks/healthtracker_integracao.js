@@ -479,11 +479,12 @@ routerAdd(
     )
 
     // ----- Campos obrigatórios do outro projeto (regra R6) -----
-    // O Health Tracker valida category e date_time em TODAS as coleções
+    // O Health Tracker valida category e date_time nas DEMAIS coleções
     // graváveis; sem eles responde "category: cannot be blank; date_time:
     // cannot be blank". Montados AQUI, centralizados, valendo para todas as
     // telas (prescrições de treino/reabilitação/exame e lançamentos da linha
     // do tempo). Valores explícitos no payload do frontend têm prioridade.
+    // (A coleção `reminders` NÃO tem category/date_time — ver ehColecaoReminders.)
     const CATEGORIA_POR_TIPO = {
       treino: 'workout',
       reabilitacao: 'rehabilitation',
@@ -501,109 +502,72 @@ routerAdd(
       humor: 'emotion',
     }
 
-    // Candidatos para o campo ENUM "type" de cada coleção, por tipo de
-    // lançamento. O Health Tracker recusa valores fora da lista de opções
-    // (erro real: "type: Invalid value treino"); ao receber essa recusa o hook
-    // avança para o próximo candidato e registra nos logs qual valor foi
-    // ACEITO — ajuste futuro: trazer o valor aceito para a primeira posição.
+    // Vocabulário do ENUM "type" de cada coleção — SCHEMA REAL do Health
+    // Tracker, informado pelo dono do outro projeto. NÃO há mais "escada de
+    // candidatos": uma única chamada com o valor certo basta (o reenvio em
+    // "Invalid value" permanece no código apenas como rede de segurança, e
+    // nunca avança com listas de 1 elemento).
     const CANDIDATOS_TYPE_POR_TIPO = {
-      treino: ['workout', 'exercise', 'treino_fisico', 'training', 'other', 'general'],
-      reabilitacao: ['rehabilitation', 'therapy', 'treatment', 'other', 'general'],
-      exame: ['exam', 'examination', 'other', 'general'],
-      sintoma: ['symptom', 'other', 'general'],
-      atividade_fisica: ['activity', 'exercise', 'other', 'general'],
-      sono: ['sleep', 'other', 'general'],
-      bebida: ['water', 'hydration', 'other', 'general'],
-      energia: ['energy', 'activity', 'other', 'general'],
-      alimento: ['food', 'nutrition', 'meal', 'other', 'general'],
-      refeicao: ['meal', 'food', 'diet', 'other', 'general'],
-      dieta: ['diet', 'nutrition', 'other', 'general'],
-      medicacao: ['medication', 'medicine', 'other', 'general'],
-      emocao: ['emotion', 'mood', 'other', 'general'],
-      humor: ['emotion', 'mood', 'other', 'general'],
-      // Log real (24/11): reminder, task, other E general foram TODOS recusados
-      // pelo enum da coleção reminders do Health Tracker — a lista antiga se
-      // esgotou sem achar valor válido. A lista abaixo cobre os vocabulários
-      // plausíveis do outro app (tipos de lembrete de um health tracker +
-      // valores genéricos); quando o log [HealthTracker] VALOR ACEITO mostrar
-      // qual passou, trazê-lo para a 1ª posição.
-      lembrete: [
-        'reminder',
-        'task',
-        'other',
-        'general',
-        'custom',
-        'appointment',
-        'medication',
-        'activity',
-        'water',
-        'note',
-        'event',
-        'info',
-        'alert',
-        'personal',
-        'clinic',
-        'measurement',
-        'sleep',
-        'diet',
-        'nutrition',
-        'exercise',
-        'workout',
-        'exam',
-        'symptom',
-        'emotion',
-        'mood',
-      ],
+      treino: ['workout'],
+      reabilitacao: ['rehabilitation'],
+      exame: ['exam'],
+      sintoma: ['symptom'],
+      atividade_fisica: ['activity'],
+      sono: ['sleep'],
+      bebida: ['water'],
+      energia: ['energy'],
+      alimento: ['food'],
+      refeicao: ['meal'],
+      dieta: ['diet'],
+      medicacao: ['medication'],
+      emocao: ['emotion'],
+      humor: ['emotion'],
+      // Coleção reminders — enum real: remedio | exame | consulta | habito |
+      // outro. A clínica envia 'outro' por padrão (valor exato só quando o
+      // lembrete É remédio/exame/consulta/hábito).
+      lembrete: ['outro'],
+      lembrete_medicacao: ['remedio'],
+      lembrete_exame: ['exame'],
+      lembrete_consulta: ['consulta'],
+      lembrete_habito: ['habito'],
     }
-    const CANDIDATOS_TYPE_PADRAO = [
-      'other',
-      'general',
-      'custom',
-      'note',
-      'info',
-      'task',
-      'reminder',
-      'appointment',
-      'personal',
-      'clinic',
-      'event',
-      'activity',
-    ]
+    const CANDIDATOS_TYPE_PADRAO = ['other']
 
-    // Candidatos análogos para o campo "category" (obrigatório em todas as
-    // coleções e também suscetível de ser enum no outro projeto).
+    // Category (obrigatória nas DEMAIS coleções; a coleção reminders NÃO tem
+    // esse campo).
     const CANDIDATOS_CATEGORY_POR_TIPO = {
-      treino: ['workout', 'exercise', 'training', 'activity', 'general'],
-      reabilitacao: ['rehabilitation', 'therapy', 'treatment', 'general'],
-      exame: ['exam', 'examination', 'medical', 'general'],
-      sintoma: ['symptom', 'medical', 'general'],
-      atividade_fisica: ['activity', 'exercise', 'general'],
-      sono: ['sleep', 'general'],
-      bebida: ['water', 'hydration', 'general'],
-      energia: ['energy', 'activity', 'general'],
-      alimento: ['nutrition', 'food', 'meal', 'diet', 'general'],
-      refeicao: ['diet', 'meal', 'nutrition', 'general'],
-      dieta: ['diet', 'nutrition', 'general'],
-      medicacao: ['medication', 'medicine', 'general'],
-      emocao: ['emotion', 'mood', 'general'],
-      humor: ['emotion', 'mood', 'general'],
-      lembrete: [
-        'reminder',
-        'task',
-        'event',
-        'general',
-        'custom',
-        'appointment',
-        'medication',
-        'activity',
-      ],
+      treino: ['workout'],
+      reabilitacao: ['rehabilitation'],
+      exame: ['exam'],
+      sintoma: ['symptom'],
+      atividade_fisica: ['activity'],
+      sono: ['sleep'],
+      bebida: ['water'],
+      energia: ['energy'],
+      alimento: ['nutrition'],
+      refeicao: ['diet'],
+      dieta: ['diet'],
+      medicacao: ['medication'],
+      emocao: ['emotion'],
+      humor: ['emotion'],
+      lembrete: [],
+      lembrete_medicacao: [],
+      lembrete_exame: [],
+      lembrete_consulta: [],
+      lembrete_habito: [],
     }
-    const CANDIDATOS_CATEGORY_PADRAO = ['general', 'other', 'custom', 'note', 'info']
+    const CANDIDATOS_CATEGORY_PADRAO = ['general']
 
     // Corpo do registro: campos do payload SOBEM para o nível do registro
     // (título, descrição, exercícios, resultado, observação…), e os
     // obrigatórios são garantidos. O shape antigo (tipo/payload) é mantido
     // dentro para não quebrar nada que ainda o leia.
+    // Coleção reminders — schema REAL do outro projeto: type é enum
+    // (remedio|exame|consulta|habito|outro), title e date (YYYY-MM-DD) são
+    // OBRIGATÓRIOS, time (HH:MM) e notes opcionais — NÃO existe category nem
+    // date_time nessa coleção.
+    const ehColecaoReminders = () => collection === 'reminders'
+
     const montarDadosRegistro = (idxType, idxCategory, semRepeat) => {
       const dados = {}
       if (payload && typeof payload === 'object') {
@@ -612,6 +576,61 @@ routerAdd(
           if (v === undefined || v === null || v === '') continue
           dados[k] = v
         }
+      }
+      if (ehColecaoReminders()) {
+        // ---- reminders: shape exato do schema real ----
+        if (idxType > 0) {
+          dados.type = 'outro' // rede de segurança: enum esgotado → valor padrão
+        } else {
+          const candidatosType = CANDIDATOS_TYPE_POR_TIPO[tipo] || CANDIDATOS_TYPE_PADRAO
+          dados.type = String(dados.type || candidatosType[0] || 'outro')
+        }
+        // title obrigatório = texto do lembrete; notes = detalhes (opcional).
+        dados.title = String(dados.title || dados.titulo || dados.description || tipo || 'Lembrete')
+        delete dados.titulo
+        delete dados.description
+        delete dados.observacao
+        if (!dados.notes && typeof dados.texto === 'string' && dados.texto.trim()) {
+          dados.notes = dados.texto
+        }
+        delete dados.texto
+        // date (YYYY-MM-DD) obrigatório; time (HH:MM) opcional — derivados da
+        // data/hora do lançamento (ISO ou "YYYY-MM-DD") quando não enviados.
+        const bruta = String(dados.data || dados.date_time || new Date().toISOString())
+        const dia = /^\d{4}-\d{2}-\d{2}/.test(bruta)
+          ? bruta.slice(0, 10)
+          : new Date().toISOString().slice(0, 10)
+        dados.date = String(dados.date || dia)
+        delete dados.data
+        delete dados.date_time
+        const horaBruta = String(dados.time || dados.hora || '')
+        if (/^\d{1,2}:\d{2}/.test(horaBruta)) {
+          const partes = horaBruta.split(':')
+          dados.time = partes[0].padStart(2, '0') + ':' + partes[1]
+        } else if (/T\d{2}:\d{2}/.test(bruta)) {
+          dados.time = bruta.slice(11, 16)
+        } else {
+          delete dados.time
+        }
+        delete dados.hora
+        delete dados.category // a coleção não tem esse campo
+        // repeat: a clínica envia em português ('nenhuma', 'diaria'…); o Health
+        // Tracker espera o enum em inglês. Em reenvio (semRepeat) descarta.
+        if (semRepeat) {
+          delete dados.repeat
+        } else if (dados.repeat) {
+          const mapaRepeat = {
+            nenhuma: 'none',
+            diaria: 'daily',
+            semanal: 'weekly',
+            mensal: 'monthly',
+          }
+          const rep = mapaRepeat[String(dados.repeat).toLowerCase()]
+          if (rep) dados.repeat = rep
+        }
+        dados.tipo = tipo
+        dados.payload = payload
+        return dados
       }
       // category/date_time do payload (explícitos) têm prioridade; sem eles,
       // derivados do tipo e da data do lançamento. category também pode ser
@@ -634,22 +653,6 @@ routerAdd(
         dados.date_time = /^\d{4}-\d{2}-\d{2}$/.test(d)
           ? d + ' 12:00:00.000Z'
           : new Date().toISOString()
-      }
-      // repeat (lembretes): a clínica envia em português ('nenhuma', 'diaria'…);
-      // o Health Tracker espera o valor do enum em inglês. Se ainda assim for
-      // recusado ("repeat: Invalid value …"), o reenvio descarta o campo
-      // (semRepeat=true) para não bloquear o registro.
-      if (semRepeat) {
-        delete dados.repeat
-      } else if (dados.repeat) {
-        const mapaRepeat = {
-          nenhuma: 'none',
-          diaria: 'daily',
-          semanal: 'weekly',
-          mensal: 'monthly',
-        }
-        const rep = mapaRepeat[String(dados.repeat).toLowerCase()]
-        if (rep) dados.repeat = rep
       }
       // Campos que o Health Tracker exige no nível do registro (log de 400:
       // "Envie os campos obrigatórios: type"). type tem de ser um valor do ENUM
@@ -675,10 +678,15 @@ routerAdd(
         collection +
         ' type=' +
         dadosPrimeiraTentativa.type +
-        ' category=' +
-        dadosPrimeiraTentativa.category +
-        ' date_time=' +
-        dadosPrimeiraTentativa.date_time +
+        (ehColecaoReminders()
+          ? ' title=' +
+            String(dadosPrimeiraTentativa.title || '') +
+            ' date=' +
+            String(dadosPrimeiraTentativa.date || '')
+          : ' category=' +
+            dadosPrimeiraTentativa.category +
+            ' date_time=' +
+            dadosPrimeiraTentativa.date_time) +
         ' data=' +
         truncar(dadosPrimeiraTentativa),
     )
@@ -776,16 +784,30 @@ routerAdd(
     // ----- Gravação do registro (regras R1, R3 e R5) -----
     const chamarRecord = (idxType, idxCategory, semRepeat) => {
       const dados = montarDadosRegistro(idxType, idxCategory, semRepeat)
-      console.log(
-        '[HealthTracker] record: POST records — collection=' +
-          collection +
-          ' type="' +
-          dados.type +
-          '" category="' +
-          dados.category +
-          '"' +
-          (dados.repeat ? ' repeat="' + dados.repeat + '"' : ''),
-      )
+      if (ehColecaoReminders()) {
+        console.log(
+          '[HealthTracker] record: POST records (payload do lembrete) — ' +
+            truncar(
+              {
+                collection: collection,
+                professional_name: nomeProf,
+                data: dados,
+              },
+              500,
+            ),
+        )
+      } else {
+        console.log(
+          '[HealthTracker] record: POST records — collection=' +
+            collection +
+            ' type="' +
+            dados.type +
+            '" category="' +
+            dados.category +
+            '"' +
+            (dados.repeat ? ' repeat="' + dados.repeat + '"' : ''),
+        )
+      }
       const resp = $http.send({
         url: HT_BASE + '/backend/v1/trust/patients/' + encodeURIComponent(email) + '/records',
         method: 'POST', // sempre POST de registro novo — nunca PATCH/PUT (regra R3)
@@ -794,8 +816,9 @@ routerAdd(
         body: JSON.stringify({
           collection: collection,
           professional_name: nomeProf, // regra R5: nome no corpo
-          // Regra R6: data no nível do registro — os obrigatórios category e
-          // date_time sempre preenchidos, com o restante dos campos do payload
+          // Regra R6: data no nível do registro — obrigatórios sempre
+          // preenchidos (category/date_time nas demais coleções; type/title/
+          // date na coleção reminders), com o restante dos campos do payload
           // (título, descrição, exercícios…) também no nível do registro.
           data: dados,
         }),
@@ -814,6 +837,7 @@ routerAdd(
         dados: resposta,
         typeEnviado: String(dados.type || ''),
         categoryEnviada: String(dados.category || ''),
+        dadosEnviados: dados,
       }
     }
 
@@ -924,6 +948,12 @@ routerAdd(
       // Listas esgotadas e ainda 400: loga com destaque — o enum real não
       // contém NENHUM dos candidatos; a mensagem de erro completa (com o
       // último valor recusado) orienta o ajuste das listas.
+      if (r.status === 400 && ehColecaoReminders()) {
+        console.log(
+          '[HealthTracker] record: LEMBRETE RECUSADO (HTTP 400) — payload enviado: ' +
+            truncar(r.dadosEnviados || dadosPrimeiraTentativa, 600),
+        )
+      }
       if (r.status === 400 && idxType + 1 >= candidatosType.length) {
         console.log(
           '[HealthTracker] record: LISTA DE TYPE ESGOTADA para collection=' +
@@ -936,7 +966,7 @@ routerAdd(
       }
       if (r.status >= 200 && r.status < 300 && (idxType > 0 || idxCategory > 0)) {
         console.log(
-          '[HealthTracker] record: VALOR ACEITO — collection=' +
+          '[HealthTracker] record: VALOR ACEITO APÓS REENVIO — collection=' +
             collection +
             ' type="' +
             r.typeEnviado +
@@ -946,7 +976,7 @@ routerAdd(
             candidatosType.join('/') +
             ' | category=' +
             candidatosCategory.join('/') +
-            ') — considere trazer o valor aceito para a 1ª posição.',
+            ') — ajuste a 1ª posição da lista para o valor aceito.',
         )
       }
 
