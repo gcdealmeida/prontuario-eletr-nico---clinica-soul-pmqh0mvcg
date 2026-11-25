@@ -2,7 +2,7 @@
   "name": "clinica-soul-prontuario",
   "description": "Sistema de Avaliação e Prontuário Eletrônico da Clínica SOUL",
   "private": true,
-  "version": "0.0.180",
+  "version": "0.0.181",
   "type": "module",
   "scripts": {
     "start": "vite dev",
