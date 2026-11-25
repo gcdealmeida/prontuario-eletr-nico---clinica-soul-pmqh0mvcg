@@ -132,7 +132,7 @@ const router = createBrowserRouter(
       <Route path="/pre-cadastro" element={<PreCadastroPublico />} />
       <Route path="/pre-cadastro/:token" element={<PreCadastroPublico />} />
 
-      {/* Versão Pública do Programa de Treino para o Cliente (acesso por token sem login) */}
+      {/* Versão Pública do Programa de Exercícios para o Cliente (acesso por token sem login) */}
       <Route
         path="/programa-cliente/:token"
         element={<ProgramaVersaoCliente modoPublico={true} />}

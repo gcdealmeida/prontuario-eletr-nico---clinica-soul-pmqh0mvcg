@@ -944,7 +944,7 @@ onRecordCreateRequest((e) => {
       } catch (_) {}
     }
 
-    const progNome = rec.getString('nome') || 'Programa de Treino'
+    const progNome = rec.getString('nome') || 'Programa de Exercícios'
     const duracao = rec.getInt('total_periodos') + ' ' + rec.getString('unidade_duracao')
     const esp = 'Personal'
     const detalhes = 'Criação de Programa de Acompanhamento: "' + progNome + '" (' + duracao + ')'
@@ -969,7 +969,7 @@ onRecordCreateRequest((e) => {
         if (adm) {
           const notif = new Record($app.findCollectionByNameOrId('notifications'))
           notif.set('user_id', adm.id)
-          notif.set('titulo', 'Novo Programa de Treino - Personal')
+          notif.set('titulo', 'Novo Programa de Exercícios - Personal')
           notif.set(
             'descricao',
             userName +
@@ -1015,7 +1015,7 @@ onRecordUpdateRequest((e) => {
       } catch (_) {}
     }
 
-    const progNome = rec.getString('nome') || 'Programa de Treino'
+    const progNome = rec.getString('nome') || 'Programa de Exercícios'
     const status = rec.getString('status') || 'ativo'
     const esp = 'Personal'
     const detalhes =

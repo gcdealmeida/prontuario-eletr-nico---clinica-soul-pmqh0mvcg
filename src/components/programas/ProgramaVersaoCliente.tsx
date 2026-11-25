@@ -126,7 +126,9 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
       <div className="min-h-screen flex items-center justify-center bg-[#FAF7F1] p-6">
         <div className="text-center space-y-3">
           <RefreshCw className="h-8 w-8 animate-spin text-[#C9A46A] mx-auto" />
-          <p className="text-sm font-semibold text-gray-700">Carregando Programa de Treino...</p>
+          <p className="text-sm font-semibold text-gray-700">
+            Carregando Programa de Exercícios...
+          </p>
         </div>
       </div>
     )
@@ -235,7 +237,7 @@ export const ProgramaVersaoCliente: React.FC<ProgramaVersaoClienteProps> = ({
             />
             <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
               <span className="text-[11px] uppercase tracking-[0.22em] text-[#8C6527] font-bold block leading-tight">
-                Programa de Treino & Acompanhamento
+                Programa de Exercícios & Acompanhamento
               </span>
               <span className="text-[#D4B278]">•</span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FAF5EE] border border-[#E9E1D2] text-[10px] font-semibold text-[#8C6527] uppercase tracking-wider">

@@ -88,7 +88,7 @@ export default function PacienteDetalhe() {
   // Evoluções clínicas do paciente
   const [evolucoesPaciente, setEvolucoesPaciente] = useState<any[]>([])
 
-  // Programas de Treino do paciente
+  // Programas de Exercícios do paciente
   const [programasPaciente, setProgramasPaciente] = useState<any[]>([])
 
   // Modal Consulta
@@ -175,7 +175,7 @@ export default function PacienteDetalhe() {
       const avs = await getAvaliacoesByPaciente(id)
       setAvaliacoes(avs)
 
-      // Programas de Treino
+      // Programas de Exercícios
       try {
         const { getProgramasByPaciente } = await import('@/services/programas')
         const progs = await getProgramasByPaciente(id)
@@ -779,7 +779,7 @@ export default function PacienteDetalhe() {
             value="programas"
             className="rounded-xl text-xs sm:text-sm font-semibold data-[state=checked]:bg-[#1E2530] data-[state=checked]:text-white transition-all h-10 px-4"
           >
-            Programas de Treino ({programasPaciente.length})
+            Programas de Exercícios ({programasPaciente.length})
           </TabsTrigger>
           <TabsTrigger
             value="avaliacoes"
@@ -909,7 +909,7 @@ export default function PacienteDetalhe() {
           />
         </TabsContent>
 
-        {/* TAB: PROGRAMAS DE TREINO */}
+        {/* TAB: PROGRAMAS DE EXERCÍCIOS */}
         <TabsContent value="programas" className="pt-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
@@ -944,7 +944,7 @@ export default function PacienteDetalhe() {
                   onClick={() => navigate(`/programas/novo?paciente=${paciente.id}`)}
                   className="bg-[#C9A46A] text-[#33221C] font-bold text-xs rounded-xl h-8 px-4 mt-2"
                 >
-                  Criar Programa de Treino
+                  Criar Programa de Exercícios
                 </Button>
               </div>
             ) : (

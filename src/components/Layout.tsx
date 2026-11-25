@@ -119,7 +119,7 @@ export default function Layout() {
       badge: consultasHojeCount > 0 ? consultasHojeCount : null,
     },
     {
-      name: 'Programas de Treino',
+      name: 'Programas de Exercícios',
       path: '/programas',
       icon: Dumbbell,
     },
@@ -145,11 +145,11 @@ export default function Layout() {
     if (path.startsWith('/prontuarios/novo')) return 'Nova Avaliação Clínica'
     if (path.startsWith('/prontuarios/') && path !== '/prontuarios')
       return 'Visualização de Prontuário'
-    if (path.startsWith('/programas/novo')) return 'Novo Programa de Treino'
+    if (path.startsWith('/programas/novo')) return 'Novo Programa de Exercícios'
     if (path.startsWith('/programas/') && path.endsWith('/cliente'))
       return 'Versão do Cliente - Programa'
     if (path.startsWith('/programas/') && path !== '/programas') return 'Programa de Acompanhamento'
-    if (path.startsWith('/programas')) return 'Programas de Treino & Periodização'
+    if (path.startsWith('/programas')) return 'Programas de Exercícios & Periodização'
     if (path.startsWith('/prontuarios')) return 'Prontuários'
     if (path.startsWith('/gestao')) return 'Gestão da Clínica'
     if (path.startsWith('/relatorios')) return 'Relatórios Clínicos'

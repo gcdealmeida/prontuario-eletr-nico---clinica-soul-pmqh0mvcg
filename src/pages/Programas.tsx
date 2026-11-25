@@ -115,7 +115,7 @@ export const Programas: React.FC = () => {
             className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs h-9 px-4 rounded-xl shadow-sm flex items-center gap-2 border border-[#DFBF8E]/40"
           >
             <Plus className="h-4 w-4 text-[#33221C]" />
-            Novo Programa de Treino
+            Novo Programa de Exercícios
           </Button>
         </div>
       </div>

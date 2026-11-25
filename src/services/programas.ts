@@ -76,7 +76,7 @@ export async function createPrograma(data: Partial<ProgramaAcompanhamentoRecord>
         paciente_id: prog.paciente_id,
         tipo: 'Avaliação',
         especialidade: 'Personal',
-        titulo: `Programa de Treino: ${prog.nome}`,
+        titulo: `Programa de Exercícios: ${prog.nome}`,
         conteudo: `Periodização de ${prog.total_periodos} ${prog.unidade_duracao} cadastrada com status ${prog.status}.`,
         data_evento: new Date().toISOString(),
       })

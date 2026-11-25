@@ -513,7 +513,7 @@ export function ModalMesclarPacientes({
                       </li>
                       <li>
                         <strong>
-                          Presenças, consultas agendadas, programas de treino e timeline
+                          Presenças, consultas agendadas, programas de exercícios e timeline
                         </strong>{' '}
                         são consolidados no cadastro principal.
                       </li>
