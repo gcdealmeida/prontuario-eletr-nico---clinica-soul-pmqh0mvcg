@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 import {
   Activity,
   AlarmClock,
@@ -35,6 +36,10 @@ import {
 } from '@/services/saudeBemEstar'
 import { SOUL_HTR } from '@/lib/soulHtrTheme'
 import type { NotificacaoRegistro } from '@/hooks/useSaudeRealtime'
+import {
+  ResumoHealthTrackerCliente,
+  useResumosHealthTracker,
+} from '@/components/saude/ResumoHealthTrackerCliente'
 
 const iconeTipo = (t: string) => {
   const m: Record<string, typeof Activity> = {
@@ -137,6 +142,13 @@ export function PainelMonitorClinico({
 }: Props) {
   const { toast } = useToast()
   const [buscaLocal, setBuscaLocal] = useState('')
+  const [tickHtr, setTickHtr] = useState(0)
+  const resumosHtr = useResumosHealthTracker(clientes, tickHtr)
+
+  const atualizarTudo = () => {
+    setTickHtr((n) => n + 1)
+    void recarregar()
+  }
 
   /* Toast ao chegar notificação nova (evento create do SSE/polling). */
   const ultimaNotificacao = notificacoes[0]
@@ -224,8 +236,9 @@ export function PainelMonitorClinico({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => void recarregar()}
+            onClick={atualizarTudo}
             disabled={carregando}
+            aria-label="Atualizar monitoramento e dados do Health Tracker"
           >
             <RefreshCw className={'h-4 w-4' + (carregando ? ' animate-spin' : '')} />
           </Button>
@@ -388,12 +401,22 @@ export function PainelMonitorClinico({
 
       {/* Painel por cliente (estilo Health Tracker) */}
       <div className="space-y-3">
-        <p
-          className="text-xs font-semibold uppercase tracking-wide"
-          style={{ color: SOUL_HTR.textoSuave }}
-        >
-          Por cliente
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p
+            className="text-xs font-semibold uppercase tracking-wide"
+            style={{ color: SOUL_HTR.textoSuave }}
+          >
+            Por cliente — dados do SOUL Health Tracker
+          </p>
+          <Badge
+            variant="outline"
+            className="gap-1 text-[10px]"
+            style={{ borderColor: SOUL_HTR.dourado, color: SOUL_HTR.marrom }}
+          >
+            <ExternalLink className="h-3 w-3" />
+            Acesso Rápido Dra ou Prof.
+          </Badge>
+        </div>
         {clientesFiltrados.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-[#73574A]">
@@ -404,65 +427,57 @@ export function PainelMonitorClinico({
           <div className="grid gap-3 md:grid-cols-2">
             {clientesFiltrados.map((c) => {
               const rs = (porCliente.get(c.id) || []).slice(0, 6)
+              const abrirCliente = () =>
+                (
+                  onAbrirCliente ||
+                  ((id: string) => {
+                    window.location.href = `/saude-bem-estar?cliente=${id}`
+                  })
+                )(c.id)
               return (
                 <Card
                   key={c.id}
-                  className="cursor-pointer border-[#E2D4BF] transition-colors hover:border-[#C9A063]"
+                  className="border-[#E2D4BF] transition-colors hover:border-[#C9A063]"
                   style={{ backgroundColor: SOUL_HTR.card }}
-                  onClick={() =>
-                    (
-                      onAbrirCliente ||
-                      ((id: string) => {
-                        window.location.href = `/saude-bem-estar?cliente=${id}`
-                      })
-                    )(c.id)
-                  }
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold" style={{ color: SOUL_HTR.marromEscuro }}>
-                        {c.nome}
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className="text-[10px]"
-                        style={{ borderColor: SOUL_HTR.dourado, color: SOUL_HTR.marrom }}
-                      >
-                        {rs.length} recente(s)
-                      </Badge>
-                    </div>
-                    <p className="text-xs" style={{ color: SOUL_HTR.textoFraco }}>
-                      {c.email || 'sem e-mail'}
-                    </p>
-                    {rs.length === 0 ? (
-                      <p className="mt-3 text-xs italic" style={{ color: SOUL_HTR.textoFraco }}>
-                        Sem registros — o cliente começa pelo app dele.
-                      </p>
-                    ) : (
-                      <ul className="mt-3 space-y-1">
-                        {rs.map((r) => {
-                          const Ico = iconeTipo(r.tipo)
-                          return (
-                            <li key={r.id} className="flex items-center gap-2 text-xs">
-                              <Ico
-                                className="h-3.5 w-3.5 shrink-0"
-                                style={{ color: SOUL_HTR.dourado }}
-                              />
-                              <span
-                                className="min-w-0 flex-1 truncate"
-                                style={{ color: SOUL_HTR.marrom }}
-                              >
-                                {labelTipoRegistro(r.tipo as SaudeRegistroTipo)}
-                                {r.observacao ? ` — ${r.observacao}` : ''}
-                              </span>
-                              <span className="shrink-0" style={{ color: SOUL_HTR.textoFraco }}>
-                                {horaCurta(r.data)}
-                              </span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
+                    <button
+                      type="button"
+                      className="w-full text-left"
+                      onClick={abrirCliente}
+                      aria-label={`Abrir painel clínico de ${c.nome}`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span
+                          className="font-semibold underline-offset-2 hover:underline"
+                          style={{ color: SOUL_HTR.marromEscuro }}
+                        >
+                          {c.nome}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px]"
+                          style={{ borderColor: SOUL_HTR.dourado, color: SOUL_HTR.marrom }}
+                        >
+                          {rs.length} recente(s)
+                        </Badge>
+                      </span>
+                      <span className="block text-xs" style={{ color: SOUL_HTR.textoFraco }}>
+                        {c.email || 'sem e-mail'}
+                      </span>
+                    </button>
+                    <ResumoHealthTrackerCliente
+                      estado={resumosHtr[c.id]}
+                      clienteId={c.id}
+                      onAbrirCliente={(id) =>
+                        (
+                          onAbrirCliente ||
+                          ((vid: string) => {
+                            window.location.href = `/saude-bem-estar?cliente=${vid}`
+                          })
+                        )(id)
+                      }
+                    />
                   </CardContent>
                 </Card>
               )
