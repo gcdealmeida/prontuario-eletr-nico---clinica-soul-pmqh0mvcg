@@ -251,6 +251,16 @@ export async function listarSaudeRegistrosTodosClientes(): Promise<SaudeRegistro
   })
 }
 
+/**
+ * Lembretes para o Feed em Tempo Real do painel interno: busca TODOS os
+ * lembretes (o feed mostra o que foi lançado — passado ou futuro).
+ */
+export async function listarSaudeLembretesDoFeed(): Promise<SaudeLembreteRecord[]> {
+  return pb.collection('saude_lembretes').getFullList<SaudeLembreteRecord>({
+    sort: '-created',
+  })
+}
+
 export async function criarSaudeRegistro(payload: {
   cliente_id: string
   tipo: SaudeRegistroTipo

@@ -31,11 +31,13 @@ import { formatDataHoraPTBR, formatDataPTBR } from '@/lib/constants'
 import {
   labelTipoRegistro,
   type SaudeClienteRecord,
+  type SaudeLembreteRecord,
   type SaudeRegistroRecord,
   type SaudeRegistroTipo,
 } from '@/services/saudeBemEstar'
 import { SOUL_HTR } from '@/lib/soulHtrTheme'
-import type { NotificacaoRegistro } from '@/hooks/useSaudeRealtime'
+import type { ItemFeedSaude, NotificacaoRegistro } from '@/hooks/useSaudeRealtime'
+import { getTimestampFeed } from '@/lib/saudeFeed'
 import {
   ResumoHealthTrackerCliente,
   useResumosHealthTracker,
@@ -114,6 +116,7 @@ function resumoRegistro(r: SaudeRegistroRecord): string {
 interface Props {
   clientes: SaudeClienteRecord[]
   registros: SaudeRegistroRecord[]
+  lembretes?: SaudeLembreteRecord[]
   carregando: boolean
   notificacoes: NotificacaoRegistro[]
   recarregar: () => Promise<void>
@@ -131,6 +134,7 @@ interface Props {
 export function PainelMonitorClinico({
   clientes,
   registros,
+  lembretes = [],
   carregando,
   notificacoes,
   recarregar,
@@ -169,6 +173,16 @@ export function PainelMonitorClinico({
         (b.created || b.data || '') > (a.created || a.data || '') ? 1 : -1,
       ),
     [registros],
+  )
+
+  /**
+   * Feed em Tempo Real: registros de saúde + lembretes lançados pela clínica,
+   * unificados e ordenados do mais novo para o mais antigo (timestamp real de
+   * criação — nunca pela data alvo do lembrete).
+   */
+  const feedOrdenado = useMemo<ItemFeedSaude[]>(
+    () => [...registros, ...lembretes].sort((a, b) => getTimestampFeed(b) - getTimestampFeed(a)),
+    [registros, lembretes],
   )
 
   const porCliente = useMemo(() => {
@@ -353,21 +367,25 @@ export function PainelMonitorClinico({
             className="mb-2 text-xs font-semibold uppercase tracking-wide"
             style={{ color: SOUL_HTR.textoSuave }}
           >
-            Feed em tempo real — o que os clientes registraram
+            Feed em tempo real — lançamentos recentes de Saúde &amp; Bem-Estar
           </p>
-          {registrosOrdenados.length === 0 ? (
+          {feedOrdenado.length === 0 ? (
             <p className="py-6 text-center text-sm text-[#8A6F58]">
-              Nenhum registro de saúde ainda. Assim que um cliente registrar algo no app dele, o
-              item aparece aqui na hora.
+              Nenhum lançamento ainda. Assim que um lançamento for criado (registro do cliente ou
+              lembrete da clínica), ele aparece aqui na hora, do mais novo para o mais antigo.
             </p>
           ) : (
             <ul className="space-y-1.5">
-              {registrosOrdenados.slice(0, 40).map((r) => {
-                const Ico = iconeTipo(r.tipo)
-                const nomeCliente = clientes.find((c) => c.id === r.cliente_id)?.nome || 'Cliente'
+              {feedOrdenado.slice(0, 40).map((item) => {
+                const ehLembrete = 'data_hora' in item && item.data_hora !== undefined
+                const Ico = iconeTipo(ehLembrete ? 'lembrete' : item.tipo)
+                const nomeCliente =
+                  clientes.find((c) => c.id === item.cliente_id)?.nome || 'Cliente'
+                const ts = getTimestampFeed(item)
+                const quando = isNaN(ts) ? '—' : formatDataHoraPTBR(new Date(ts).toISOString())
                 return (
                   <li
-                    key={r.id}
+                    key={item.id}
                     className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5"
                     style={{ border: `1px solid ${SOUL_HTR.borda}` }}
                   >
@@ -382,14 +400,21 @@ export function PainelMonitorClinico({
                         className="truncate text-sm font-medium"
                         style={{ color: SOUL_HTR.marromEscuro }}
                       >
-                        {nomeCliente} — {labelTipoRegistro(r.tipo as SaudeRegistroTipo)}
+                        {nomeCliente} —{' '}
+                        {ehLembrete
+                          ? `Lembrete: ${(item as SaudeLembreteRecord).title || '—'}`
+                          : labelTipoRegistro(item.tipo as SaudeRegistroTipo)}
                       </p>
                       <p className="truncate text-xs" style={{ color: SOUL_HTR.textoSuave }}>
-                        {resumoRegistro(r) || formatDataPTBR(r.data)}
+                        {ehLembrete
+                          ? (item as SaudeLembreteRecord).notes ||
+                            formatDataPTBR((item as SaudeLembreteRecord).date)
+                          : resumoRegistro(item as SaudeRegistroRecord) ||
+                            formatDataPTBR((item as SaudeRegistroRecord).data)}
                       </p>
                     </div>
                     <span className="shrink-0 text-xs" style={{ color: SOUL_HTR.textoFraco }}>
-                      {formatDataHoraPTBR(r.data)}
+                      {quando}
                     </span>
                   </li>
                 )

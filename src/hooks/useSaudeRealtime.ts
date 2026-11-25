@@ -4,13 +4,21 @@ import type { RecordModel, RecordSubscription } from 'pocketbase'
 import {
   listarSaudeClientes,
   listarSaudeRegistrosTodosClientes,
+  listarSaudeLembretesDoFeed,
   type SaudeClienteRecord,
   type SaudeRegistroRecord,
 } from '@/services/saudeBemEstar'
+import type { SaudeLembreteRecord } from '@/services/saudeBemEstar'
+import { getTimestampFeed } from '@/lib/saudeFeed'
+
+export type SaudeLembreteFeedRecord = SaudeLembreteRecord
+export type ItemFeedSaude = SaudeRegistroRecord | SaudeLembreteFeedRecord
 
 /* ------------------------------------------------------------------ */
 /* Real-time de Saúde (modo Clínica)                                   */
 /* ------------------------------------------------------------------ */
+
+const ts = getTimestampFeed
 
 export interface NotificacaoRegistro {
   id: string
@@ -36,6 +44,7 @@ const INTERVALO_POLLING_MS = 25_000
 export function useSaudeRealtime(enabled: boolean) {
   const [clientes, setClientes] = useState<SaudeClienteRecord[]>([])
   const [registros, setRegistros] = useState<SaudeRegistroRecord[]>([])
+  const [lembretes, setLembretes] = useState<SaudeLembreteRecord[]>([])
   const [carregando, setCarregando] = useState(true)
   const [notificacoes, setNotificacoes] = useState<NotificacaoRegistro[]>([])
   const [sinoAberto, setSinoAberto] = useState(false)
@@ -48,9 +57,24 @@ export function useSaudeRealtime(enabled: boolean) {
 
   /** Recarrega tudo (chamado no mount e pelo polling de segurança). */
   const recarregar = useCallback(async () => {
-    const [cs, rs] = await Promise.all([listarSaudeClientes(), listarSaudeRegistrosTodosClientes()])
+    const [cs, rs, lem] = await Promise.all([
+      listarSaudeClientes(),
+      listarSaudeRegistrosTodosClientes(),
+      listarSaudeLembretesDoFeed(),
+    ])
     setClientes(cs)
     setRegistros(rs)
+    setLembretes(lem)
+  }, [])
+
+  /** Busca feed completo (registros + lembretes) — usado pelo realtime. */
+  const recarregarFeed = useCallback(async () => {
+    const [rs, lem] = await Promise.all([
+      listarSaudeRegistrosTodosClientes(),
+      listarSaudeLembretesDoFeed(),
+    ])
+    setRegistros(rs)
+    setLembretes(lem)
   }, [])
 
   /* Carga inicial */
@@ -68,6 +92,31 @@ export function useSaudeRealtime(enabled: boolean) {
     }
   }, [enabled, recarregar])
 
+  /* Realtime: assina também saude_lembretes (o feed inclui lembretes lançados). */
+  useEffect(() => {
+    if (!enabled) return
+    let cancelado = false
+    let desinscreverLembretes: (() => Promise<void>) | undefined
+
+    pb.collection('saude_lembretes')
+      .subscribe('*', () => {
+        recarregarFeed().catch(() => {})
+      })
+      .then((fn) => {
+        if (cancelado) {
+          fn().catch(() => {})
+        } else {
+          desinscreverLembretes = fn
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelado = true
+      if (desinscreverLembretes) desinscreverLembretes().catch(() => {})
+    }
+  }, [enabled, recarregarFeed])
+
   /* Evento realtime: create/update/delete em saude_registros. */
   const aoEvento = useCallback((e: RecordSubscription<RecordModel>) => {
     const rec = e.record as unknown as SaudeRegistroRecord
@@ -77,13 +126,7 @@ export function useSaudeRealtime(enabled: boolean) {
       setRegistros((prev) => {
         const existe = prev.some((r) => r.id === rec.id)
         const proxima = existe ? prev.map((r) => (r.id === rec.id ? rec : r)) : [rec, ...prev]
-        return [...proxima].sort((a, b) =>
-          (b.created || b.data || '') > (a.created || a.data || '')
-            ? 1
-            : (b.created || b.data || '') < (a.created || a.data || '')
-              ? -1
-              : 0,
-        )
+        return [...proxima].sort((a, b) => ts(b) - ts(a))
       })
     } else if (e.action === 'delete') {
       setRegistros((prev) => prev.filter((r) => r.id !== rec.id))
@@ -156,6 +199,7 @@ export function useSaudeRealtime(enabled: boolean) {
   return {
     clientes,
     registros,
+    lembretes,
     carregando,
     notificacoes,
     naoLidas,

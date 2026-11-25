@@ -10,6 +10,8 @@ import {
   mensagemErroHealthTracker,
   type HealthTrackerSummary,
 } from '@/services/healthTracker'
+import { extrairAreasResumo } from '@/components/saude/ResumoHealthTrackerCliente'
+import { formatDataPTBR } from '@/lib/constants'
 
 const SOUL = {
   marrom: '#6B4F3A',
@@ -56,8 +58,99 @@ function formatarValor(v: unknown): string {
   return ''
 }
 
+/** Título curto de um item do Health Tracker (mesmos campos do cartão "Por Cliente"). */
+const CAMPOS_TITULO_ITEM = [
+  'title',
+  'titulo',
+  'nome',
+  'name',
+  'label',
+  'tipo',
+  'type',
+  'medicacao',
+  'medication',
+  'alimento',
+  'food',
+  'exercicio',
+  'exercise',
+  'humor',
+  'emocao',
+  'sintoma',
+  'observacao',
+]
+
+function tituloDoItemHtr(item: Record<string, unknown>): string {
+  for (const k of CAMPOS_TITULO_ITEM) {
+    const v = item[k]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  return ''
+}
+
+const CAMPOS_DATA_ITEM = ['date', 'data', 'date_time', 'created', 'registrado_em']
+
+function dataDoItemHtr(item: Record<string, unknown>): Date | null {
+  for (const k of CAMPOS_DATA_ITEM) {
+    const v = item[k]
+    if (typeof v === 'string' && v.trim()) {
+      const d = new Date(v)
+      if (!isNaN(d.getTime())) return d
+    }
+  }
+  return null
+}
+
 function ResumoAreas({ dados }: { dados: Record<string, unknown> }) {
-  const chaves = Object.keys(dados)
+  const areas = extrairAreasResumo(dados as HealthTrackerSummary)
+  if (areas.length > 0) {
+    return (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {areas.map(({ chave, itens }) => {
+          const ultimo = itens[0]
+          const titulo = tituloDoItemHtr(ultimo)
+          const data = dataDoItemHtr(ultimo)
+          return (
+            <div
+              key={chave}
+              className="rounded-xl border bg-white/70 p-3"
+              style={{ borderColor: SOUL.borda }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="text-xs font-semibold uppercase tracking-wide"
+                  style={{ color: SOUL.textoSuave }}
+                >
+                  {rotuloArea(chave)}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px]"
+                  style={{ borderColor: SOUL.dourado, color: SOUL.marrom }}
+                >
+                  {itens.length}
+                </Badge>
+              </div>
+              {titulo ? (
+                <p className="mt-1 truncate text-sm font-medium" style={{ color: SOUL.marrom }}>
+                  {titulo}
+                </p>
+              ) : (
+                <p className="mt-1 text-sm" style={{ color: SOUL.textoSuave }}>
+                  {itens.length} registro(s)
+                </p>
+              )}
+              {data && !isNaN(data.getTime()) && (
+                <p className="mt-0.5 text-xs" style={{ color: SOUL.textoSuave }}>
+                  Último: {formatDataPTBR(data.toISOString().slice(0, 10))}
+                </p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+  const chaves = Object.keys(dados).filter((k) => k !== 'not_found' && k !== 'message')
   if (chaves.length === 0) {
     return (
       <p className="text-sm text-[#8C7A68]">
@@ -152,7 +245,15 @@ export function SaudeHealthTrackerSection({ clienteId, emailCliente }: Props) {
     buscarHealthTrackerSummary(clienteId)
       .then((resposta) => {
         if (cancelado) return
-        setDados((resposta && resposta.health_tracker) || {})
+        const resp = (resposta || {}) as Record<string, unknown>
+        const ht = (resp.health_tracker || {}) as Record<string, unknown>
+        // Alguns caminhos devolvem o "não encontrado" com 200 e um corpo
+        // {not_found: true} — tratar como "sem cadastro", nunca como vazio.
+        if (resp.not_found === true || ht.not_found === true) {
+          setSemCadastro(true)
+          return
+        }
+        setDados(ht as HealthTrackerSummary)
       })
       .catch((err) => {
         if (cancelado) return
@@ -167,6 +268,11 @@ export function SaudeHealthTrackerSection({ clienteId, emailCliente }: Props) {
       cancelado = true
     }
   }, [clienteId, recarregar])
+
+  // Recarrega quando o cadastro de saúde do cliente muda (ex.: e-mail corrigido).
+  useEffect(() => {
+    if (emailCliente) setRecarregar((n) => n + 1)
+  }, [emailCliente])
 
   if (!clienteId) return null
 

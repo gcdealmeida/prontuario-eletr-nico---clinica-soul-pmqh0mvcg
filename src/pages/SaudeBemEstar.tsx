@@ -307,6 +307,7 @@ export default function SaudeBemEstar() {
         <PainelMonitorClinico
           clientes={realtime.clientes}
           registros={realtime.registros}
+          lembretes={realtime.lembretes}
           carregando={realtime.carregando}
           notificacoes={realtime.notificacoes}
           recarregar={realtime.recarregar}
@@ -357,6 +358,7 @@ export default function SaudeBemEstar() {
           <PainelMonitorClinico
             clientes={realtime.clientes}
             registros={realtime.registros}
+            lembretes={realtime.lembretes}
             carregando={realtime.carregando}
             notificacoes={realtime.notificacoes}
             recarregar={realtime.recarregar}
