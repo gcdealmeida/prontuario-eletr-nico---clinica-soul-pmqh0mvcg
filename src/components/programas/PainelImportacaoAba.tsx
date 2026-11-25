@@ -5,12 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { parseArquivoPrograma, type ResultadoImportacaoPrograma } from '@/lib/importacaoProgramas'
+import type { ModalidadePrograma } from '@/services/programas'
 
 interface PainelImportacaoAbaProps {
   onImportado: (resumo: ResultadoImportacaoPrograma) => void
+  modalidade: ModalidadePrograma
+  importando?: boolean
 }
 
-export const PainelImportacaoAba: React.FC<PainelImportacaoAbaProps> = ({ onImportado }) => {
+export const PainelImportacaoAba: React.FC<PainelImportacaoAbaProps> = ({
+  onImportado,
+  modalidade,
+  importando = false,
+}) => {
   const { toast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
   const [processando, setProcessando] = useState(false)
@@ -26,7 +33,7 @@ export const PainelImportacaoAba: React.FC<PainelImportacaoAbaProps> = ({ onImpo
     setErro(null)
     try {
       const resultado = await parseArquivoPrograma(file)
-      setResumo({ ...resultado, modalidade: 'reabilitacao' })
+      setResumo({ ...resultado, modalidade })
       if (resultado.treinos.length === 0 && resultado.semanas.length === 0) {
         setErro(
           'Não foi possível identificar conteúdo de programa no arquivo. Verifique se ele traz treinos, semanas ou exercícios.',
@@ -39,10 +46,13 @@ export const PainelImportacaoAba: React.FC<PainelImportacaoAbaProps> = ({ onImpo
       }
     } catch (err) {
       console.error('Erro na importação:', err)
+      const msg = err instanceof Error ? err.message : String(err)
       setErro(
-        err instanceof Error
-          ? err.message
-          : 'Falha ao ler o arquivo. Verifique se ele não está corrompido e tente novamente.',
+        msg.startsWith('cdn_indisponivel')
+          ? 'Não foi possível carregar o leitor de Word. Verifique sua conexão e tente novamente, ou importe uma planilha .xlsx.'
+          : err instanceof Error
+            ? err.message
+            : 'Falha ao ler o arquivo. Verifique se ele não está corrompido e tente novamente.',
       )
     } finally {
       setProcessando(false)
@@ -50,7 +60,7 @@ export const PainelImportacaoAba: React.FC<PainelImportacaoAbaProps> = ({ onImpo
   }
 
   const handleConfirmar = () => {
-    onImportado(resumo)
+    if (resumo) onImportado(resumo)
   }
 
   return (
@@ -160,11 +170,17 @@ export const PainelImportacaoAba: React.FC<PainelImportacaoAbaProps> = ({ onImpo
                 <Button
                   type="button"
                   onClick={handleConfirmar}
-                  disabled={resumo.treinos.length === 0 && resumo.semanas.length === 0}
+                  disabled={
+                    importando || (resumo.treinos.length === 0 && resumo.semanas.length === 0)
+                  }
                   className="gap-1.5"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  Confirmar e alimentar as abas
+                  {importando ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {importando ? 'Salvando programa…' : 'Confirmar e alimentar as abas'}
                 </Button>
                 {resumo.avisos.length > 0 && (
                   <p className="text-xs text-amber-700">{resumo.avisos.join(' ')}</p>

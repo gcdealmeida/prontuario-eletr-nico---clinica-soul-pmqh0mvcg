@@ -131,11 +131,72 @@ export async function parseArquivoExcel(
   return { nome, semanas, treinos, avisos }
 }
 
+type MammothBrowser = {
+  convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>
+  extractRawText?: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>
+}
+
+const MAMMOTH_FONTES: { nome: string; url: string }[] = [
+  {
+    nome: 'jsdelivr',
+    url: 'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.esm.js',
+  },
+  { nome: 'unpkg', url: 'https://unpkg.com/mammoth@1.8.0/mammoth.browser.esm.js' },
+  { nome: 'esm.sh', url: 'https://esm.sh/mammoth@1.8.0' },
+]
+
+let mammothPromise: Promise<MammothBrowser> | null = null
+
+/**
+ * Carrega o mammoth (leitor de .docx) em RUNTIME via CDN ESM — igual ao padrão
+ * do pdf.js em anexoIaPreparo.ts. O pacote NÃO está instalado no projeto e por
+ * isso NUNCA pode ser importado estaticamente (derrubaria o build do Rolldown).
+ * Se nenhuma CDN responder, lança erro 'cdn_indisponivel' com mensagem clara
+ * para o usuário tentar novamente ou importar uma planilha .xlsx.
+ */
+async function carregarMammoth(): Promise<MammothBrowser> {
+  if (typeof window === 'undefined') {
+    throw new Error('cdn_indisponivel: ambiente sem navegador')
+  }
+  if (mammothPromise) return mammothPromise
+
+  const tentar = async (): Promise<MammothBrowser> => {
+    const motivos: string[] = []
+    for (const fonte of MAMMOTH_FONTES) {
+      try {
+        const mod = (await import(/* @vite-ignore */ fonte.url)) as unknown as Record<
+          string,
+          unknown
+        >
+        const lib = (mod?.default ?? mod) as MammothBrowser | undefined
+        if (!lib || typeof lib.convertToHtml !== 'function') {
+          throw new Error('módulo não expõe convertToHtml')
+        }
+        console.info(`[importacaoProgramas] mammoth carregado de ${fonte.nome}`)
+        return lib
+      } catch (e) {
+        const motivo = e instanceof Error ? e.message : String(e)
+        console.warn(`[importacaoProgramas] CDN "${fonte.nome}" falhou: ${motivo}`)
+        motivos.push(`${fonte.nome}: ${motivo}`)
+      }
+    }
+    throw new Error(
+      'cdn_indisponivel: Não foi possível carregar o leitor de Word. Verifique sua conexão e tente novamente, ou importe uma planilha .xlsx.',
+    )
+  }
+
+  mammothPromise = tentar().catch((e: unknown) => {
+    mammothPromise = null // permite nova tentativa ("Tentar novamente")
+    throw e
+  })
+  return mammothPromise
+}
+
 /** Lê .docx e extrai texto estruturado (títulos = treinos/semanas, listas/tabelas = exercícios). */
 export async function parseArquivoWord(
   file: File,
 ): Promise<Omit<ResultadoImportacaoPrograma, 'modalidade'>> {
-  const mammoth = await import('mammoth')
+  const mammoth = await carregarMammoth()
   const arrayBuffer = await file.arrayBuffer()
   const { value: html } = await mammoth.convertToHtml({ arrayBuffer })
   const doc = new DOMParser().parseFromString(html, 'text/html')

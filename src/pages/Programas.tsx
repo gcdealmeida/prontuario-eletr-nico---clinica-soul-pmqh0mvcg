@@ -26,7 +26,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import { parsearArquivoPrograma } from '@/lib/importacaoProgramas'
+import type { ResultadoImportacaoPrograma } from '@/lib/importacaoProgramas'
 import { getPacientes } from '@/services/pacientes'
 import {
   createPrograma,
@@ -37,10 +37,12 @@ import {
   getSemanasByPrograma,
   getTreinosByPrograma,
   getProgramasPorModalidade,
+  saveSemanaPeriodo,
   deletePrograma,
   type ModalidadePrograma,
 } from '@/services/programas'
 import type {
+  PacienteRecord,
   ProgramaAcompanhamentoNotaRecord,
   ProgramaAcompanhamentoRecord,
   ProgramaExercicioRecord,
@@ -85,6 +87,12 @@ export const Programas: React.FC = () => {
   const [novoPacienteId, setNovoPacienteId] = useState('')
   const [novoPacientes, setNovoPacientes] = useState<{ id: string; nome: string }[]>([])
   const [criando, setCriando] = useState(false)
+
+  // Estados carregados quando um programa está aberto
+  const [semanas, setSemanas] = useState<ProgramaSemanaRecord[]>([])
+  const [treinos, setTreinos] = useState<ProgramaTreinoRecord[]>([])
+  const [exercicios, setExercicios] = useState<ProgramaExercicioRecord[]>([])
+  const [notas, setNotas] = useState<ProgramaAcompanhamentoNotaRecord[]>([])
 
   const programaAtual = useMemo(
     () => programas.find((p) => p.id === programaId) ?? null,
@@ -237,8 +245,7 @@ export const Programas: React.FC = () => {
             <div>
               {aba === 'importacao' && (
                 <PainelImportacaoAba
-                  programa={programaAtual}
-                  onProgramaImportado={handleProgramaImportado}
+                  onImportado={handleProgramaImportado}
                   modalidade={modalidade}
                   importando={importando}
                 />
@@ -247,7 +254,7 @@ export const Programas: React.FC = () => {
                 <PainelPeriodizacaoAba
                   programaId={programaAtual.id}
                   unidadeDuracao={programaAtual.unidade_duracao || 'semanas'}
-                  totalPeriodos={programaAtual.duracao || 12}
+                  totalPeriodos={programaAtual.total_periodos || 12}
                   semanas={semanas}
                   onSemanasChange={setSemanas}
                 />
@@ -328,11 +335,10 @@ export const Programas: React.FC = () => {
     setNovoPacienteId('')
     setDialogoNovo(true)
     getPacientes()
-      .then((lista) =>
-        setNovoPacientes(
-          lista.map((p: any) => ({ id: p.id, nome: p.nome_completo || p.name || p.nome || p.id })),
-        ),
-      )
+      .then((res) => {
+        const itens = 'items' in res ? res.items : (res as unknown as PacienteRecord[])
+        setNovoPacientes(itens.map((p) => ({ id: p.id, nome: p.nome || p.id })))
+      })
       .catch(() => setNovoPacientes([]))
   }
 
@@ -365,16 +371,70 @@ export const Programas: React.FC = () => {
     await carregarProgramas()
   }
 
-  function handleProgramaImportado(rec: ProgramaAcompanhamentoRecord) {
-    setProgramas((prev) => [rec, ...prev.filter((p) => p.id !== rec.id)])
-    irPara({ programa: rec.id, aba: 'periodizacao' })
-  }
+  async function handleProgramaImportado(resumo: ResultadoImportacaoPrograma) {
+    if (!modalidade) return
+    setImportando(true)
+    try {
+      // 1. Programa
+      const rec = await createPrograma({
+        nome: resumo.nome || 'Programa importado',
+        modalidade,
+        unidade_duracao: 'semanas',
+        total_periodos: Math.max(resumo.semanas.length, 1),
+      } as Partial<ProgramaAcompanhamentoRecord>)
 
-  // Estados carregados quando um programa está aberto
-  const [semanas, setSemanas] = useState<ProgramaSemanaRecord[]>([])
-  const [treinos, setTreinos] = useState<ProgramaTreinoRecord[]>([])
-  const [exercicios, setExercicios] = useState<ProgramaExercicioRecord[]>([])
-  const [notas, setNotas] = useState<ProgramaAcompanhamentoNotaRecord[]>([])
+      // 2. Semanas (periodização)
+      for (const s of resumo.semanas) {
+        if (s.indice == null) continue
+        await saveSemanaPeriodo({
+          programa_id: rec.id,
+          indice: s.indice,
+          rotulo: s.rotulo,
+          carga_planejada_kg: s.carga,
+          horas_treino: s.horas,
+        })
+      }
+
+      // 3. Treinos + exercícios
+      for (let i = 0; i < resumo.treinos.length; i++) {
+        const t = resumo.treinos[i]
+        const treino = await createTreino({
+          programa_id: rec.id,
+          nome: t.nome,
+          ordem: i + 1,
+          semana_indice: 1,
+        })
+        for (let j = 0; j < t.exercicios.length; j++) {
+          const ex = t.exercicios[j]
+          await createExercicio({
+            programa_id: rec.id,
+            treino_id: treino.id,
+            nome: ex.nome,
+            series: ex.series,
+            tipo_repeticao: 'reps',
+            quantidade: ex.repeticoes,
+            observacao: ex.observacoes,
+            ordem: j + 1,
+            semana_indice: 1,
+          })
+        }
+      }
+
+      await carregarProgramas()
+      toast({ title: 'Programa importado', description: 'Semanas, treinos e exercícios criados.' })
+      irPara({ programa: rec.id, aba: 'periodizacao' })
+    } catch (err) {
+      console.error('Erro ao salvar programa importado:', err)
+      toast({
+        title: 'Erro ao salvar o programa',
+        description:
+          err instanceof Error ? err.message : 'Tente novamente ou crie o programa manualmente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setImportando(false)
+    }
+  }
 
   useEffect(() => {
     if (!programaId) return
