@@ -377,12 +377,15 @@ export function PainelMonitorClinico({
           ) : (
             <ul className="space-y-1.5">
               {feedOrdenado.slice(0, 40).map((item) => {
-                const ehLembrete = 'data_hora' in item && item.data_hora !== undefined
-                const Ico = iconeTipo(ehLembrete ? 'lembrete' : item.tipo)
+                // ItemFeedSaude = SaudeRegistroRecord | SaudeLembreteRecord.
+                // O lembrete NÃO tem `tipo` (tem titulo/descricao/data_hora):
+                // `'tipo' in item` estreita a união sem precisar de casts.
+                const ehRegistro = 'tipo' in item
+                const Ico = iconeTipo(ehRegistro ? item.tipo : 'lembrete')
                 const nomeCliente =
                   clientes.find((c) => c.id === item.cliente_id)?.nome || 'Cliente'
                 const ts = getTimestampFeed(item)
-                const quando = isNaN(ts) ? '—' : formatDataHoraPTBR(new Date(ts).toISOString())
+                const quando = ts ? formatDataHoraPTBR(new Date(ts).toISOString()) : '—'
                 return (
                   <li
                     key={item.id}
@@ -401,16 +404,14 @@ export function PainelMonitorClinico({
                         style={{ color: SOUL_HTR.marromEscuro }}
                       >
                         {nomeCliente} —{' '}
-                        {ehLembrete
-                          ? `Lembrete: ${(item as SaudeLembreteRecord).title || '—'}`
-                          : labelTipoRegistro(item.tipo as SaudeRegistroTipo)}
+                        {ehRegistro
+                          ? labelTipoRegistro(item.tipo)
+                          : `Lembrete: ${item.titulo || '—'}`}
                       </p>
                       <p className="truncate text-xs" style={{ color: SOUL_HTR.textoSuave }}>
-                        {ehLembrete
-                          ? (item as SaudeLembreteRecord).notes ||
-                            formatDataPTBR((item as SaudeLembreteRecord).date)
-                          : resumoRegistro(item as SaudeRegistroRecord) ||
-                            formatDataPTBR((item as SaudeRegistroRecord).data)}
+                        {ehRegistro
+                          ? resumoRegistro(item) || formatDataPTBR(item.data)
+                          : item.descricao || formatDataPTBR(item.data_hora)}
                       </p>
                     </div>
                     <span className="shrink-0 text-xs" style={{ color: SOUL_HTR.textoFraco }}>

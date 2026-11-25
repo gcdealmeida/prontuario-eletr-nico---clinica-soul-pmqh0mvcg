@@ -8,10 +8,11 @@ import type { SaudeRegistroRecord, SaudeLembreteRecord } from '@/services/saudeB
 /** Timestamp (ms) usado para ordenar o feed do mais novo para o mais antigo. */
 export function getTimestampFeed(r: SaudeRegistroRecord | SaudeLembreteRecord): number {
   if ('data_hora' in r && r.data_hora) {
-    const t = new Date((r as SaudeLembreteRecord).data_hora).getTime()
+    const t = new Date(r.data_hora).getTime()
     if (!isNaN(t)) return t
   }
-  const iso = r.created || r.data || ''
+  // Lembrete: usa o instante de criação; registro: data do lançamento.
+  const iso = r.created || ('data' in r ? r.data : '') || ''
   const t = new Date(iso).getTime()
   return isNaN(t) ? 0 : t
 }
