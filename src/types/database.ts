@@ -952,12 +952,27 @@ export interface ProgramaAcompanhamentoRecord {
   token_compartilhamento?: string
   link_publico_ativo?: boolean
   avaliacao_origem_id?: string
+  modalidade?: 'reabilitacao' | 'personal'
   created: string
   updated: string
   expand?: {
     paciente_id?: PacienteRecord
     profissional_id?: UserRecord
   }
+}
+
+export interface ProgramaAcompanhamentoNotaRecord {
+  id: string
+  programa_id: string
+  semana_indice?: number
+  titulo: string
+  descricao?: string
+  carga_real_kg?: number
+  cumprimento?: 'pleno' | 'parcial' | 'nao'
+  autor_id?: string
+  autor_nome?: string
+  created: string
+  updated: string
 }
 
 export interface ProgramaMetaRecord {
@@ -981,6 +996,9 @@ export interface ProgramaSemanaRecord {
   metas_ids?: string[] // IDs de programa_meta
   foco?: string
   observacoes?: string
+  carga_planejada_kg?: number
+  horas_treino?: number
+  cumprida?: boolean
   created: string
   updated: string
 }

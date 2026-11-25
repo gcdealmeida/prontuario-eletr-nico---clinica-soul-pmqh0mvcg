@@ -6,6 +6,7 @@ import type {
   ProgramaTreinoRecord,
   ProgramaExercicioRecord,
   ProgramaRegistroCargaRecord,
+  ProgramaAcompanhamentoNotaRecord,
   ExercicioCatalogoRecord,
 } from '@/types/database'
 import { createTimelineEvent } from './avaliacoes'
@@ -146,6 +147,9 @@ export async function saveSemanaPeriodo(data: {
   metas_ids?: string[]
   foco?: string
   observacoes?: string
+  carga_planejada_kg?: number
+  horas_treino?: number
+  cumprida?: boolean
 }) {
   // Verifica se já existe a semana para atualizar ou criar
   try {
@@ -157,6 +161,17 @@ export async function saveSemanaPeriodo(data: {
     return await pb.collection('programa_semana').update<ProgramaSemanaRecord>(existing.id, data)
   } catch (_) {
     return await pb.collection('programa_semana').create<ProgramaSemanaRecord>(data)
+  }
+}
+
+// Semana pelo índice (usada pela aba de Periodização)
+export async function getSemanaPorIndice(programaId: string, indice: number) {
+  try {
+    return await pb
+      .collection('programa_semana')
+      .getFirstListItem<ProgramaSemanaRecord>(`programa_id = "${programaId}" && indice = ${indice}`)
+  } catch (_) {
+    return null
   }
 }
 
@@ -287,4 +302,45 @@ export async function createRegistroCarga(data: Partial<ProgramaRegistroCargaRec
 
 export async function deleteRegistroCarga(id: string) {
   return await pb.collection('programa_registro_carga').delete(id)
+}
+
+// NOTAS DE ACOMPANHAMENTO (área dedicada de Programas de Exercícios)
+export interface ProgramaNotaInput {
+  programa_id: string
+  semana_indice?: number
+  titulo: string
+  descricao?: string
+  carga_real_kg?: number
+  cumprimento?: 'pleno' | 'parcial' | 'nao'
+}
+
+export async function getNotasByPrograma(programaId: string) {
+  return await pb
+    .collection('programa_acompanhamento_notas')
+    .getFullList<ProgramaAcompanhamentoNotaRecord>({
+      filter: `programa_id = "${programaId}"`,
+      sort: '-created',
+    })
+}
+
+export async function createNotaAcompanhamento(data: ProgramaNotaInput) {
+  const user = pb.authStore.record
+  return await pb
+    .collection('programa_acompanhamento_notas')
+    .create<ProgramaAcompanhamentoNotaRecord>({
+      ...data,
+      autor_id: user?.id,
+      autor_nome: user?.name || '',
+    })
+}
+
+export async function deleteNotaAcompanhamento(id: string) {
+  return await pb.collection('programa_acompanhamento_notas').delete(id)
+}
+
+// MARCADOR DE MODALIDADE (reabilitacao | personal) da área dedicada
+export type ModalidadePrograma = 'reabilitacao' | 'personal'
+
+export async function getProgramasPorModalidade(modalidade: ModalidadePrograma) {
+  return await getProgramas(`modalidade = "${modalidade}"`)
 }

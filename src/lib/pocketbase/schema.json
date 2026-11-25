@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T15:26:25.057Z",
+  "generatedAt": "2026-11-25T15:41:55.368Z",
   "collections": [
     {
       "name": "users",
@@ -2157,6 +2157,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "modalidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["reabilitacao", "personal"]
         }
       ],
       "indexes": [
@@ -2300,6 +2307,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "carga_planejada_kg",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "horas_treino",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cumprida",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -3685,6 +3710,87 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_saude_dev_cliente ON saude_dev_pessoal (cliente_id)"]
+    },
+    {
+      "name": "programa_acompanhamento_notas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
+        "view": "@request.auth.id != '' && @request.auth.access_status = 'approved' || programa_id.token_compartilhamento != ''",
+        "create": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "update": "@request.auth.id != '' && @request.auth.access_status = 'approved'",
+        "delete": "@request.auth.id != '' && @request.auth.access_status = 'approved'"
+      },
+      "fields": [
+        {
+          "name": "programa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "programa_acompanhamento"
+        },
+        {
+          "name": "semana_indice",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "carga_real_kg",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cumprimento",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pleno", "parcial", "nao"]
+        },
+        {
+          "name": "autor_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "autor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_prog_notas_programa ON programa_acompanhamento_notas (programa_id)"
+      ]
     }
   ]
 }

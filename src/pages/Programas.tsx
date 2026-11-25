@@ -1,240 +1,455 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
+  ArrowLeft,
+  BarChart3,
+  ClipboardList,
   Dumbbell,
+  FileSpreadsheet,
+  HeartPulse,
+  Library,
+  Loader2,
   Plus,
-  Search,
-  Calendar,
-  User,
-  ArrowRight,
-  TrendingUp,
-  Share2,
-  Trash2,
-  Filter,
+  UserRound,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { BookOpen } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/contexts/AuthContext'
-import { getProgramas, deletePrograma } from '@/services/programas'
-import { formatDataPTBR } from '@/lib/constants'
-import { ModalBancoExercicios } from '@/components/programas/ModalBancoExercicios'
-import type { ProgramaAcompanhamentoRecord } from '@/types/database'
+import { cn } from '@/lib/utils'
+import { parsearArquivoPrograma } from '@/lib/importacaoProgramas'
+import { getPacientes } from '@/services/pacientes'
+import {
+  createPrograma,
+  createExercicio,
+  createTreino,
+  getExerciciosByPrograma,
+  getNotasByPrograma,
+  getSemanasByPrograma,
+  getTreinosByPrograma,
+  getProgramasPorModalidade,
+  deletePrograma,
+  type ModalidadePrograma,
+} from '@/services/programas'
+import type {
+  ProgramaAcompanhamentoNotaRecord,
+  ProgramaAcompanhamentoRecord,
+  ProgramaExercicioRecord,
+  ProgramaSemanaRecord,
+  ProgramaTreinoRecord,
+  UnidadeDuracaoPrograma,
+} from '@/types/database'
+import { PainelImportacaoAba } from '@/components/programas/PainelImportacaoAba'
+import { PainelPeriodizacaoAba } from '@/components/programas/PainelPeriodizacaoAba'
+import { PainelExerciciosAba } from '@/components/programas/PainelExerciciosAba'
+import { BibliotecaExerciciosAba } from '@/components/programas/BibliotecaExerciciosAba'
+import { PainelAcompanhamentoAba } from '@/components/programas/PainelAcompanhamentoAba'
+
+type AbaArea = 'importacao' | 'periodizacao' | 'exercicios' | 'biblioteca' | 'acompanhamento'
+
+const ABAS: { id: AbaArea; rotulo: string; icone: React.ElementType }[] = [
+  { id: 'importacao', rotulo: 'Importação', icone: FileSpreadsheet },
+  { id: 'periodizacao', rotulo: 'Periodização', icone: BarChart3 },
+  { id: 'exercicios', rotulo: 'Exercícios', icone: Dumbbell },
+  { id: 'biblioteca', rotulo: 'Biblioteca de Exercícios', icone: Library },
+  { id: 'acompanhamento', rotulo: 'Acompanhamento', icone: ClipboardList },
+]
+
+interface ProgramaCriado {
+  id: string
+  nome: string
+}
 
 export const Programas: React.FC = () => {
-  const navigate = useNavigate()
-  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { toast } = useToast()
 
-  const [loading, setLoading] = useState(true)
-  const [programas, setProgramas] = useState<ProgramaAcompanhamentoRecord[]>([])
-  const [busca, setBusca] = useState('')
-  const [filtroStatus, setFiltroStatus] = useState<string>('todos')
-  const [modalBancoAberto, setModalBancoAberto] = useState(false)
+  const modalidade = (searchParams.get('modalidade') as ModalidadePrograma | null) ?? null
+  const programaId = searchParams.get('programa')
+  const aba = (searchParams.get('aba') as AbaArea | null) ?? 'importacao'
 
-  const carregar = async () => {
+  const [programas, setProgramas] = useState<ProgramaAcompanhamentoRecord[]>([])
+  const [carregando, setCarregando] = useState(false)
+  const [importando, setImportando] = useState(false)
+  const [dialogoNovo, setDialogoNovo] = useState(false)
+  const [novoNome, setNovoNome] = useState('')
+  const [novoPacienteId, setNovoPacienteId] = useState('')
+  const [novoPacientes, setNovoPacientes] = useState<{ id: string; nome: string }[]>([])
+  const [criando, setCriando] = useState(false)
+
+  const programaAtual = useMemo(
+    () => programas.find((p) => p.id === programaId) ?? null,
+    [programas, programaId],
+  )
+
+  const carregarProgramas = useCallback(async () => {
+    if (!modalidade) return
+    setCarregando(true)
     try {
-      setLoading(true)
-      const data = await getProgramas()
-      setProgramas(data)
-    } catch (err: any) {
-      console.error('Erro ao carregar programas:', err)
-      toast({
-        title: 'Erro ao listar programas',
-        description: err?.message,
-        variant: 'destructive',
-      })
+      const lista = await getProgramasPorModalidade(modalidade)
+      setProgramas(lista)
+      setProgramaIdSeValido(lista, programaId)
     } finally {
-      setLoading(false)
+      setCarregando(false)
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalidade, programaId])
 
   useEffect(() => {
-    carregar()
-  }, [])
+    carregarProgramas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalidade])
 
-  const handleExcluir = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!confirm('Deseja realmente excluir este programa de periodização?')) return
-
-    try {
-      await deletePrograma(id)
-      setProgramas(programas.filter((p) => p.id !== id))
-      toast({ title: 'Programa excluído com sucesso.' })
-    } catch (err: any) {
-      toast({
-        title: 'Erro ao excluir',
-        description: err?.message,
-        variant: 'destructive',
-      })
+  const setProgramaIdSeValido = (lista: ProgramaAcompanhamentoRecord[], id: string | null) => {
+    if (id && !lista.some((p) => p.id === id)) {
+      irPara({ programa: null })
     }
   }
 
-  // Filtros
-  const filtrados = programas.filter((p) => {
-    const matchBusca =
-      p.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      p.expand?.paciente_id?.nome?.toLowerCase().includes(busca.toLowerCase())
-    const matchStatus = filtroStatus === 'todos' || p.status === filtroStatus
-    return matchBusca && matchStatus
-  })
+  const irPara = (patch: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams)
+    for (const [k, v] of Object.entries(patch)) {
+      if (v == null) next.delete(k)
+      else next.set(k, v)
+    }
+    setSearchParams(next)
+  }
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Topo / Título & Ações */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-[#C9A46A] to-[#E9D5B5] flex items-center justify-center text-[#33221C] shadow-2xs">
-              <Dumbbell className="h-4 w-4" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-              Programas de Acompanhamento
+  // ===== ESCOLHA DE MODALIDADE =====
+  if (!modalidade) {
+    return (
+      <div className="min-h-dvh bg-[#FAF5EE] py-10 px-4">
+        <div className="mx-auto max-w-3xl space-y-8 text-center">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black tracking-tight text-[#1E2530] sm:text-3xl">
+              Programas de Exercícios
             </h1>
+            <p className="text-sm text-gray-600">
+              Área dedicada a periodizações de treino e reabilitação, programas e fichas de
+              exercícios. Escolha a modalidade:
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Montagem de periodização de treino para alunos do Personal Trainer SOUL
-          </p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => irPara({ modalidade: 'reabilitacao', programa: null, aba: null })}
+              className="group rounded-3xl border-2 border-[#E9E1D2] bg-white p-8 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-[#8C6527] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C6527]"
+            >
+              <HeartPulse className="mx-auto h-12 w-12 text-[#8C6527]" aria-hidden="true" />
+              <span className="mt-4 block text-xl font-black text-[#1E2530] group-hover:text-[#8C6527]">
+                Reabilitação
+              </span>
+              <span className="mt-2 block text-sm text-gray-600">
+                Programas clínicos, evolutivos e reabilitação física
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => irPara({ modalidade: 'personal', programa: null, aba: null })}
+              className="group rounded-3xl border-2 border-[#E9E1D2] bg-white p-8 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-[#1E2530] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E2530]"
+            >
+              <UserRound className="mx-auto h-12 w-12 text-[#1E2530]" aria-hidden="true" />
+              <span className="mt-4 block text-xl font-black text-[#1E2530] group-hover:text-[#8C6527]">
+                Personal
+              </span>
+              <span className="mt-2 block text-sm text-gray-600">
+                Treinos personalizados, condicionamento e performance
+              </span>
+            </button>
+          </div>
         </div>
+      </div>
+    )
+  }
 
-        <div className="flex items-center gap-2">
+  // ===== ÁREA DA MODALIDADE =====
+  return (
+    <div className="min-h-dvh bg-[#FAF5EE] py-6 px-4">
+      <div className="mx-auto max-w-6xl space-y-5">
+        {/* Cabeçalho */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <Button
-            type="button"
             variant="outline"
-            onClick={() => setModalBancoAberto(true)}
-            className="h-9 px-3.5 rounded-xl border-[#C9A46A] bg-[#FAF5EE] text-[#8C6527] hover:bg-[#E9D5B5]/60 font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+            size="sm"
+            onClick={() => irPara({ modalidade: null, programa: null, aba: null })}
           >
-            <BookOpen className="h-4 w-4 text-[#8C6527]" />
-            Banco de Exercícios
+            <ArrowLeft className="h-4 w-4 mr-1" /> Trocar modalidade
           </Button>
-
-          <Button
-            onClick={() => navigate('/programas/novo')}
-            className="bg-gradient-to-r from-[#C9A46A] via-[#B88E52] to-[#A37839] hover:brightness-105 text-[#33221C] font-bold text-xs h-9 px-4 rounded-xl shadow-sm flex items-center gap-2 border border-[#DFBF8E]/40"
-          >
-            <Plus className="h-4 w-4 text-[#33221C]" />
-            Novo Programa de Exercícios
-          </Button>
-        </div>
-      </div>
-
-      <ModalBancoExercicios
-        open={modalBancoAberto}
-        onOpenChange={setModalBancoAberto}
-        onSelectExercicio={() => {}}
-      />
-
-      {/* Barra de Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por aluno ou nome do programa..."
-            className="pl-9 h-9 text-xs rounded-xl bg-white border-gray-200"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-            className="h-9 text-xs font-semibold rounded-xl border border-gray-200 bg-white px-3 shadow-2xs"
-          >
-            <option value="todos">Todos os status</option>
-            <option value="ativo">Ativos</option>
-            <option value="rascunho">Rascunho</option>
-            <option value="concluido">Concluídos</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Grid de Programas */}
-      {loading ? (
-        <div className="p-12 text-center text-xs text-gray-400">Carregando programas...</div>
-      ) : filtrados.length === 0 ? (
-        <div className="p-12 rounded-3xl bg-white border border-[#E9E1D2] text-center space-y-3 shadow-xs">
-          <div className="h-12 w-12 rounded-2xl bg-[#FAF5EE] text-[#8C6527] flex items-center justify-center mx-auto">
-            <Dumbbell className="h-6 w-6" />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-black tracking-tight text-[#1E2530]">
+              {modalidade === 'reabilitacao' ? 'Reabilitação' : 'Personal'} — Programas de
+              Exercícios
+            </h1>
+            {programaAtual && (
+              <p className="text-xs text-gray-500 truncate">
+                Programa: <span className="font-bold">{programaAtual.nome}</span>
+              </p>
+            )}
           </div>
-          <h3 className="text-sm font-bold text-gray-900">Nenhum programa encontrado</h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto">
-            Crie um novo programa de acompanhamento para planejar as semanas de treino do aluno.
-          </p>
-          <Button
-            onClick={() => navigate('/programas/novo')}
-            className="bg-[#C9A46A] text-[#33221C] font-bold text-xs rounded-xl h-8 px-4"
-          >
-            Criar Primeiro Programa
-          </Button>
+          <div className="flex gap-2">
+            {!programaId && (
+              <Button size="sm" onClick={() => abrirDialogoNovoPrograma()}>
+                <Plus className="h-4 w-4 mr-1" /> Novo programa
+              </Button>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtrados.map((prog) => {
-            const alunoNome = prog.expand?.paciente_id?.nome || 'Aluno'
-            const statusCor =
-              prog.status === 'ativo'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : prog.status === 'rascunho'
-                  ? 'bg-amber-50 text-amber-800 border-amber-200'
-                  : 'bg-gray-100 text-gray-700 border-gray-200'
 
-            return (
-              <div
-                key={prog.id}
-                onClick={() => navigate(`/programas/${prog.id}`)}
-                className="p-5 rounded-3xl bg-white border border-[#E9E1D2] shadow-xs hover:shadow-sm hover:border-[#C9A46A] transition-all cursor-pointer space-y-4 group flex flex-col justify-between"
+        {/* Sem programa selecionado: lista de programas */}
+        {!programaId ? (
+          <ListaProgramasModalidade
+            programas={programas}
+            modalidade={modalidade}
+            carregando={carregando}
+            onAbrir={(id) => irPara({ programa: id, aba: null })}
+            onImportar={handleImportarNovo}
+            onNovo={abrirDialogoNovoPrograma}
+            onExcluir={handleExcluirPrograma}
+          />
+        ) : (
+          <>
+            {/* Abas da área */}
+            <Tabs value={aba} onValueChange={(v) => irPara({ aba: v })}>
+              <TabsList className="flex w-full flex-wrap h-auto gap-1 bg-white border border-[#E9E1D2] rounded-2xl p-1">
+                {ABAS.map(({ id, rotulo, icone: Icone }) => (
+                  <TabsTrigger
+                    key={id}
+                    value={id}
+                    className="flex-1 min-w-[130px] rounded-xl data-[state=active]:bg-[#1E2530] data-[state=active]:text-white"
+                  >
+                    <Icone className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                    {rotulo}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            {/* Conteúdo da aba */}
+            <div>
+              {aba === 'importacao' && (
+                <PainelImportacaoAba
+                  programa={programaAtual}
+                  onProgramaImportado={handleProgramaImportado}
+                  modalidade={modalidade}
+                  importando={importando}
+                />
+              )}
+              {aba === 'periodizacao' && programaAtual && (
+                <PainelPeriodizacaoAba
+                  programaId={programaAtual.id}
+                  unidadeDuracao={programaAtual.unidade_duracao || 'semanas'}
+                  totalPeriodos={programaAtual.duracao || 12}
+                  semanas={semanas}
+                  onSemanasChange={setSemanas}
+                />
+              )}
+              {aba === 'exercicios' && programaAtual && (
+                <PainelExerciciosAba
+                  programaId={programaAtual.id}
+                  treinos={treinos}
+                  exercicios={exercicios}
+                  onTreinosChange={setTreinos}
+                  onExerciciosChange={setExercicios}
+                />
+              )}
+              {aba === 'biblioteca' && <BibliotecaExerciciosAba modalidade={modalidade} />}
+              {aba === 'acompanhamento' && programaAtual && (
+                <PainelAcompanhamentoAba
+                  programaId={programaAtual.id}
+                  semanas={semanas}
+                  notas={notas}
+                  onNotasChange={setNotas}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Diálogo novo programa */}
+      <Dialog open={dialogoNovo} onOpenChange={setDialogoNovo}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo programa de exercícios</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="novo-prog-nome">Nome do programa</Label>
+              <Input
+                id="novo-prog-nome"
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                placeholder="Ex.: Reabilitação de joelho — Maria"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="novo-prog-paciente">Paciente / Cliente</Label>
+              <select
+                id="novo-prog-paciente"
+                value={novoPacienteId}
+                onChange={(e) => setNovoPacienteId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
               >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusCor}`}
-                    >
-                      {prog.status}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => handleExcluir(prog.id, e)}
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-[#8C6527] transition-colors leading-snug">
-                      {prog.nome}
-                    </h3>
-                    <p className="text-xs text-gray-500 font-medium flex items-center gap-1.5 mt-1">
-                      <User className="h-3.5 w-3.5 text-gray-400" />
-                      Aluno: <strong className="text-gray-700">{alunoNome}</strong>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs pt-1">
-                    <span className="px-2.5 py-1 rounded-xl bg-[#FAF5EE] text-[#8C6527] font-bold border border-[#E9E1D2]">
-                      {prog.total_periodos} {prog.unidade_duracao}
-                    </span>
-                    <span className="text-[11px] text-gray-400">
-                      Criado em {formatDataPTBR(prog.created)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-gray-600 group-hover:text-[#8C6527]">
-                  <span>Abrir Periodização</span>
-                  <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+                <option value="">Sem paciente vinculado</option>
+                {novoPacientes.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogoNovo(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCriarPrograma} disabled={criando || !novoNome.trim()}>
+              {criando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+
+  function abrirDialogoNovoPrograma() {
+    setNovoNome('')
+    setNovoPacienteId('')
+    setDialogoNovo(true)
+    getPacientes()
+      .then((lista) =>
+        setNovoPacientes(
+          lista.map((p: any) => ({ id: p.id, nome: p.nome_completo || p.name || p.nome || p.id })),
+        ),
+      )
+      .catch(() => setNovoPacientes([]))
+  }
+
+  async function handleCriarPrograma() {
+    if (!modalidade || !novoNome.trim()) return
+    setCriando(true)
+    try {
+      const rec = await createPrograma({
+        nome: novoNome.trim(),
+        modalidade,
+        unidade_duracao: 'semanas',
+        duracao: 12,
+        paciente_id: novoPacienteId || undefined,
+      } as Partial<ProgramaAcompanhamentoRecord>)
+      await carregarProgramas()
+      setDialogoNovo(false)
+      irPara({ programa: rec.id, aba: 'periodizacao' })
+    } finally {
+      setCriando(false)
+    }
+  }
+
+  async function handleImportarNovo() {
+    setDialogoNovo(false)
+    irPara({ programa: null, aba: 'importacao' })
+  }
+
+  async function handleExcluirPrograma(id: string) {
+    await deletePrograma(id)
+    await carregarProgramas()
+  }
+
+  function handleProgramaImportado(rec: ProgramaAcompanhamentoRecord) {
+    setProgramas((prev) => [rec, ...prev.filter((p) => p.id !== rec.id)])
+    irPara({ programa: rec.id, aba: 'periodizacao' })
+  }
+
+  // Estados carregados quando um programa está aberto
+  const [semanas, setSemanas] = useState<ProgramaSemanaRecord[]>([])
+  const [treinos, setTreinos] = useState<ProgramaTreinoRecord[]>([])
+  const [exercicios, setExercicios] = useState<ProgramaExercicioRecord[]>([])
+  const [notas, setNotas] = useState<ProgramaAcompanhamentoNotaRecord[]>([])
+
+  useEffect(() => {
+    if (!programaId) return
+    let vivo = true
+    getSemanasByPrograma(programaId).then((s) => vivo && setSemanas(s))
+    getTreinosByPrograma(programaId).then((t) => vivo && setTreinos(t))
+    getExerciciosByPrograma(programaId).then((e) => vivo && setExercicios(e))
+    getNotasByPrograma(programaId).then((n) => vivo && setNotas(n))
+    return () => {
+      vivo = false
+    }
+  }, [programaId])
+}
+
+// ===== Lista de programas da modalidade =====
+const ListaProgramasModalidade: React.FC<{
+  programas: ProgramaAcompanhamentoRecord[]
+  modalidade: ModalidadePrograma
+  carregando: boolean
+  onAbrir: (id: string) => void
+  onImportar: () => void
+  onNovo: () => void
+  onExcluir: (id: string) => void
+}> = ({ programas, modalidade, carregando, onAbrir, onImportar, onNovo, onExcluir }) => {
+  const { toast } = useToast()
+  return (
+    <Card>
+      <CardContent className="pt-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <p className="flex-1 text-sm text-gray-600">
+            {carregando
+              ? 'Carregando programas…'
+              : programas.length === 0
+                ? `Nenhum programa de ${modalidade === 'reabilitacao' ? 'reabilitação' : 'personal'} ainda. Crie um novo ou importe uma planilha.`
+                : `${programas.length} programa(s) de ${modalidade === 'reabilitacao' ? 'reabilitação' : 'personal'}.`}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onImportar}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" /> Importar planilha
+            </Button>
+            <Button size="sm" onClick={onNovo}>
+              <Plus className="h-4 w-4 mr-1" /> Novo programa
+            </Button>
+          </div>
+        </div>
+        <ul className="divide-y divide-gray-100">
+          {programas.map((p) => (
+            <li key={p.id} className="py-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onAbrir(p.id)}
+                className="flex-1 text-left text-sm font-bold text-gray-800 hover:text-[#8C6527] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C6527] rounded-lg px-2 py-1.5 hover:bg-[#FAF5EE]"
+              >
+                {p.nome}
+              </button>
+              <span className="text-xs text-gray-400">
+                {p.unidade_duracao === 'dias'
+                  ? 'dias'
+                  : p.unidade_duracao === 'meses'
+                    ? 'meses'
+                    : 'semanas'}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-600"
+                onClick={() => onExcluir(p.id)}
+                aria-label={`Excluir programa ${p.nome}`}
+              >
+                excluir
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }
