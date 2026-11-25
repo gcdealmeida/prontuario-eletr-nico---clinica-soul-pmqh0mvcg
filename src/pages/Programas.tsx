@@ -11,6 +11,7 @@ import {
   Loader2,
   Plus,
   UserRound,
+  Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -55,8 +56,15 @@ import { PainelPeriodizacaoAba } from '@/components/programas/PainelPeriodizacao
 import { PainelExerciciosAba } from '@/components/programas/PainelExerciciosAba'
 import { BibliotecaExerciciosAba } from '@/components/programas/BibliotecaExerciciosAba'
 import { PainelAcompanhamentoAba } from '@/components/programas/PainelAcompanhamentoAba'
+import { FerramentaPeriodizacaoIframe } from '@/components/programas/FerramentaPeriodizacaoIframe'
 
-type AbaArea = 'importacao' | 'periodizacao' | 'exercicios' | 'biblioteca' | 'acompanhamento'
+type AbaArea =
+  | 'importacao'
+  | 'periodizacao'
+  | 'exercicios'
+  | 'biblioteca'
+  | 'acompanhamento'
+  | 'ferramenta'
 
 const ABAS: { id: AbaArea; rotulo: string; icone: React.ElementType }[] = [
   { id: 'importacao', rotulo: 'Importação', icone: FileSpreadsheet },
@@ -64,6 +72,7 @@ const ABAS: { id: AbaArea; rotulo: string; icone: React.ElementType }[] = [
   { id: 'exercicios', rotulo: 'Exercícios', icone: Dumbbell },
   { id: 'biblioteca', rotulo: 'Biblioteca de Exercícios', icone: Library },
   { id: 'acompanhamento', rotulo: 'Acompanhamento', icone: ClipboardList },
+  { id: 'ferramenta', rotulo: 'Ferramenta de Periodização', icone: Wrench },
 ]
 
 interface ProgramaCriado {
@@ -277,6 +286,7 @@ export const Programas: React.FC = () => {
                   onNotasChange={setNotas}
                 />
               )}
+              {aba === 'ferramenta' && <FerramentaPeriodizacaoIframe />}
             </div>
           </>
         )}
