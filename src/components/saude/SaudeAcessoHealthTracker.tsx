@@ -7,8 +7,9 @@ import { useToast } from '@/hooks/use-toast'
 import { SOUL_HTR } from '@/lib/soulHtrTheme'
 import type { SaudeClienteRecord } from '@/services/saudeBemEstar'
 
-/** App Health Tracker de verdade — OUTRO projeto Skip (não é o /cliente interno). */
-const URL_HEALTH_TRACKER = 'https://clinica-soul-health-tracker-333e7--preview.goskip.app'
+/** App Health Tracker de verdade — OUTRO projeto Skip (não é o /cliente interno).
+ *  URL de PREVIEW (decisão do usuário p/ links no navegador — nunca usar o host interno). */
+export const URL_HEALTH_TRACKER = 'https://clinica-soul-health-tracker-333e7--preview.goskip.app'
 
 interface Props {
   /** lista de clientes p/ o atalho de teste rápido (apenas admin) */

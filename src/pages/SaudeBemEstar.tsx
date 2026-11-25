@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Smartphone, Sparkles, UserPlus, HeartPulse } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  ExternalLink,
+  Activity,
+  Smartphone,
+  Sparkles,
+  UserPlus,
+  HeartPulse,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,7 +31,10 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSaudeRealtime } from '@/hooks/useSaudeRealtime'
 import { PainelMonitorClinico } from '@/components/saude/PainelMonitorClinico'
-import { SaudeAcessoHealthTracker } from '@/components/saude/SaudeAcessoHealthTracker'
+import {
+  SaudeAcessoHealthTracker,
+  URL_HEALTH_TRACKER,
+} from '@/components/saude/SaudeAcessoHealthTracker'
 import { SOUL_HTR } from '@/lib/soulHtrTheme'
 import {
   listarSaudeClientes,
@@ -44,7 +55,6 @@ export type ModoSaude = 'clinica' | 'health_tracker'
 export default function SaudeBemEstar() {
   const { user, isProfissional } = useAuth()
   const isAdmin = user?.role === 'adm' || user?.role === 'admin'
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { toast } = useToast()
 
@@ -56,10 +66,44 @@ export default function SaudeBemEstar() {
   const [carregando, setCarregando] = useState(true)
   const [modalNovoCliente, setModalNovoCliente] = useState(false)
 
-  // Modo da área: 'clinica' (padrão — monitoramento em tempo real) ou
-  // 'health_tracker' (acesso ao app do cliente p/ testes).
-  const [modo, setModo] = useState<ModoSaude>('clinica')
-  const realtime = useSaudeRealtime(modo === 'clinica' && !clienteSelecionadoId)
+  // Fonte única de verdade: a query string.
+  // - "Clínica — Monitoramento em tempo real" (clique principal): REDIRECIONA
+  //   (mesma aba) ao app externo SOUL Health Tracker, onde a Dra./Prof. entra
+  //   com o login dela. Nada renderiza localmente nesse clique.
+  // - ?interno=1: painel de monitoramento interno (v0.0.173) — caminho
+  //   secundário claro, acessível pelo botão "Painel de monitoramento interno".
+  // - ?modo=health_tracker: acesso ao app do cliente (para testes).
+  // - ?cliente=<id>: visão individual do cliente.
+  const modoHealthTracker = searchParams.get('modo') === 'health_tracker'
+  const painelInterno = searchParams.get('interno') === '1'
+  const realtime = useSaudeRealtime(painelInterno && !clienteSelecionadoId)
+
+  /** Clique principal em "Clínica": redireciona (mesma aba) ao app externo. */
+  const irParaClinica = () => {
+    window.location.href = URL_HEALTH_TRACKER
+  }
+
+  /** Caminho secundário: abre o painel de monitoramento interno. */
+  const abrirPainelInterno = () => {
+    const next = new URLSearchParams(searchParams)
+    next.set('interno', '1')
+    setSearchParams(next, { replace: true })
+  }
+
+  /** Abre o acesso ao app do cliente (Health Tracker) dentro da página. */
+  const abrirSaudeAcesso = () => {
+    const next = new URLSearchParams(searchParams)
+    next.set('modo', 'health_tracker')
+    setSearchParams(next, { replace: true })
+  }
+
+  /** Abre a visão individual de um cliente preservando o painel interno. */
+  const abrirClienteInterno = (id: string) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('cliente', id)
+    next.set('interno', '1')
+    setSearchParams(next, { replace: false })
+  }
 
   // Form novo cliente
   const [formNome, setFormNome] = useState('')
@@ -152,28 +196,40 @@ export default function SaudeBemEstar() {
     >
       <button
         type="button"
-        onClick={() => setModo('clinica')}
+        onClick={irParaClinica}
         className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
-        style={
-          modo === 'clinica'
-            ? { backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }
-            : { color: SOUL_HTR.marrom, backgroundColor: 'transparent' }
-        }
-        aria-pressed={modo === 'clinica'}
+        style={{ backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }}
+        title="Redireciona ao app externo Health Tracker (entrar como Dra./Prof.)"
       >
         <HeartPulse className="h-4 w-4" />
         Clínica — Monitoramento em tempo real
+        <ExternalLink className="h-3.5 w-3.5 opacity-80" />
       </button>
       <button
         type="button"
-        onClick={() => setModo('health_tracker')}
+        onClick={abrirPainelInterno}
         className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
         style={
-          modo === 'health_tracker'
+          painelInterno
             ? { backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }
             : { color: SOUL_HTR.marrom, backgroundColor: 'transparent' }
         }
-        aria-pressed={modo === 'health_tracker'}
+        aria-pressed={painelInterno}
+        title="Painel de monitoramento interno (dentro do app da clínica)"
+      >
+        <Activity className="h-4 w-4" />
+        Painel de monitoramento interno
+      </button>
+      <button
+        type="button"
+        onClick={abrirSaudeAcesso}
+        className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+        style={
+          modoHealthTracker
+            ? { backgroundColor: SOUL_HTR.marrom, color: '#FFF8ED' }
+            : { color: SOUL_HTR.marrom, backgroundColor: 'transparent' }
+        }
+        aria-pressed={modoHealthTracker}
       >
         <Smartphone className="h-4 w-4" />
         Health Tracker (App do Cliente)
@@ -192,9 +248,22 @@ export default function SaudeBemEstar() {
           <Button variant="ghost" size="sm" onClick={() => selecionarCliente('')}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
+          <span className="text-xs" style={{ color: SOUL_HTR.textoSuave }}>
+            Botão "Clínica" abre o app Health Tracker (entrar como Dra./Prof.) — o painel interno
+            fica no caminho "Painel de monitoramento interno".
+          </span>
         </div>
-        {modo === 'health_tracker' && (
-          <SaudeAcessoHealthTracker clientes={clientes} isAdmin={isAdmin} />
+        {modoHealthTracker && <SaudeAcessoHealthTracker clientes={clientes} isAdmin={isAdmin} />}
+        {painelInterno && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            style={{ borderColor: SOUL_HTR.dourado, color: SOUL_HTR.marrom }}
+            onClick={() => selecionarCliente('')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao painel de monitoramento interno
+          </Button>
         )}
         <div>
           <h1 className="text-2xl font-bold text-[#33221C]">{clienteSelecionado.nome}</h1>
@@ -232,8 +301,21 @@ export default function SaudeBemEstar() {
     <div className="max-w-6xl mx-auto space-y-6 p-4 md:p-6">
       {AlternadorModos}
 
-      {modo === 'health_tracker' ? (
+      {modoHealthTracker ? (
         <SaudeAcessoHealthTracker clientes={clientes} isAdmin={isAdmin} />
+      ) : painelInterno ? (
+        <PainelMonitorClinico
+          clientes={realtime.clientes}
+          registros={realtime.registros}
+          carregando={realtime.carregando}
+          notificacoes={realtime.notificacoes}
+          recarregar={realtime.recarregar}
+          naoLidas={realtime.naoLidas}
+          sinoAberto={realtime.sinoAberto}
+          setSinoAberto={realtime.setSinoAberto}
+          conectado={realtime.conectado}
+          onAbrirCliente={abrirClienteInterno}
+        />
       ) : (
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -253,6 +335,20 @@ export default function SaudeBemEstar() {
               </Button>
             )}
           </div>
+          <div className="flex items-center gap-2 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={abrirPainelInterno}
+              style={{ borderColor: SOUL_HTR.dourado, color: SOUL_HTR.marrom }}
+            >
+              <Activity className="h-4 w-4 mr-1.5" /> Painel de monitoramento interno
+            </Button>
+            <span style={{ color: SOUL_HTR.textoSuave }}>
+              O botão "Clínica" agora abre o app Health Tracker externo — o monitoramento em tempo
+              real dentro da clínica fica aqui.
+            </span>
+          </div>
 
           {/* O PainelMonitorClinico é a ÚNICA lista de cartões de clientes
               (seção "Por Cliente") — alimentada exclusivamente por
@@ -268,7 +364,7 @@ export default function SaudeBemEstar() {
             sinoAberto={realtime.sinoAberto}
             setSinoAberto={realtime.setSinoAberto}
             conectado={realtime.conectado}
-            onAbrirCliente={(id) => navigate(`/saude-bem-estar?cliente=${id}`)}
+            onAbrirCliente={abrirClienteInterno}
           />
 
           {/* Modal novo cliente de saúde */}
