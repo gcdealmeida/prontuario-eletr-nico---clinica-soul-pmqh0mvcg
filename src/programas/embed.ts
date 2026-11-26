@@ -1,11 +1,12 @@
 /**
  * Embutimento da ferramenta standalone "Programas de Exercícios - Clínica Soul".
  *
- * O fonte completo da ferramenta vive em `src/assets/index-6c05c.html` (~272 KB,
- * logo/dados de exemplo/parser intactos). Ele NÃO pode ser copiado para
- * `public/programas/index.html` (acima do limite de escrita do builder), então
- * ele é importado como texto (`?raw`) e renderizado em um iframe `srcDoc`:
- * mesmo resultado, mesma origem do app (localStorage e downloads funcionam).
+ * O fonte completo da ferramenta vive em `src/assets/index-6c05c.html` (~401 KB
+ * no disco, logo/dados de exemplo/parser intactos). Ele NÃO pode ser copiado
+ * para `public/programas/index.html` (acima do teto de ~98 KB da escrita do
+ * builder e sem shell aqui), então ele é importado como texto (`?raw`) e
+ * renderizado em um iframe `srcDoc`: mesmo resultado, mesma origem do app
+ * (localStorage e downloads funcionam).
  *
  * As bibliotecas vendor (xlsx, html2canvas, jspdf) vêm dos pacotes locais do
  * node_modules — importadas AQUI no app (empacotadas pelo Vite em arquivos

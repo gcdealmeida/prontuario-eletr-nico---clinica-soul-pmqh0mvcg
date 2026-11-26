@@ -1,16 +1,17 @@
 # Implantação da Ferramenta de Periodização
 
 A ferramenta standalone "Programas de Exercícios - Clínica Soul"
-(`src/assets/index-6c05c.html`, ~272 KB) agora é embutida **via código do app**
+(`src/assets/index-6c05c.html`, ~400 KB) é embutida **via código do app**
 em `src/programas/embed.ts` + `src/components/programas/FerramentaPeriodizacaoIframe.tsx`.
 
-## Por que não existe `public/programas/index.html`
+## Por que NÃO existe `public/programas/index.html` (nem `vendor/`)
 
-Os arquivos da ferramenta estão todos acima do limite de ~98 KB das ferramentas
-de escrita do builder (index.html ~272 KB; xlsx ~940 KB; jspdf ~360 KB;
-html2canvas ~195 KB) e o ambiente de build não expõe shell. A plataforma também
-protege `package.json` e `vite.config.ts` (preventAI), o que impede tanto
-adicionar o mammoth às dependências quanto criar um plugin de cópia no build.
+Os arquivos da ferramenta estão todos acima do teto de ~98 KB das ferramentas de
+escrita do builder (index.html ~401 KB; xlsx ~940 KB; jspdf ~360 KB;
+html2canvas ~195 KB) e **este ambiente de build não expõe shell** — não há como
+rodar `cp`, `curl` ou `cat` aqui. A plataforma também protege `package.json` e
+`vite.config.ts` (preventAI), o que impede tanto adicionar o mammoth às
+dependências quanto criar um plugin de cópia no build.
 
 A solução equivalente, sem `public/programas/`:
 

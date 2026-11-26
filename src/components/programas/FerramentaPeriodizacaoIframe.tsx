@@ -15,8 +15,9 @@ const placeholderFerramenta = () => (
  * "Programas de Exercícios - Clínica Soul" em um iframe em tela cheia.
  *
  * O HTML completo da ferramenta vem do `?raw` do Vite (src/programas/embed.ts)
- * e é renderizado via `srcDoc` — NÃO via /programas/index.html, que não existe
- * em public/ (os arquivos >98 KB não podem ser copiados pelo builder).
+ * e é renderizado via `srcDoc` — NÃO via /programas/index.html: o arquivo de
+ * ~272 KB está acima do teto de escrita do builder, então não pode ser copiado
+ * para public/programas/ e continua em src/assets/index-6c05c.html.
  *
  * IMPORTANTE: o iframe NÃO usa o atributo sandbox — sem allow-same-origin o
  * localStorage da ferramenta é bloqueado e nada é salvo. `allow="clipboard-write"`
