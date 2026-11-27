@@ -27,6 +27,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { ClientResponseError } from 'pocketbase'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import type { ResultadoImportacaoPrograma } from '@/lib/importacaoProgramas'
 import { getPacientes } from '@/services/pacientes'
 import {
@@ -315,9 +317,10 @@ export const Programas: React.FC = () => {
                 id="novo-prog-paciente"
                 value={novoPacienteId}
                 onChange={(e) => setNovoPacienteId(e.target.value)}
+                required
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
               >
-                <option value="">Sem paciente vinculado</option>
+                <option value="">Selecione o paciente…</option>
                 {novoPacientes.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nome}
@@ -354,18 +357,34 @@ export const Programas: React.FC = () => {
 
   async function handleCriarPrograma() {
     if (!modalidade || !novoNome.trim()) return
+    if (!novoPacienteId) {
+      toast({
+        title: 'Selecione o paciente',
+        description: 'Todo programa precisa estar vinculado a um paciente ou cliente da clínica.',
+        variant: 'destructive',
+      })
+      return
+    }
     setCriando(true)
     try {
       const rec = await createPrograma({
         nome: novoNome.trim(),
         modalidade,
         unidade_duracao: 'semanas',
-        duracao: 12,
-        paciente_id: novoPacienteId || undefined,
+        total_periodos: 12,
+        paciente_id: novoPacienteId,
+        status: 'ativo',
       } as Partial<ProgramaAcompanhamentoRecord>)
       await carregarProgramas()
       setDialogoNovo(false)
       irPara({ programa: rec.id, aba: 'periodizacao' })
+    } catch (err: unknown) {
+      console.error('Erro ao criar programa:', err)
+      toast({
+        title: 'Erro ao criar programa',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
     } finally {
       setCriando(false)
     }
@@ -376,6 +395,19 @@ export const Programas: React.FC = () => {
     irPara({ programa: null, aba: 'importacao' })
   }
 
+  // Paciente selecionado no diálogo é reaproveitado pela importação,
+  // que também precisa de paciente_id (obrigatório no banco).
+  function garantirPacienteParaImportacao(): string | null {
+    if (novoPacienteId) return novoPacienteId
+    toast({
+      title: 'Selecione o paciente',
+      description:
+        'Antes de importar, escolha o paciente do programa no botão "Novo programa" (ou crie o programa por lá).',
+      variant: 'destructive',
+    })
+    return null
+  }
+
   async function handleExcluirPrograma(id: string) {
     await deletePrograma(id)
     await carregarProgramas()
@@ -383,6 +415,8 @@ export const Programas: React.FC = () => {
 
   async function handleProgramaImportado(resumo: ResultadoImportacaoPrograma) {
     if (!modalidade) return
+    const pacienteParaVincular = garantirPacienteParaImportacao()
+    if (!pacienteParaVincular) return
     setImportando(true)
     try {
       // 1. Programa
@@ -391,6 +425,8 @@ export const Programas: React.FC = () => {
         modalidade,
         unidade_duracao: 'semanas',
         total_periodos: Math.max(resumo.semanas.length, 1),
+        paciente_id: pacienteParaVincular,
+        status: 'ativo',
       } as Partial<ProgramaAcompanhamentoRecord>)
 
       // 2. Semanas (periodização)
@@ -437,8 +473,7 @@ export const Programas: React.FC = () => {
       console.error('Erro ao salvar programa importado:', err)
       toast({
         title: 'Erro ao salvar o programa',
-        description:
-          err instanceof Error ? err.message : 'Tente novamente ou crie o programa manualmente.',
+        description: getErrorMessage(err),
         variant: 'destructive',
       })
     } finally {
