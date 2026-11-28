@@ -1,5 +1,5 @@
-import React from 'react'
-import { AlertTriangle, CheckCircle2, Play, BookOpen, X } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { AlertTriangle, CheckCircle2, Pencil, Play, BookOpen, X, ImageOff } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,12 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useToast } from '@/hooks/use-toast'
+import ModalEditarConteudoExercicio from '@/components/programas/ModalEditarConteudoExercicio'
+import { getConteudoEditado, removerConteudoEditado } from '@/services/conteudoExercicios'
+import type { ConteudoEditadoRecord } from '@/services/conteudoExercicios'
 import type { ConteudoExercicio } from '@/lib/exerciciosConteudo/tipos'
+import { normalizarNome } from '@/lib/exerciciosConteudo/tipos'
 
 /** Extrai o ID do vídeo a partir de um ID puro ou de uma URL do YouTube. */
 export function extrairYouTubeId(videoUrl?: string): string | null {
@@ -28,27 +33,109 @@ interface ModalDetalheExercicioProps {
   nome: string
   /** Conteúdo curado do dicionário — pode ser undefined (conteúdo em preparação). */
   conteudo?: ConteudoExercicio
+  /** Registro de edição manual (conteudo_exercicios) — vence o curado. */
+  editado?: ConteudoEditadoRecord | null
   categoria?: string
   subcategoria?: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Chamado quando o usuário salva uma edição (a lista pode recarregar o selo). */
+  onConteudoEditado?: (registro: ConteudoEditadoRecord) => void
+  /** Chamado quando o usuário remove a edição manual. */
+  onConteudoRemovido?: (nomeExercicio: string) => void
 }
 
 /**
  * Modal de detalhe do exercício da Biblioteca: explicação de execução,
  * foto/ilustração, erros comuns, músculos trabalhados e vídeo do YouTube
- * embutido. Sem conteúdo curado, mostra o que existir + aviso discreto.
+ * embutido. O conteúdo editado manualmente (coleção conteudo_exercicios)
+ * vence o dicionário curado. Em qualquer exercício há o botão "Editar
+ * conteúdo", que abre o formulário de correção.
  */
 export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
   nome,
   conteudo,
+  editado,
   categoria,
   subcategoria,
   open,
   onOpenChange,
+  onConteudoEditado,
+  onConteudoRemovido,
 }) => {
-  const videoId = extrairYouTubeId(conteudo?.videoUrl)
-  const semConteudo = !conteudo
+  const { toast } = useToast()
+  const [editando, setEditando] = useState(false)
+  const [removendo, setRemovendo] = useState(false)
+  const [editadoAtual, setEditadoAtual] = useState<ConteudoEditadoRecord | null>(editado ?? null)
+
+  // Recarrega a edição do banco quando o modal abre (e quando o prop muda).
+  useEffect(() => {
+    setEditadoAtual(editado ?? null)
+  }, [editado, open, nome])
+
+  useEffect(() => {
+    if (!open || editado) return
+    let ativo = true
+    getConteudoEditado(nome)
+      .then((reg) => {
+        if (ativo) setEditadoAtual(reg)
+      })
+      .catch(() => {
+        /* sem edição manual — segue com o curado */
+      })
+    return () => {
+      ativo = false
+    }
+  }, [open, nome, editado])
+
+  const conteudoEfetivo: ConteudoExercicio | undefined = editadoAtual
+    ? {
+        descricao: editadoAtual.como_executar || '',
+        errosComuns: (editadoAtual.erros_comuns || '')
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        musculos: (editadoAtual.musculos || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        foto: editadoAtual.foto_url || undefined,
+        videoUrl: editadoAtual.video_id
+          ? `https://www.youtube-nocookie.com/watch?v=${editadoAtual.video_id}`
+          : editadoAtual.video_url || undefined,
+        fotoAlt: `Foto de execução do exercício ${nome}`,
+      }
+    : conteudo
+
+  const videoId = extrairYouTubeId(conteudoEfetivo?.videoUrl)
+  const semConteudo = !conteudoEfetivo
+
+  const handleRemoverEdicao = async () => {
+    if (!editadoAtual || removendo) return
+    if (!confirm('Remover este conteúdo editado? O exercício volta ao conteúdo padrão.')) return
+    try {
+      setRemovendo(true)
+      await removerConteudoEditado(editadoAtual.id)
+      toast({ title: 'Conteúdo editado removido — exercício voltou ao padrão.' })
+      setEditadoAtual(null)
+      onConteudoRemovido?.(nome)
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao remover a edição',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setRemovendo(false)
+    }
+  }
+
+  const handleSalvo = (registro: ConteudoEditadoRecord) => {
+    setEditadoAtual(registro)
+    onConteudoEditado?.(registro)
+  }
+
+  const temTexto = !!conteudoEfetivo?.descricao || (conteudoEfetivo?.errosComuns?.length ?? 0) > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,7 +147,7 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Cabeçalho com nome e badges */}
+        {/* Cabeçalho com nome, badges e botões de ação */}
         <div className="sticky top-0 z-10 bg-white border-b border-[#E9E1D2] px-5 pt-5 pb-4">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-xl bg-[#FAF5EE] text-[#8C6527] flex items-center justify-center shrink-0">
@@ -68,31 +155,47 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-gray-900 leading-snug break-words">{nome}</h2>
-              {(categoria || subcategoria) && (
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {categoria && (
-                    <Badge className="text-[10px] bg-[#FAF5EE] text-[#8C6527] border-[#E9E1D2] hover:bg-[#FAF5EE]">
-                      {categoria}
-                    </Badge>
-                  )}
-                  {subcategoria && (
-                    <Badge className="text-[10px] bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-50">
-                      {subcategoria}
-                    </Badge>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {categoria && (
+                  <Badge className="text-[10px] bg-[#FAF5EE] text-[#8C6527] border-[#E9E1D2] hover:bg-[#FAF5EE]">
+                    {categoria}
+                  </Badge>
+                )}
+                {subcategoria && (
+                  <Badge className="text-[10px] bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-50">
+                    {subcategoria}
+                  </Badge>
+                )}
+                {editadoAtual && (
+                  <Badge className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-50">
+                    Editado
+                  </Badge>
+                )}
+              </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700 rounded-md shrink-0"
-              aria-label="Fechar detalhe do exercício"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditando(true)}
+                className="h-7 px-2 text-[11px] font-semibold text-[#8C6527] hover:bg-[#FAF5EE] hover:text-[#8C6527] rounded-md"
+                aria-label={`Editar conteúdo do exercício ${nome}`}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Editar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700 rounded-md"
+                aria-label="Fechar detalhe do exercício"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -104,22 +207,51 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                   Conteúdo detalhado em preparação
                 </p>
                 <p className="text-[11px] text-gray-500">
-                  Ainda não há explicação, foto ou vídeo para este exercício na biblioteca curada.
-                  Em breve estará disponível.
+                  Ainda não há explicação, foto ou vídeo para este exercício. Use o botão{' '}
+                  <span className="font-semibold text-[#8C6527]">Editar</span> (no topo) para
+                  cadastrar a foto, o vídeo e a execução agora mesmo.
                 </p>
               </div>
             ) : (
               <>
+                {/* Selo de edição manual com ação de desfazer */}
+                {editadoAtual && (
+                  <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-50/70 border border-emerald-200 px-3 py-2">
+                    <p className="text-[10px] font-semibold text-emerald-800">
+                      Conteúdo ajustado manualmente
+                      {editadoAtual.atualizado_por ? ` por ${editadoAtual.atualizado_por}` : ''}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoverEdicao}
+                      disabled={removendo}
+                      className="h-6 px-2 text-[10px] text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900 rounded-md"
+                      aria-label={`Remover edição manual do exercício ${nome}`}
+                    >
+                      Voltar ao padrão
+                    </Button>
+                  </div>
+                )}
+
                 {/* Foto / ilustração */}
-                {conteudo.foto && (
+                {conteudoEfetivo.foto ? (
                   <img
-                    src={conteudo.foto}
-                    alt={conteudo.fotoAlt || `Foto de execução do exercício ${nome}`}
+                    src={conteudoEfetivo.foto}
+                    alt={conteudoEfetivo.fotoAlt || `Foto de execução do exercício ${nome}`}
                     width={640}
                     height={360}
                     loading="lazy"
                     className="w-full aspect-video object-cover rounded-2xl border border-[#E9E1D2] bg-[#FAF5EE]"
                   />
+                ) : (
+                  temTexto && (
+                    <div className="w-full aspect-video rounded-2xl border border-dashed border-[#E9E1D2] bg-[#FAF5EE]/50 flex flex-col items-center justify-center gap-1.5 text-[#8C6527]">
+                      <ImageOff className="h-6 w-6" aria-hidden="true" />
+                      <p className="text-[11px]">Sem foto cadastrada</p>
+                    </div>
+                  )
                 )}
 
                 {/* Vídeo YouTube embutido */}
@@ -137,7 +269,7 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                 )}
 
                 {/* Explicação */}
-                {conteudo.descricao && (
+                {conteudoEfetivo.descricao && (
                   <section aria-labelledby="det-ex-desc-titulo" className="space-y-1.5">
                     <h3
                       id="det-ex-desc-titulo"
@@ -147,13 +279,13 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                       Como executar
                     </h3>
                     <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
-                      {conteudo.descricao}
+                      {conteudoEfetivo.descricao}
                     </p>
                   </section>
                 )}
 
                 {/* Erros comuns */}
-                {conteudo.errosComuns?.length > 0 && (
+                {(conteudoEfetivo.errosComuns?.length ?? 0) > 0 && (
                   <section aria-labelledby="det-ex-erros-titulo" className="space-y-1.5">
                     <h3
                       id="det-ex-erros-titulo"
@@ -163,7 +295,7 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                       Erros comuns
                     </h3>
                     <ul className="space-y-1">
-                      {conteudo.errosComuns.map((erro) => (
+                      {conteudoEfetivo.errosComuns.map((erro) => (
                         <li key={erro} className="flex items-start gap-1.5 text-xs text-gray-700">
                           <span className="mt-1.5 h-1 w-1 rounded-full bg-amber-500 shrink-0" />
                           {erro}
@@ -174,7 +306,7 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                 )}
 
                 {/* Músculos trabalhados */}
-                {conteudo.musculos?.length > 0 && (
+                {(conteudoEfetivo.musculos?.length ?? 0) > 0 && (
                   <section aria-labelledby="det-ex-musc-titulo" className="space-y-1.5">
                     <h3
                       id="det-ex-musc-titulo"
@@ -184,7 +316,7 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                       Músculos trabalhados
                     </h3>
                     <div className="flex flex-wrap gap-1.5">
-                      {conteudo.musculos.map((m) => (
+                      {conteudoEfetivo.musculos.map((m) => (
                         <Badge
                           key={m}
                           className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-50"
@@ -197,9 +329,9 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
                 )}
 
                 {/* Link do vídeo, caso o ID não tenha sido reconhecido */}
-                {conteudo.videoUrl && !videoId && (
+                {conteudoEfetivo.videoUrl && !videoId && (
                   <a
-                    href={conteudo.videoUrl}
+                    href={conteudoEfetivo.videoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8C6527] hover:underline"
@@ -212,6 +344,18 @@ export const ModalDetalheExercicio: React.FC<ModalDetalheExercicioProps> = ({
             )}
           </div>
         </ScrollArea>
+
+        <ModalEditarConteudoExercicio
+          nome={nome}
+          conteudoAtual={conteudo}
+          editado={editadoAtual}
+          open={editando}
+          onOpenChange={(v) => {
+            setEditando(v)
+            if (!v) onOpenChange(true)
+          }}
+          onSalvo={handleSalvo}
+        />
       </DialogContent>
     </Dialog>
   )
