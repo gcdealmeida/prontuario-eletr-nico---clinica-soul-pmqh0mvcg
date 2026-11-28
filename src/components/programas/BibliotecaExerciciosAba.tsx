@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Plus, Search, Trash2, BookOpen, Dumbbell } from 'lucide-react'
+import { Plus, Search, Trash2, BookOpen, Dumbbell, PencilLine } from 'lucide-react'
 import ModalDetalheExercicio from '@/components/programas/ModalDetalheExercicio'
 import { buscarConteudo } from '@/lib/exerciciosConteudo'
+import { normalizarNome } from '@/lib/exerciciosConteudo/tipos'
+import { getConteudosEditados } from '@/services/conteudoExercicios'
+import type { ConteudoEditadoRecord } from '@/services/conteudoExercicios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,10 +24,14 @@ interface BibliotecaExerciciosAbaProps {
 
 /**
  * Biblioteca de Exercícios — catálogo reutilizável (coleção `exercicios` do
- * backend), compartilhado entre as áreas Reabilitação e Personal.
+ * backend), compartilhado entre as áreas Reabilitação e Personal. O conteúdo
+ * editado manualmente (coleção `conteudo_exercicios`) vence o dicionário
+ * curado e recebe selo "Editado".
  */
 export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = ({ modalidade }) => {
   const { toast } = useToast()
+  // Edições manuais (conteudo_exercicios): chave = nome normalizado do exercício.
+  const [editados, setEditados] = useState<Map<string, ConteudoEditadoRecord>>(new Map())
   const [itens, setItens] = useState<ExercicioCatalogoRecord[]>([])
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -37,6 +44,10 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
   const fecharDetalhe = (open: boolean) => {
     if (!open) setDetalhe(null)
   }
+  const edicaoDe = useCallback(
+    (nome: string): ConteudoEditadoRecord | null => editados.get(normalizarNome(nome)) ?? null,
+    [editados],
+  )
 
   const [nome, setNome] = useState('')
   const [categoria, setCategoria] = useState('')
@@ -47,6 +58,12 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
     try {
       setCarregando(true)
       const lista = await getCatalogoExercicios()
+      // Conteúdos editados manualmente vencem o dicionário curado: carrega em lote.
+      getConteudosEditados(lista.map((i) => i.nome))
+        .then((mapa) => setEditados(mapa))
+        .catch(() => {
+          /* sem edições — segue com o conteúdo curado */
+        })
       setItens(lista)
     } catch (err: any) {
       toast({
@@ -269,6 +286,12 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
                     {ex.subcategoria}
                   </Badge>
                 )}
+                {edicaoDe(ex.nome) && (
+                  <Badge className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-50 gap-1">
+                    <PencilLine className="h-2.5 w-2.5" aria-hidden="true" />
+                    Editado
+                  </Badge>
+                )}
               </div>
               {ex.descricao && (
                 <p className="text-[11px] text-gray-500 line-clamp-2">{ex.descricao}</p>
@@ -281,10 +304,26 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
       <ModalDetalheExercicio
         nome={detalhe?.nome ?? ''}
         conteudo={detalhe ? buscarConteudo(detalhe.nome) : undefined}
+        editado={detalhe ? edicaoDe(detalhe.nome) : null}
         categoria={detalhe?.categoria}
         subcategoria={detalhe?.subcategoria}
         open={detalhe !== null}
         onOpenChange={fecharDetalhe}
+        onConteudoEditado={(registro) => {
+          const chave = normalizarNome(
+            registro.exercicio_normalizado || registro.exercicio || detalhe?.nome || '',
+          )
+          if (!chave) return
+          setEditados((prev) => new Map(prev).set(chave, registro))
+        }}
+        onConteudoRemovido={(nomeExercicio) => {
+          const chave = normalizarNome(nomeExercicio)
+          setEditados((prev) => {
+            const proximo = new Map(prev)
+            proximo.delete(chave)
+            return proximo
+          })
+        }}
       />
     </div>
   )
