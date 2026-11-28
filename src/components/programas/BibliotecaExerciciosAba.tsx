@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Plus, Search, Trash2, BookOpen, Dumbbell } from 'lucide-react'
+import ModalDetalheExercicio from '@/components/programas/ModalDetalheExercicio'
+import { buscarConteudo } from '@/lib/exerciciosConteudo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,6 +30,13 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
   const [carregando, setCarregando] = useState(true)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [salvando, setSalvando] = useState(false)
+
+  // Detalhe do exercício: modal aberto com o exercício clicado no card.
+  const [detalhe, setDetalhe] = useState<ExercicioCatalogoRecord | null>(null)
+  const abrirDetalhe = (ex: ExercicioCatalogoRecord) => setDetalhe(ex)
+  const fecharDetalhe = (open: boolean) => {
+    if (!open) setDetalhe(null)
+  }
 
   const [nome, setNome] = useState('')
   const [categoria, setCategoria] = useState('')
@@ -223,9 +232,12 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtrados.map((ex) => (
-            <div
+            <button
+              type="button"
               key={ex.id}
-              className="p-4 rounded-2xl bg-white border border-[#E9E1D2] shadow-xs space-y-2"
+              onClick={() => abrirDetalhe(ex)}
+              className="text-left w-full p-4 rounded-2xl bg-white border border-[#E9E1D2] shadow-xs space-y-2 hover:border-[#C9A46A]/60 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A46A]/60 transition-colors"
+              aria-label={`Ver detalhes do exercício ${ex.nome}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -236,6 +248,7 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
                 </div>
                 <Button
                   type="button"
+                  tabIndex={-1}
                   variant="ghost"
                   size="sm"
                   onClick={() => handleExcluir(ex.id)}
@@ -260,10 +273,19 @@ export const BibliotecaExerciciosAba: React.FC<BibliotecaExerciciosAbaProps> = (
               {ex.descricao && (
                 <p className="text-[11px] text-gray-500 line-clamp-2">{ex.descricao}</p>
               )}
-            </div>
+            </button>
           ))}
         </div>
       )}
+
+      <ModalDetalheExercicio
+        nome={detalhe?.nome ?? ''}
+        conteudo={detalhe ? buscarConteudo(detalhe.nome) : undefined}
+        categoria={detalhe?.categoria}
+        subcategoria={detalhe?.subcategoria}
+        open={detalhe !== null}
+        onOpenChange={fecharDetalhe}
+      />
     </div>
   )
 }
