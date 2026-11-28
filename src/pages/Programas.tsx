@@ -26,11 +26,10 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
 import { ClientResponseError } from 'pocketbase'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import type { ResultadoImportacaoPrograma } from '@/lib/importacaoProgramas'
-import { getPacientes } from '@/services/pacientes'
+import { getAllPacientes } from '@/services/pacientes'
 import {
   createPrograma,
   createExercicio,
@@ -45,13 +44,11 @@ import {
   type ModalidadePrograma,
 } from '@/services/programas'
 import type {
-  PacienteRecord,
   ProgramaAcompanhamentoNotaRecord,
   ProgramaAcompanhamentoRecord,
   ProgramaExercicioRecord,
   ProgramaSemanaRecord,
   ProgramaTreinoRecord,
-  UnidadeDuracaoPrograma,
 } from '@/types/database'
 import { PainelImportacaoAba } from '@/components/programas/PainelImportacaoAba'
 import { PainelPeriodizacaoAba } from '@/components/programas/PainelPeriodizacaoAba'
@@ -82,6 +79,29 @@ interface ProgramaCriado {
   nome: string
 }
 
+/** Mensagem de erro específica por etapa/campo a partir de um ClientResponseError do PocketBase. */
+export function mensagemErroEtapa(
+  etapa: string,
+  err: unknown,
+  rotuloCampo?: Record<string, string>,
+): string {
+  const base = etapa
+  if (err instanceof ClientResponseError) {
+    const campos: FieldErrors = extractFieldErrors(err)
+    const pares = Object.entries(campos)
+    if (pares.length > 0) {
+      const detalhes = pares
+        .map(([campo, msg]) => `${rotuloCampo?.[campo] ?? campo}: ${msg}`)
+        .join('; ')
+      return `${base} — ${detalhes}`
+    }
+    const status = err.status ? ` (erro ${err.status})` : ''
+    const msgApi = err.response?.message
+    return `${base}${status}: ${msgApi || err.message}`
+  }
+  return `${base}: ${err instanceof Error ? err.message : String(err)}`
+}
+
 export const Programas: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const { toast } = useToast()
@@ -98,6 +118,12 @@ export const Programas: React.FC = () => {
   const [novoPacienteId, setNovoPacienteId] = useState('')
   const [novoPacientes, setNovoPacientes] = useState<{ id: string; nome: string }[]>([])
   const [criando, setCriando] = useState(false)
+
+  // Estado do diálogo de paciente da importação (aberto quando a importação
+  // termina de ler o arquivo e ainda não há paciente escolhido)
+  const [dialogoPacienteImport, setDialogoPacienteImport] = useState(false)
+  const [resumoImportacaoPendente, setResumoImportacaoPendente] =
+    useState<ResultadoImportacaoPrograma | null>(null)
 
   // Estados carregados quando um programa está aberto
   const [semanas, setSemanas] = useState<ProgramaSemanaRecord[]>([])
@@ -223,75 +249,70 @@ export const Programas: React.FC = () => {
           </div>
         </div>
 
-        {/* Sem programa selecionado: lista de programas */}
-        {!programaId ? (
-          <ListaProgramasModalidade
-            programas={programas}
-            modalidade={modalidade}
-            carregando={carregando}
-            onAbrir={(id) => irPara({ programa: id, aba: null })}
-            onImportar={handleImportarNovo}
-            onNovo={abrirDialogoNovoPrograma}
-            onExcluir={handleExcluirPrograma}
-          />
-        ) : (
-          <>
-            {/* Abas da área */}
-            <Tabs value={aba} onValueChange={(v) => irPara({ aba: v })}>
-              <TabsList className="flex w-full flex-wrap h-auto gap-1 bg-white border border-[#E9E1D2] rounded-2xl p-1">
-                {ABAS.map(({ id, rotulo, icone: Icone }) => (
-                  <TabsTrigger
-                    key={id}
-                    value={id}
-                    className="flex-1 min-w-[130px] rounded-xl data-[state=active]:bg-[#1E2530] data-[state=active]:text-white"
-                  >
-                    <Icone className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                    {rotulo}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+        {/* Abas da área */}
+        <Tabs value={aba} onValueChange={(v) => irPara({ aba: v })}>
+          <TabsList className="flex w-full flex-wrap h-auto gap-1 bg-white border border-[#E9E1D2] rounded-2xl p-1">
+            {ABAS.map(({ id, rotulo, icone: Icone }) => (
+              <TabsTrigger
+                key={id}
+                value={id}
+                className="flex-1 min-w-[130px] rounded-xl data-[state=active]:bg-[#1E2530] data-[state=active]:text-white"
+              >
+                <Icone className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                {rotulo}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-            {/* Conteúdo da aba */}
-            <div>
-              {aba === 'importacao' && (
-                <PainelImportacaoAba
-                  onImportado={handleProgramaImportado}
-                  modalidade={modalidade}
-                  importando={importando}
-                />
-              )}
-              {aba === 'periodizacao' && programaAtual && (
-                <PainelPeriodizacaoAba
-                  programaId={programaAtual.id}
-                  unidadeDuracao={programaAtual.unidade_duracao || 'semanas'}
-                  totalPeriodos={programaAtual.total_periodos || 12}
-                  semanas={semanas}
-                  onSemanasChange={setSemanas}
-                />
-              )}
-              {aba === 'exercicios' && programaAtual && (
-                <PainelExerciciosAba
-                  programaId={programaAtual.id}
-                  treinos={treinos}
-                  exercicios={exercicios}
-                  onTreinosChange={setTreinos}
-                  onExerciciosChange={setExercicios}
-                />
-              )}
-              {aba === 'biblioteca' && <BibliotecaExerciciosAba modalidade={modalidade} />}
-              {aba === 'acompanhamento' && programaAtual && (
-                <PainelAcompanhamentoAba
-                  programaId={programaAtual.id}
-                  semanas={semanas}
-                  notas={notas}
-                  onNotasChange={setNotas}
-                />
-              )}
-              {aba === 'ferramenta' && <FerramentaPeriodizacaoIframe />}
-            </div>
-          </>
-        )}
+        {/* Conteúdo da aba — sempre visível, com ou sem programa aberto */}
+        <div>
+          {aba === 'importacao' && (
+            <PainelImportacaoAba
+              onImportado={handleProgramaImportado}
+              modalidade={modalidade}
+              importando={importando}
+            />
+          )}
+          {aba === 'periodizacao' && programaAtual && (
+            <PainelPeriodizacaoAba
+              programaId={programaAtual.id}
+              unidadeDuracao={programaAtual.unidade_duracao || 'semanas'}
+              totalPeriodos={programaAtual.total_periodos || 12}
+              semanas={semanas}
+              onSemanasChange={setSemanas}
+            />
+          )}
+          {aba === 'exercicios' && programaAtual && (
+            <PainelExerciciosAba
+              programaId={programaAtual.id}
+              treinos={treinos}
+              exercicios={exercicios}
+              onTreinosChange={setTreinos}
+              onExerciciosChange={setExercicios}
+            />
+          )}
+          {aba === 'biblioteca' && <BibliotecaExerciciosAba modalidade={modalidade} />}
+          {aba === 'acompanhamento' && programaAtual && (
+            <PainelAcompanhamentoAba
+              programaId={programaAtual.id}
+              semanas={semanas}
+              notas={notas}
+              onNotasChange={setNotas}
+            />
+          )}
+          {aba === 'ferramenta' && <FerramentaPeriodizacaoIframe />}
+        </div>
+
+        {/* Lista de programas */}
+        <ListaProgramasModalidade
+          programas={programas}
+          modalidade={modalidade}
+          carregando={carregando}
+          onAbrir={(id) => irPara({ programa: id, aba: null })}
+          onNovo={abrirDialogoNovoPrograma}
+          onExcluir={handleExcluirPrograma}
+        />
       </div>
 
       {/* Diálogo novo programa */}
@@ -340,6 +361,54 @@ export const Programas: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de paciente da importação */}
+      <Dialog open={dialogoPacienteImport} onOpenChange={setDialogoPacienteImport}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular o programa importado a um paciente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              {resumoImportacaoPendente
+                ? `O arquivo "${resumoImportacaoPendente.nome}" foi lido com sucesso. Escolha o paciente/cliente para salvar o programa:`
+                : 'Escolha o paciente/cliente para salvar o programa:'}
+            </p>
+            <div>
+              <Label htmlFor="import-prog-paciente">Paciente / Cliente</Label>
+              <select
+                id="import-prog-paciente"
+                value={novoPacienteId}
+                onChange={(e) => setNovoPacienteId(e.target.value)}
+                required
+                className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Selecione o paciente…</option>
+                {novoPacientes.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDialogoPacienteImport(false)
+                setResumoImportacaoPendente(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmarPacienteImport} disabled={criando || !novoPacienteId}>
+              {criando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Salvar programa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 
@@ -347,9 +416,12 @@ export const Programas: React.FC = () => {
     setNovoNome('')
     setNovoPacienteId('')
     setDialogoNovo(true)
-    getPacientes()
-      .then((res) => {
-        const itens = 'items' in res ? res.items : (res as unknown as PacienteRecord[])
+    carregarPacientes()
+  }
+
+  function carregarPacientes() {
+    getAllPacientes()
+      .then((itens) => {
         setNovoPacientes(itens.map((p) => ({ id: p.id, nome: p.nome || p.id })))
       })
       .catch(() => setNovoPacientes([]))
@@ -382,7 +454,7 @@ export const Programas: React.FC = () => {
       console.error('Erro ao criar programa:', err)
       toast({
         title: 'Erro ao criar programa',
-        description: getErrorMessage(err),
+        description: mensagemErroEtapa('Falha ao gravar o programa', err),
         variant: 'destructive',
       })
     } finally {
@@ -390,33 +462,33 @@ export const Programas: React.FC = () => {
     }
   }
 
-  async function handleImportarNovo() {
-    setDialogoNovo(false)
-    irPara({ programa: null, aba: 'importacao' })
-  }
-
-  // Paciente selecionado no diálogo é reaproveitado pela importação,
-  // que também precisa de paciente_id (obrigatório no banco).
-  function garantirPacienteParaImportacao(): string | null {
-    if (novoPacienteId) return novoPacienteId
-    toast({
-      title: 'Selecione o paciente',
-      description:
-        'Antes de importar, escolha o paciente do programa no botão "Novo programa" (ou crie o programa por lá).',
-      variant: 'destructive',
-    })
-    return null
-  }
-
-  async function handleExcluirPrograma(id: string) {
-    await deletePrograma(id)
-    await carregarProgramas()
-  }
-
-  async function handleProgramaImportado(resumo: ResultadoImportacaoPrograma) {
+  // Chamado pelo PainelImportacaoAba ao confirmar a importação lida.
+  // Se ainda não há paciente escolhido, abre o diálogo para vincular antes de gravar.
+  function handleProgramaImportado(resumo: ResultadoImportacaoPrograma) {
     if (!modalidade) return
-    const pacienteParaVincular = garantirPacienteParaImportacao()
-    if (!pacienteParaVincular) return
+    if (novoPacienteId) {
+      void gravarProgramaImportado(resumo, novoPacienteId)
+    } else {
+      setResumoImportacaoPendente(resumo)
+      setNovoPacienteId('')
+      carregarPacientes()
+      setDialogoPacienteImport(true)
+    }
+  }
+
+  function handleConfirmarPacienteImport() {
+    if (!resumoImportacaoPendente || !novoPacienteId) return
+    const resumo = resumoImportacaoPendente
+    setDialogoPacienteImport(false)
+    setResumoImportacaoPendente(null)
+    void gravarProgramaImportado(resumo, novoPacienteId)
+  }
+
+  async function gravarProgramaImportado(
+    resumo: ResultadoImportacaoPrograma,
+    pacienteParaVincular: string,
+  ) {
+    if (!modalidade) return
     setImportando(true)
     try {
       // 1. Programa
@@ -473,12 +545,32 @@ export const Programas: React.FC = () => {
       console.error('Erro ao salvar programa importado:', err)
       toast({
         title: 'Erro ao salvar o programa',
-        description: getErrorMessage(err),
+        description: mensagemErroEtapa('Erro ao salvar o programa importado', err, {
+          paciente_id: 'Paciente',
+          unidade_duracao: 'Unidade de duração',
+          total_periodos: 'Total de períodos',
+          programa_id: 'Vínculo com o programa',
+          indice: 'Índice da semana',
+          rotulo: 'Rótulo da semana',
+          carga_planejada_kg: 'Carga planejada',
+          horas_treino: 'Horas de treino',
+          semana_indice: 'Semana do treino',
+          ordem: 'Ordem',
+          series: 'Séries',
+          tipo_repeticao: 'Tipo de repetição',
+          quantidade: 'Repetições',
+          observacao: 'Observação',
+        }),
         variant: 'destructive',
       })
     } finally {
       setImportando(false)
     }
+  }
+
+  async function handleExcluirPrograma(id: string) {
+    await deletePrograma(id)
+    await carregarProgramas()
   }
 
   useEffect(() => {
@@ -500,10 +592,9 @@ const ListaProgramasModalidade: React.FC<{
   modalidade: ModalidadePrograma
   carregando: boolean
   onAbrir: (id: string) => void
-  onImportar: () => void
   onNovo: () => void
   onExcluir: (id: string) => void
-}> = ({ programas, modalidade, carregando, onAbrir, onImportar, onNovo, onExcluir }) => {
+}> = ({ programas, modalidade, carregando, onAbrir, onNovo, onExcluir }) => {
   const { toast } = useToast()
   return (
     <Card>
@@ -517,9 +608,6 @@ const ListaProgramasModalidade: React.FC<{
                 : `${programas.length} programa(s) de ${modalidade === 'reabilitacao' ? 'reabilitação' : 'personal'}.`}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onImportar}>
-              <FileSpreadsheet className="h-4 w-4 mr-1" /> Importar planilha
-            </Button>
             <Button size="sm" onClick={onNovo}>
               <Plus className="h-4 w-4 mr-1" /> Novo programa
             </Button>
