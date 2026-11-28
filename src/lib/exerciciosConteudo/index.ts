@@ -7,6 +7,7 @@
 import type { ConteudoExercicio } from './tipos'
 import { normalizarNome } from './tipos'
 import { buscarVideo, MAPA_VIDEOS } from './videos'
+import type { VideoInfo } from './videos'
 import { ALIAS_NOMES } from './aliases'
 import { SUPERIORES } from './superiores'
 import { PEITO } from './peito'
@@ -161,6 +162,11 @@ function melhorChave(
   for (const entrada of entradas) {
     const { cobertura, comum } = pontuar(consultaTokens, entrada.tokens)
     if (comum < MINIMO_TOKENS_COMUNS) continue
+    // Casamento por subsequência: se TODOS os tokens da chave aparecem na
+    // consulta, aceita mesmo com tokens extras na consulta (ex.: consulta
+    // "Agachamento no Smith machine" contém a chave "agachamento frontal no
+    // smith" após sinônimos). Caso contrário, exige a cobertura mínima.
+    if (comum < entrada.tokens.size && cobertura < LIMIAR_COBERTURA) continue
     if (
       !melhor ||
       cobertura > melhor.cobertura ||
@@ -169,7 +175,7 @@ function melhorChave(
       melhor = { chave: entrada.chave, cobertura, comum }
     }
   }
-  if (!melhor || melhor.cobertura < LIMIAR_COBERTURA) return null
+  if (!melhor) return null
   return { chave: melhor.chave, cobertura: melhor.cobertura }
 }
 
@@ -195,7 +201,37 @@ function conteudoSomenteVideo(nome: string): ConteudoExercicio | undefined {
   }
 }
 
+/**
+ * Overlay de vídeo/foto: se a entrada curada não tem vídeo (ou tem um que
+ * falhou na validação), tenta completar com o mapa de vídeos — por lookup
+ * direto e, em seguida, casamento tolerante de tokens sobre as chaves do
+ * mapa. Garante foto (thumbnail do YouTube) em todo exercício resolvido.
+ */
+function aplicarOverlayVideo(
+  entrada: ConteudoExercicio,
+  nomeNormalizado: string,
+): ConteudoExercicio {
+  const precisaVideo = !entrada.videoUrl || !extrairYouTubeId(entrada.videoUrl)
+  if (!precisaVideo) return entrada
+  const video = buscarVideo(nomeNormalizado) ?? melhorChaveVideo(nomeNormalizado)
+  if (!video) return entrada
+  return {
+    ...entrada,
+    videoUrl: `https://www.youtube-nocookie.com/watch?v=${video.videoId}`,
+    foto: entrada.foto || `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+    fotoAlt: entrada.fotoAlt || `Foto de execução do exercício ${nomeNormalizado}`,
+  }
+}
+
 const CACHE_BUSCA = new Map<string, ConteudoExercicio | undefined>()
+
+/** Busca tolerante no mapa de vídeos: tokens da consulta sobre as chaves. */
+function melhorChaveVideo(nomeNormalizado: string): VideoInfo | undefined {
+  const tokens = tokensDe(nomeNormalizado)
+  if (tokens.length === 0) return undefined
+  const palpite = melhorChave(tokens, ENTRADAS_VIDEOS)
+  return palpite ? MAPA_VIDEOS[palpite.chave] : undefined
+}
 
 /**
  * Busca tolerante: nome exato → alias → tokens → vídeo. Retorna undefined
@@ -222,9 +258,11 @@ export function buscarConteudo(nome: string): ConteudoExercicio | undefined {
     const tokens = tokensDe(n)
     const palpite = melhorChave(tokens, ENTRADAS_DICIONARIO)
     if (palpite) {
-      resultado = INDICE_NORMALIZADO[palpite.chave]
+      const base = INDICE_NORMALIZADO[palpite.chave]
+      resultado = aplicarOverlayVideo({ ...base }, n)
     } else {
-      // 3. Sem entrada curada: tenta o mapa de vídeos (foto + vídeo).
+      // 3. Sem entrada curada: tenta o mapa de vídeos de forma tolerante
+      // (tokens sobre as CHAVES do mapa), depois lookup direto.
       const palpiteVideo = melhorChave(tokens, ENTRADAS_VIDEOS)
       if (palpiteVideo) {
         resultado = conteudoSomenteVideo(palpiteVideo.chave)
