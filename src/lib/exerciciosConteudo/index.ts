@@ -3,6 +3,7 @@
 
 import type { ConteudoExercicio } from './tipos'
 import { normalizarNome } from './tipos'
+import { buscarVideo } from './videos'
 import { SUPERIORES } from './superiores'
 import { PEITO } from './peito'
 import { OMBRO } from './ombro'
@@ -33,6 +34,23 @@ for (const entrada of INFERIORES) {
     descricao: entrada.descricao,
     errosComuns: entrada.errosComuns,
     musculos: entrada.musculos,
+  }
+}
+
+// Overlay de vídeos/fotos: exercícios com vídeo no mapa de canais de
+// referência ganham videoUrl (watch youtube-nocookie) e foto (thumbnail
+// hqdefault do próprio vídeo) sem alterar os arquivos de grupo um a um.
+// Explicação/erros/músculos já curados são preservados.
+for (const [nome, conteudo] of Object.entries(DICIONARIO)) {
+  const video = buscarVideo(nome)
+  if (video && !conteudo.videoUrl) {
+    conteudo.videoUrl = `https://www.youtube-nocookie.com/watch?v=${video.videoId}`
+    if (!conteudo.foto) {
+      conteudo.foto = `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
+      if (!conteudo.fotoAlt) {
+        conteudo.fotoAlt = `Foto de execução do exercício ${nome}`
+      }
+    }
   }
 }
 
