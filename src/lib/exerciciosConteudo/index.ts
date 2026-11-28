@@ -223,6 +223,16 @@ function aplicarOverlayVideo(
   }
 }
 
+/** Extrai o ID de 11 caracteres de URLs do YouTube (watch, youtu.be, embed/nocookie). */
+export function extrairYouTubeId(url: string | undefined | null): string | null {
+  if (!url) return null
+  const m =
+    url.match(/[?&]v=([A-Za-z0-9_-]{11})/) ||
+    url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) ||
+    url.match(/youtube(?:-nocookie)?\.com\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/)
+  return m ? m[1] : null
+}
+
 const CACHE_BUSCA = new Map<string, ConteudoExercicio | undefined>()
 
 /** Busca tolerante no mapa de vídeos: tokens da consulta sobre as chaves. */
