@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-28T09:14:47.890Z",
+  "generatedAt": "2026-11-28T09:34:32.589Z",
   "collections": [
     {
       "name": "users",
@@ -29,14 +29,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "calendar_token",
@@ -49,14 +54,24 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["pending", "approved", "suspended"]
+          "selectValues": [
+            "pending",
+            "approved",
+            "suspended"
+          ]
         },
         {
           "name": "especialidade",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico", "Geral"]
+          "selectValues": [
+            "Fisioterapia",
+            "Personal",
+            "Nutrição",
+            "Médico",
+            "Geral"
+          ]
         },
         {
           "name": "requested_at",
@@ -87,7 +102,14 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "adm", "secretaria", "professional", "profissional", "cliente"]
+          "selectValues": [
+            "admin",
+            "adm",
+            "secretaria",
+            "professional",
+            "profissional",
+            "cliente"
+          ]
         }
       ],
       "indexes": [
@@ -153,21 +175,30 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Ativo", "Inativo", "Pré-cadastro"]
+          "selectValues": [
+            "Ativo",
+            "Inativo",
+            "Pré-cadastro"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "origem_como_chegou",
@@ -337,7 +368,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico"]
+          "selectValues": [
+            "Fisioterapia",
+            "Personal",
+            "Nutrição",
+            "Médico"
+          ]
         },
         {
           "name": "data_hora",
@@ -356,7 +392,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Agendada", "Confirmada", "Concluída", "Cancelada"]
+          "selectValues": [
+            "Agendada",
+            "Confirmada",
+            "Concluída",
+            "Cancelada"
+          ]
         },
         {
           "name": "notas",
@@ -369,14 +410,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "origem",
@@ -442,14 +488,23 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Consulta", "Avaliação", "Nota"]
+          "selectValues": [
+            "Consulta",
+            "Avaliação",
+            "Nota"
+          ]
         },
         {
           "name": "especialidade",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico"]
+          "selectValues": [
+            "Fisioterapia",
+            "Personal",
+            "Nutrição",
+            "Médico"
+          ]
         },
         {
           "name": "titulo",
@@ -474,17 +529,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_timeline_paciente_data ON timeline (paciente_id, data_evento)"]
+      "indexes": [
+        "CREATE INDEX idx_timeline_paciente_data ON timeline (paciente_id, data_evento)"
+      ]
     },
     {
       "name": "avaliacoes_fisioterapia",
@@ -509,14 +571,19 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Fisioterapia"]
+          "selectValues": [
+            "Fisioterapia"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Rascunho", "Concluída"]
+          "selectValues": [
+            "Rascunho",
+            "Concluída"
+          ]
         },
         {
           "name": "queixa_principal",
@@ -649,14 +716,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "anamnese_detalhada",
@@ -792,7 +864,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"]
+      "indexes": [
+        "CREATE INDEX idx_afisio_paciente ON avaliacoes_fisioterapia (paciente_id)"
+      ]
     },
     {
       "name": "avaliacoes_personal",
@@ -817,14 +891,19 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Personal"]
+          "selectValues": [
+            "Personal"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Rascunho", "Concluída"]
+          "selectValues": [
+            "Rascunho",
+            "Concluída"
+          ]
         },
         {
           "name": "objetivo_principal",
@@ -844,7 +923,11 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Iniciante", "Intermediário", "Avançado"]
+          "selectValues": [
+            "Iniciante",
+            "Intermediário",
+            "Avançado"
+          ]
         },
         {
           "name": "frequencia_semanal",
@@ -953,14 +1036,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "anamnese_personal",
@@ -1078,7 +1166,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_apersonal_paciente ON avaliacoes_personal (paciente_id)"]
+      "indexes": [
+        "CREATE INDEX idx_apersonal_paciente ON avaliacoes_personal (paciente_id)"
+      ]
     },
     {
       "name": "avaliacoes_nutricao",
@@ -1103,14 +1193,19 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Nutrição"]
+          "selectValues": [
+            "Nutrição"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Rascunho", "Concluída"]
+          "selectValues": [
+            "Rascunho",
+            "Concluída"
+          ]
         },
         {
           "name": "peso",
@@ -1195,7 +1290,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Nunca", "Raramente", "Às vezes", "Frequentemente"]
+          "selectValues": [
+            "Nunca",
+            "Raramente",
+            "Às vezes",
+            "Frequentemente"
+          ]
         },
         {
           "name": "atividade_fisica",
@@ -1220,7 +1320,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Sim", "Não"]
+          "selectValues": [
+            "Sim",
+            "Não"
+          ]
         },
         {
           "name": "objetivos",
@@ -1257,14 +1360,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "user_id",
@@ -1280,7 +1388,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_anutri_paciente ON avaliacoes_nutricao (paciente_id)"]
+      "indexes": [
+        "CREATE INDEX idx_anutri_paciente ON avaliacoes_nutricao (paciente_id)"
+      ]
     },
     {
       "name": "avaliacoes_medico",
@@ -1305,14 +1415,19 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Médico"]
+          "selectValues": [
+            "Médico"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Rascunho", "Concluída"]
+          "selectValues": [
+            "Rascunho",
+            "Concluída"
+          ]
         },
         {
           "name": "queixa_principal",
@@ -1451,14 +1566,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "user_id",
@@ -1474,7 +1594,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_amedico_paciente ON avaliacoes_medico (paciente_id)"]
+      "indexes": [
+        "CREATE INDEX idx_amedico_paciente ON avaliacoes_medico (paciente_id)"
+      ]
     },
     {
       "name": "conhecimento_clinico",
@@ -1528,17 +1650,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_conhecimento_area ON conhecimento_clinico (segmento_ou_area)"]
+      "indexes": [
+        "CREATE INDEX idx_conhecimento_area ON conhecimento_clinico (segmento_ou_area)"
+      ]
     },
     {
       "name": "evolucoes",
@@ -1569,7 +1698,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico"]
+          "selectValues": [
+            "Fisioterapia",
+            "Personal",
+            "Nutrição",
+            "Médico"
+          ]
         },
         {
           "name": "data_evolucao",
@@ -1624,21 +1758,29 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Finalizada", "Rascunho"]
+          "selectValues": [
+            "Finalizada",
+            "Rascunho"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "numero_registro",
@@ -1687,7 +1829,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Rotina", "Corretiva"]
+          "selectValues": [
+            "Rotina",
+            "Corretiva"
+          ]
         },
         {
           "name": "eva_dor",
@@ -1778,17 +1923,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_google_sync_user ON google_calendar_syncs (user_id)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_google_sync_user ON google_calendar_syncs (user_id)"
+      ]
     },
     {
       "name": "access_logs",
@@ -1864,14 +2016,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -1928,14 +2085,25 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["avaliacao", "prontuario", "evolucao", "presenca"]
+          "selectValues": [
+            "avaliacao",
+            "prontuario",
+            "evolucao",
+            "presenca"
+          ]
         },
         {
           "name": "especialidade",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico", "Geral"]
+          "selectValues": [
+            "Fisioterapia",
+            "Personal",
+            "Nutrição",
+            "Médico",
+            "Geral"
+          ]
         },
         {
           "name": "entidade_id",
@@ -1966,14 +2134,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -2017,7 +2190,11 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["clinical_update", "access_request", "system"]
+          "selectValues": [
+            "clinical_update",
+            "access_request",
+            "system"
+          ]
         },
         {
           "name": "lida",
@@ -2042,14 +2219,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -2093,7 +2275,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["dias", "semanas", "meses"]
+          "selectValues": [
+            "dias",
+            "semanas",
+            "meses"
+          ]
         },
         {
           "name": "total_periodos",
@@ -2106,7 +2292,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["rascunho", "ativo", "concluido"]
+          "selectValues": [
+            "rascunho",
+            "ativo",
+            "concluido"
+          ]
         },
         {
           "name": "data_inicio",
@@ -2149,21 +2339,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "modalidade",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["reabilitacao", "personal"]
+          "selectValues": [
+            "reabilitacao",
+            "personal"
+          ]
         }
       ],
       "indexes": [
@@ -2231,14 +2429,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -2299,14 +2502,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "carga_planejada_kg",
@@ -2379,7 +2587,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["reps", "segundos"]
+          "selectValues": [
+            "reps",
+            "segundos"
+          ]
         },
         {
           "name": "quantidade",
@@ -2422,14 +2633,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "exercicio_id",
@@ -2522,14 +2738,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -2589,14 +2810,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -2663,14 +2889,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -2733,7 +2964,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Presente", "Confirmado", "Justificado", "Cancelado"]
+          "selectValues": [
+            "Presente",
+            "Confirmado",
+            "Justificado",
+            "Cancelado"
+          ]
         },
         {
           "name": "paciente_nome",
@@ -2752,14 +2988,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "horario",
@@ -2817,7 +3058,13 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Fisioterapia", "Personal", "Nutrição", "Médico", "Geral"]
+          "selectValues": [
+            "Fisioterapia",
+            "Personal",
+            "Nutrição",
+            "Médico",
+            "Geral"
+          ]
         },
         {
           "name": "autor_id",
@@ -2861,21 +3108,31 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "tipo_relatorio",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Relatório Clínico", "Resumo de Evolução", "Laudo", "Parecer"]
+          "selectValues": [
+            "Relatório Clínico",
+            "Resumo de Evolução",
+            "Laudo",
+            "Parecer"
+          ]
         }
       ],
       "indexes": [
@@ -2937,7 +3194,11 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["nenhum", "percentual", "valor"]
+          "selectValues": [
+            "nenhum",
+            "percentual",
+            "valor"
+          ]
         },
         {
           "name": "desconto_geral_valor",
@@ -2962,7 +3223,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["rascunho", "finalizada"]
+          "selectValues": [
+            "rascunho",
+            "finalizada"
+          ]
         },
         {
           "name": "paciente_nome",
@@ -2982,14 +3246,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "capa_foto",
@@ -3155,7 +3424,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Finalizada", "Ausência", "Desmarcada"]
+          "selectValues": [
+            "Finalizada",
+            "Ausência",
+            "Desmarcada"
+          ]
         },
         {
           "name": "motivo_desmarque",
@@ -3168,7 +3441,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Completo", "Rápido"]
+          "selectValues": [
+            "Completo",
+            "Rápido"
+          ]
         },
         {
           "name": "evaluacoes_dor",
@@ -3199,7 +3475,9 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         }
       ],
       "indexes": [
@@ -3238,14 +3516,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -3282,14 +3565,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -3350,14 +3638,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "paciente_id",
@@ -3395,7 +3688,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["feminino", "masculino", "outro", "nao_informado"]
+          "selectValues": [
+            "feminino",
+            "masculino",
+            "outro",
+            "nao_informado"
+          ]
         },
         {
           "name": "metas",
@@ -3404,7 +3702,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_saude_clientes_user ON saude_clientes (user_id)"]
+      "indexes": [
+        "CREATE INDEX idx_saude_clientes_user ON saude_clientes (user_id)"
+      ]
     },
     {
       "name": "saude_registros",
@@ -3474,14 +3774,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -3517,7 +3822,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["orientacao", "dica", "desenvolvimento_pessoal", "exame"]
+          "selectValues": [
+            "orientacao",
+            "dica",
+            "desenvolvimento_pessoal",
+            "exame"
+          ]
         },
         {
           "name": "data",
@@ -3550,17 +3860,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_saude_orientacoes_data ON saude_orientacoes (data DESC)"]
+      "indexes": [
+        "CREATE INDEX idx_saude_orientacoes_data ON saude_orientacoes (data DESC)"
+      ]
     },
     {
       "name": "saude_lembretes",
@@ -3603,7 +3920,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["nenhuma", "diaria", "semanal", "mensal"]
+          "selectValues": [
+            "nenhuma",
+            "diaria",
+            "semanal",
+            "mensal"
+          ]
         },
         {
           "name": "criado_por",
@@ -3617,14 +3939,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -3666,14 +3993,21 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["habito", "meta", "desafio"]
+          "selectValues": [
+            "habito",
+            "meta",
+            "desafio"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["ativo", "concluido"]
+          "selectValues": [
+            "ativo",
+            "concluido"
+          ]
         },
         {
           "name": "prazo",
@@ -3699,17 +4033,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_saude_dev_cliente ON saude_dev_pessoal (cliente_id)"]
+      "indexes": [
+        "CREATE INDEX idx_saude_dev_cliente ON saude_dev_pessoal (cliente_id)"
+      ]
     },
     {
       "name": "programa_acompanhamento_notas",
@@ -3758,7 +4099,11 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["pleno", "parcial", "nao"]
+          "selectValues": [
+            "pleno",
+            "parcial",
+            "nao"
+          ]
         },
         {
           "name": "autor_id",
@@ -3778,14 +4123,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
