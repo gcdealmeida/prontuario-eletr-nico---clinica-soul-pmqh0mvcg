@@ -73,7 +73,6 @@ export const CORE: Record<string, ConteudoExercicio> = {
     musculos: ['Reto abdominal'],
   },
   'Abdominal supra no solo com pernas em mesa e braços puxados de lado': {
-    pernas_apoio: true,
     descricao:
       'Deitado, pernas em mesa, um braço estendido ao lado. Eleve os ombros girando o tronco em direção ao joelho oposto, aperte o oblíquo e desça controlado sem deixar a lombar arquear.',
     errosComuns: [
